@@ -2,44 +2,75 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-yellow-100 font-sans">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between bg-white py-32 px-16 sm:items-start rounded-3xl shadow-xl">
-        
+    <div className="flex min-h-screen items-center justify-center bg-yellow-50 font-sans">
+      <main className="flex flex-col w-full max-w-5xl bg-white rounded-3xl shadow-xl p-12 sm:p-16 space-y-12">
+
         {/* Logo */}
-        <Image
-          src="/logo.svg"
-          alt="SocialApp logo"
-          width={48}
-          height={48}
-          priority
-        />
-
-        {/* Hero text */}
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-bold leading-10 tracking-tight text-gray-900">
-            Hello Alexandra 👋
-          </h1>
-
-          <p className="max-w-md text-lg leading-8 text-gray-600">
-            Bine ai venit pe <span className="font-semibold text-yellow-500">smile live app</span> —  
-            locul unde ideile, prietenii și conversațiile prind viață.
-          </p>
+        <div className="flex items-center justify-center sm:justify-start mb-6">
+          <Image
+            src="/logo.svg"
+            alt="Smile Live logo"
+            width={64}
+            height={64}
+            priority
+          />
         </div>
 
-        {/* CTA buttons */}
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <button
-            className="flex h-12 w-full items-center justify-center rounded-full bg-yellow-400 px-6 text-black transition hover:bg-yellow-500 md:w-[158px]"
-          >
+        {/* Hero Section */}
+        <section className="flex flex-col items-center sm:items-start text-center sm:text-left gap-6">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
+            😊 Smile Live — The Future of Connection
+          </h1>
+          <p className="text-gray-700 text-lg sm:text-xl max-w-3xl leading-relaxed">
+            Welcome to <span className="font-semibold text-yellow-500">Smile Live App</span> —  
+            a next-generation social ecosystem built to foster authentic human connections 
+            with real-time engagement and AI-driven positivity. Focused on user well-being, 
+            data sovereignty, and immersive live experiences. 👥
+          </p>
+        </section>
+
+        {/* Key Features */}
+        <section className="grid sm:grid-cols-2 gap-8">
+          <div className="bg-yellow-100 p-6 rounded-xl shadow hover:shadow-lg transition">
+            <h3 className="font-semibold text-gray-900 text-lg mb-2">Immersive Live Streaming</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              4K HDR broadcasting with AR filters reacting to the streamer’s emotions in real-time.
+            </p>
+          </div>
+
+          <div className="bg-yellow-100 p-6 rounded-xl shadow hover:shadow-lg transition">
+            <h3 className="font-semibold text-gray-900 text-lg mb-2">Smile AI Moderator</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Proprietary AI filters toxic behavior, ensuring a safe & positive "Smile Zone".
+            </p>
+          </div>
+
+          <div className="bg-yellow-100 p-6 rounded-xl shadow hover:shadow-lg transition">
+            <h3 className="font-semibold text-gray-900 text-lg mb-2">Smart Communities</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Dynamic micro-communities called "Vibes", based on shared values & activities.
+            </p>
+          </div>
+
+          <div className="bg-yellow-100 p-6 rounded-xl shadow hover:shadow-lg transition">
+            <h3 className="font-semibold text-gray-900 text-lg mb-2">Decentralized Identity</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Web3 identity protocols allow users to own their data and migrate across the decentralized web.
+            </p>
+          </div>
+        </section>
+
+
+
+        {/* CTA Buttons */}
+        <section className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
+          <button className="flex h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-black font-semibold transition hover:bg-yellow-500">
             Începe acum
           </button>
-
-          <button
-            className="flex h-12 w-full items-center justify-center rounded-full border border-yellow-400 px-6 text-yellow-500 transition hover:bg-yellow-50 md:w-[158px]"
-          >
+          <button className="flex h-12 items-center justify-center rounded-full border border-yellow-400 px-6 text-yellow-500 font-semibold transition hover:bg-yellow-50">
             Află mai mult
           </button>
-        </div>
+        </section>
 
       </main>
     </div>

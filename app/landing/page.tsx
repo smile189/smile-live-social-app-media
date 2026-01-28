@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import Header from "./header/header";
+import Footer from "./footer/footer";
 
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center font-sans overflow-hidden bg-black">
-      
+      <Header />
       {/* Background Video cu Overlay Gradient */}
       <video
         className="absolute top-0 left-0 w-full h-full object-cover opacity-60"
@@ -71,11 +73,9 @@ export default function LandingPage() {
       <div className="absolute bottom-20 right-[10%] animate-pulse hidden sm:block">
         <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-3xl">💛</div>
       </div>
+  <Footer />
 
-      {/* Footer info */}
-      <footer className="absolute bottom-8 z-10 text-white/40 text-sm tracking-widest uppercase">
-        © 2026 Smile Live App • Coming Soon
-      </footer>
+
 
       <style jsx global>{`
         @keyframes float {

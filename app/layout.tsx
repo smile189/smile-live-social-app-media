@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smile Live App-redefine entertaoment with Smile Live",
-  description: "Powered by BM",
+  title: "Smile Live App-redefine entertaiment with Smile Live",
+  description: "Powered by Alexandra storyteller ",
 };
 
 export default function RootLayout({

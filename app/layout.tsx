@@ -31,8 +31,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smile Live App-redefine entertaiment with Smile Live",
-  description: "Inspired by Alexandra storyteller ",
+  title: "Smile Live App - Redefine entertainment with Smile Live",
+  description: "Inspired by Alexandra storyteller",
+
+  themeColor: "#facc15", // 
 };
 
 export default function RootLayout({

@@ -18,8 +18,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -34,7 +32,7 @@ export const metadata: Metadata = {
   title: "Smile Live App - Redefine entertainment with Smile Live",
   description: "Inspired by Alexandra storyteller",
 
-  themeColor: "#facc15", // 
+  themeColor: "#facc15", // Codul hex pentru yellow-400 din Tailwind
 };
 
 export default function RootLayout({
@@ -44,10 +42,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Apple Safari Status Bar - Pentru iPhone */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* Specifică culoarea temei direct în head pentru compatibilitate maximă */}
+        <meta name="theme-color" content="#facc15" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-
         {children}
       </body>
     </html>

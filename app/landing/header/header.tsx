@@ -1,31 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useScroll, useMotionValueEvent, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import Link from "next/link";
 import { 
   Home, Compass, MessageCircle, User, 
   Plus, Bell, Settings, Zap, 
-  BarChart3, ShieldCheck, Megaphone, LogOut, Moon,
-  ArrowRight, Sparkles, LayoutGrid, X
+  BarChart3, ShieldCheck, Megaphone, LogOut, Sparkles, Moon,
+  ArrowRight
 } from "lucide-react";
 
-export default function UltraGlassBrutalistMenu() {
+export default function FloatingPremiumMenu() {
   const [active, setActive] = useState("Home");
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
-
-  // Mouse Glow Tracker
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 50);
@@ -40,142 +30,156 @@ export default function UltraGlassBrutalistMenu() {
   }, []);
 
   const navItems = [
-    { id: "Home", icon: <Home size={20} />, label: "Feed" },
+    { id: "Home", icon: <Home size={20} />, label: "Home" },
     { id: "Explore", icon: <Compass size={20} />, label: "Explore" },
-    { id: "Messages", icon: <MessageCircle size={20} />, label: "Message" },
+    { id: "Messages", icon: <MessageCircle size={20} />, label: "Chat", badge: 3 },
+    { id: "Profile", icon: <User size={20} />, label: "Log In" },
+  ];
+
+  const settingOptions = [
+    { id: "stats", icon: <BarChart3 size={18} />, label: "Analytics", color: "text-blue-600" },
+    { id: "ads", icon: <Megaphone size={18} />, label: "Ads Hub", color: "text-amber-600" },
+    { id: "privacy", icon: <ShieldCheck size={18} />, label: "Security", color: "text-emerald-600" },
+    { id: "dark", icon: <Moon size={18} />, label: "Interface", color: "text-indigo-600" },
   ];
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] p-4 md:p-6 flex justify-center pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 z-[100] p-3 md:p-6 flex justify-center pointer-events-none">
       <motion.div 
-        onMouseMove={handleMouseMove}
         layout
         className={`
           relative flex items-center justify-between 
-          w-full px-2 py-2
-          bg-white/70 backdrop-blur-3xl 
-          border border-white/80 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)]
-          rounded-[30px] md:rounded-[45px] pointer-events-auto group/menu
-          transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
-          ${isScrolled ? "max-w-xl md:max-w-2xl" : "max-w-6xl"}
+          w-full px-2 md:px-3 py-2
+          bg-white/80 backdrop-blur-2xl 
+          border-2 border-black shadow-[0_10px_40px_rgba(0,0,0,0.08)] 
+          rounded-[24px] md:rounded-[40px] 
+          pointer-events-auto transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
+          ${isScrolled ? "max-w-2xl py-1.5" : "max-w-5xl md:py-2.5"}
         `}
       >
-        {/* Glow Effect */}
-        <motion.div 
-          className="absolute -inset-px rounded-[inherit] opacity-0 group-hover/menu:opacity-100 transition-opacity duration-500 pointer-events-none"
-          style={{ background: `radial-gradient(400px circle at ${mouseX}px ${mouseY}px, rgba(255,255,255,1), transparent 80%)` }}
-        />
-
-        {/* LOGO */}
-        <Link href="/" className="relative z-10 ml-2">
+        {/* LOGO SECTION */}
+        <Link href="/" className="flex items-center gap-2 group shrink-0 ml-1">
           <motion.div 
-            whileHover={{ scale: 1.1, rotate: -8 }}
-            className="w-10 h-10 md:w-12 md:h-12 bg-black rounded-[18px] md:rounded-[22px] flex items-center justify-center text-white shadow-xl"
+            whileHover={{ rotate: 180, scale: 1.1 }}
+            className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center text-white shadow-lg"
           >
-            <Zap size={22} fill="white" />
+            <Zap size={20} fill="currentColor" className="text-yellow-400" />
           </motion.div>
+          {!isScrolled && (
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }} 
+              animate={{ opacity: 1, x: 0 }}
+              className="hidden lg:block font-black text-black tracking-tighter text-lg uppercase italic ml-1"
+            >
+              Smile<span className="text-rose-500">.</span>
+            </motion.span>
+          )}
         </Link>
 
-        {/* NAV SECTION */}
-        <nav className="flex items-center gap-1 md:gap-2 bg-black/5 p-1.5 rounded-full border border-black/5">
+        {/* NAVIGATION - PILL STYLE */}
+        <nav className="flex items-center gap-1 p-1 bg-black/5 rounded-full border border-black/5 shadow-inner">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActive(item.id)}
-              className="relative flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full transition-all duration-300"
+              className={`
+                relative flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-300
+                ${active === item.id ? "text-black" : "text-black/40 hover:text-black"}
+              `}
             >
-              <span className={`relative z-10 transition-colors duration-500 ${active === item.id ? "text-black" : "text-black/30"}`}>
-                {item.icon}
-              </span>
-              <AnimatePresence>
-                {active === item.id && !isScrolled && (
-                  <motion.span 
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "auto", opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    className="relative z-10 overflow-hidden text-[13px] font-black tracking-tight text-black hidden sm:block"
-                  >
+              <span className="relative z-10">{item.icon}</span>
+              {active === item.id && (
+                <>
+                  <motion.span layoutId="label" className="hidden md:block text-[11px] font-black uppercase tracking-widest relative z-10">
                     {item.label}
                   </motion.span>
-                )}
-              </AnimatePresence>
-              {active === item.id && (
-                <motion.div 
-                  layoutId="activeNav"
-                  className="absolute inset-0 bg-white shadow-sm border border-black/5 rounded-full"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
+                  <motion.div 
+                    layoutId="navPill"
+                    className="absolute inset-0 bg-white shadow-md border border-black/5 -z-0 rounded-full"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                </>
               )}
             </button>
           ))}
         </nav>
 
-        {/* ACTIONS HUB - THE BIG SHADOW DROP */}
-        <div className="flex items-center gap-2 relative z-10" ref={menuRef}>
-          <button className="hidden sm:flex p-2.5 text-black/30 hover:text-black transition-transform hover:scale-110">
+        {/* ACTIONS HUB - GLASS BRUTALIST */}
+        <div className="flex items-center gap-2 md:gap-3 relative" ref={menuRef}>
+          <button className="hidden sm:flex p-2 text-black/40 hover:text-black transition-transform hover:scale-110">
             <Bell size={21} strokeWidth={2.5} />
           </button>
+          
+          <motion.button 
+            whileHover={{ scale: 1.02, y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-black text-white h-11 px-4 md:px-6 rounded-[18px] flex items-center gap-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+          >
+            <Plus size={18} className="text-yellow-400" strokeWidth={3} />
+            <span className="hidden md:block text-[11px] font-black uppercase tracking-widest leading-none">POST</span>
+          </motion.button>
 
           <div className="relative">
             <motion.button 
               onClick={() => setShowSettings(!showSettings)}
-              whileTap={{ scale: 0.95 }}
-              className={`h-11 md:h-13 flex items-center gap-3 pl-2 pr-5 rounded-[22px] md:rounded-[26px] border-[2.5px] transition-all duration-300 ${
+              whileHover={{ scale: 1.05 }}
+              className={`w-11 h-11 rounded-[18px] flex items-center justify-center transition-all duration-500 border-2 ${
                 showSettings 
-                ? "bg-black text-white border-black" 
-                : "bg-white border-black text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
+                ? "bg-black border-black text-white rotate-90 shadow-xl" 
+                : "bg-white border-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1"
               }`}
             >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${showSettings ? "border-white/20 bg-white/10 rotate-90" : "border-black bg-white"}`}>
-                {showSettings ? <X size={18} /> : <LayoutGrid size={18} strokeWidth={2.5} />}
-              </div>
-              <span className="hidden md:block text-[11px] font-black uppercase tracking-[0.2em]">MENU</span>
+              {showSettings ? <Settings size={20} /> : <User size={20} />}
             </motion.button>
 
-            {/* WHITE GLASS DROPDOWN */}
             <AnimatePresence>
               {showSettings && (
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.9, rotate: 2 }}
-                  animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.9, rotate: -2 }}
-                  className="absolute right-0 mt-6 w-72 md:w-80 bg-white/90 backdrop-blur-3xl border-[2.5px] border-black shadow-[15px_15px_0px_0px_rgba(0,0,0,1)] rounded-[35px] p-3 overflow-hidden"
+                  initial={{ opacity: 0, y: 20, scale: 0.95, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: 15, scale: 0.95, filter: "blur(10px)" }}
+                  className="absolute right-0 mt-5 w-72 md:w-80 bg-white/95 backdrop-blur-3xl border-2 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] rounded-[32px] p-3 overflow-hidden"
                 >
-                  <div className="p-5 bg-black rounded-[28px] text-white flex items-center gap-4 mb-3 relative overflow-hidden group/card">
-                    <div className="relative z-10 w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                       <User size={22} className="text-white" />
+                  {/* User Profile Banner */}
+                  <div className="flex items-center gap-3 p-4 mb-2 bg-black rounded-[24px] text-white overflow-hidden relative group">
+                    <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-lg relative z-10">
+                      <Zap size={20} fill="currentColor" className="text-yellow-400" />
                     </div>
                     <div className="flex flex-col relative z-10">
-                       <span className="text-[10px] font-black opacity-40 uppercase tracking-widest leading-none">Access Level 01</span>
-                       <span className="text-lg font-black italic tracking-tighter uppercase">Adrian_Sys</span>
+                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">Session Active</span>
+                      <span className="text-sm font-black italic tracking-tighter uppercase leading-none">Adrian_X.sys</span>
                     </div>
-                    <Sparkles className="absolute right-[-10px] top-[-10px] text-white/5 w-24 h-24 group-hover:rotate-12 transition-transform duration-700" />
+                    <Sparkles className="absolute right-[-10px] top-[-10px] text-white/5 w-24 h-24 rotate-12" />
                   </div>
 
-                  <div className="space-y-1">
-                    {[
-                      { label: "Analytics", icon: <BarChart3 size={18} />, color: "hover:bg-blue-50" },
-                      { label: "Security", icon: <ShieldCheck size={18} />, color: "hover:bg-emerald-50" },
-                      { label: "Ads Hub", icon: <Megaphone size={18} />, color: "hover:bg-orange-50" },
-                      { label: "Interface", icon: <Moon size={18} />, color: "hover:bg-purple-50" }
-                    ].map((item, idx) => (
-                      <motion.button 
-                        key={item.label}
-                        initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.05 }}
-                        className={`group flex items-center justify-between w-full p-4 rounded-[22px] border-2 border-transparent hover:border-black transition-all ${item.color} hover:bg-white`}
+                  {/* Settings Bento List */}
+                  <div className="grid grid-cols-1 gap-1">
+                    {settingOptions.map((opt, idx) => (
+                      <motion.button
+                        key={opt.id}
+                        initial={{ x: 20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="group w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-black hover:text-white transition-all duration-300"
                       >
                         <div className="flex items-center gap-4">
-                          <span className="p-2.5 bg-black text-white rounded-xl group-hover:scale-110 transition-transform duration-500">{item.icon}</span>
-                          <span className="text-[14px] font-black text-black tracking-tight">{item.label}</span>
+                          <span className={`p-2.5 rounded-xl bg-white border-2 border-black/5 group-hover:border-white/20 group-hover:bg-white group-hover:text-black transition-all ${opt.color}`}>
+                            {opt.icon}
+                          </span>
+                          <span className="text-[13px] font-black tracking-tight">{opt.label}</span>
                         </div>
-                        <ArrowRight size={18} className="text-black opacity-0 -translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                        <ArrowRight size={16} className="opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                       </motion.button>
                     ))}
                   </div>
-
-                  <button className="w-full mt-3 p-4 bg-rose-500 text-white border-[2.5px] border-black rounded-[24px] flex items-center justify-center gap-3 font-black text-[11px] uppercase tracking-widest hover:bg-black transition-colors shadow-lg shadow-rose-200/20">
-                    <LogOut size={18} strokeWidth={3} /> Shutdown
-                  </button>
+                  
+                  {/* Logout Button */}
+                  <div className="mt-2 pt-2 border-t-2 border-black/5">
+                    <button className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-rose-500 text-white border-2 border-black hover:bg-black transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none font-black text-[11px] uppercase tracking-widest">
+                      <LogOut size={16} strokeWidth={3} />
+                      Terminate
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

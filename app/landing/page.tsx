@@ -10,14 +10,15 @@ export default function LandingPage() {
     <div className="relative min-h-screen flex flex-col items-center justify-center font-sans overflow-hidden bg-black">
       <Header />
       {/* Background Video cu Overlay Gradient */}
-      <video
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-60"
-        src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
+<video
+  className="absolute top-0 left-0 w-full h-full object-cover opacity-60"
+  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4"
+  autoPlay
+  loop
+  muted
+  playsInline
+/>
+
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80"></div>
 
       {/* Main Content Card */}

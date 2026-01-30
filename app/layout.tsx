@@ -17,7 +17,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-// 1. VIEWPORT - Optimizat pentru Mobile (previne zoom-ul nedorit pe input-uri)
+
 export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",
@@ -26,9 +26,9 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// 2. METADATA - SEO Beton & Social Share Architecture
+
 export const metadata: Metadata = {
-  // IMPORTANT: URL-ul de bază trebuie să fie cel real unde e urcat site-ul (ex: Vercel sau domeniu propriu)
+
   metadataBase: new URL('https://www.smileliveapp.com'), 
   
   title: {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
     description: "Experience 4K live feeds and interactive social moments. Inspired by Alexandra Storyteller.",
-    url: "https://www.smileliveapp.com", // FIX: Am închis ghilimelele aici
+    url: "https://www.smileliveapp.com", // 
     siteName: "Smile Live App",
     images: [
       {
@@ -66,10 +66,10 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
-      { url: "/logosmile.jpeg", href: "/logosmile.jpeg" }, 
+      { url: "./logosmile.jpeg", href: "/logosmile.jpeg" }, 
     ],
-    shortcut: "/logosmile.jpeg",
-    apple: "/logosmile.jpeg",
+    shortcut: "./logosmile.jpeg",
+    apple: "./logosmile.jpeg",
   },
 
 };

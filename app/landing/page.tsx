@@ -93,9 +93,10 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-          <h1 className="text-7xl sm:text-[15rem] font-black tracking-[-0.08em] leading-[0.7] italic mb-10">
-            SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>
-          </h1>
+         <h1 className="text-3xl md:text-9xl lg:text-[12rem] xl:text-[15rem] font-black tracking-[-0.08em] leading-[0.8] sm:leading-[0.7] italic mb-10 select-none">
+  SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>
+</h1>
+
 
           <p className="max-w-3xl mx-auto text-zinc-400 text-lg sm:text-2xl font-medium leading-relaxed mb-16">
             Social infrastructure built for <span className="text-white italic underline decoration-yellow-400 decoration-4 underline-offset-8">insane performance</span>. 
@@ -159,7 +160,7 @@ export default function LandingPage() {
         {/* SECTION: FINAL CALL */}
         <section className="px-6 py-60 text-center relative overflow-hidden">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] bg-red-600/20 blur-[200px] rounded-full pointer-events-none" />
-            <h2 className="text-7xl sm:text-[10rem] font-black italic uppercase tracking-tighter leading-none mb-16 relative z-10">
+            <h2 className="text-5xl sm:text-[10rem] font-black italic uppercase tracking-tighter leading-none mb-16 relative z-10">
                 DONT JUST WATCH.<br/><span className="text-red-600">SMILE.</span>
             </h2>
             <button className="relative z-10 px-20 py-10 bg-white text-black font-black uppercase text-sm rounded-full hover:scale-110 transition-transform shadow-2xl">

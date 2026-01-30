@@ -22,11 +22,11 @@ export default function Footer() {
               whileInView={{ opacity: 1, x: 0 }}
               className="space-y-4"
             >
-              <h2 className="text-5xl sm:text-7xl font-black italic tracking-[ -0.08em] uppercase text-white leading-none">
+              <h2 className="text-5xl sm:text-4xl font-black italic tracking-[ -0.08em] uppercase text-white leading-none">
                 SMILE <span className="text-red-600 group-hover:text-yellow-400 transition-colors duration-500">LIVE.</span>
               </h2>
               <p className="text-zinc-500 text-[10px] sm:text-xs font-black uppercase tracking-[0.5em]">
-                Next-Gen Social Infrastructure
+                Next-Gen Social Media Infrastructure
               </p>
             </motion.div>
 

@@ -28,11 +28,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// 1. Metadata rămâne doar cu titlul și descrierea
 export const metadata: Metadata = {
   title: "Smile Live App - Redefine entertainment with Smile Live",
   description: "Inspired by Alexandra storyteller",
+};
 
-  themeColor: "#facc15", // Codul hex pentru yellow-400 din Tailwind
+// 2. Creezi un export nou pentru Viewport
+export const viewport = {
+  themeColor: "#facc15",
 };
 
 export default function RootLayout({

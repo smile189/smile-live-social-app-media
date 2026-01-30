@@ -105,7 +105,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-6">
             <Link href="/app" className="group relative px-16 py-8 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]">
                <div className="absolute inset-0 bg-yellow-400 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-               <span className="relative z-10 flex items-center gap-4">Access Dashboard <ArrowRight size={20} /></span>
+               <span className="relative z-10 flex items-center gap-4">Go to app <ArrowRight size={20} /></span>
             </Link>
           </div>
         </section>

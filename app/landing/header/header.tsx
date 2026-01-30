@@ -121,7 +121,7 @@ export default function SocialLandingNav() {
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute right-0 top-[calc(100%+15px)] w-56 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-3xl border border-white/40 dark:border-white/10 shadow-2xl rounded-[28px] p-2"
                 >
-                  <Link href="/app" onClick={() => setShowPlusMenu(false)}>
+                  <Link href="/smile_social" onClick={() => setShowPlusMenu(false)}>
                     <div className="flex items-center justify-between p-4 rounded-[22px] bg-rose-500 text-white hover:bg-rose-600 transition-all group">
                       <div className="flex items-center gap-3">
                         <Send size={18} />

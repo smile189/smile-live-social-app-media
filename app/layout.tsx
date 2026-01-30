@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
     description: "Experience 4K live feeds and interactive social moments. The future is active.",
-    url: "https://smile-live.app",
-    siteName: "Smile Live",
+    url: "https://www.smileliveapp.com/,
+    siteName: "Smile Live app",
     images: [
       {
         url: "/logosmile.jpeg", // Imaginea din folderul /public

@@ -128,7 +128,7 @@ export default function LandingPage() {
           <p className="text-zinc-400 text-lg sm:text-2xl max-w-2xl mx-auto leading-relaxed font-medium">
             Next-gen social infrastructure. <br/>
             <span className="text-white italic underline decoration-yellow-400/40 underline-offset-8 uppercase tracking-widest text-sm font-black">
-              Experience the parallax future
+              Experience at the next level with 4K live streams & real-time interactions.
             </span>
           </p>
         </div>

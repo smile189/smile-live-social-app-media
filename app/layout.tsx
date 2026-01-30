@@ -15,9 +15,9 @@
  * -------------------------------------------------------------------------
  */
 import type { Metadata, Viewport } from "next";
-import "./globals.css"; // Asigură-te că importul de CSS e corect
+import "./globals.css";
 
-// 1. VIEWPORT - Setări pentru browser și culori de interfață
+// 1. VIEWPORT - Optimizat pentru Mobile (previne zoom-ul nedorit pe input-uri)
 export const viewport: Viewport = {
   themeColor: "#facc15",
   width: "device-width",
@@ -26,38 +26,37 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// 2. METADATA - SEO Beton & Social Share
+// 2. METADATA - SEO Beton & Social Share Architecture
 export const metadata: Metadata = {
+  // IMPORTANT: URL-ul de bază trebuie să fie cel real unde e urcat site-ul (ex: Vercel sau domeniu propriu)
+  metadataBase: new URL('https://www.smileliveapp.com'), 
+  
   title: {
     default: "Smile Live App - Redefine Entertainment",
     template: "%s | Smile Live"
   },
   description: "Inspired by Alexandra Storyteller. Experience the next evolution of social media with 4K live streams and real-time interaction.",
-  metadataBase: new URL('https://smile-live.app'), // Schimbă cu domeniul tău la final
   
-  // SEO de bază
   keywords: ["Smile Live", "Social Media App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
   authors: [{ name: "Smile Live Team" }],
   
-  // Facebook / WhatsApp / LinkedIn Share
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
-    description: "Experience 4K live feeds and interactive social moments. The future is active.",
-    url: "https://www.smileliveapp.com/,
-    siteName: "Smile Live app",
+    description: "Experience 4K live feeds and interactive social moments. Inspired by Alexandra Storyteller.",
+    url: "https://www.smileliveapp.com", // FIX: Am închis ghilimelele aici
+    siteName: "Smile Live App",
     images: [
       {
-        url: "/logosmile.jpeg", // Imaginea din folderul /public
+        url: "/logosmile.jpeg", 
         width: 1200,
         height: 630,
-        alt: "Smile Live App Interface",
+        alt: "Smile Live App Interface Preview",
       },
     ],
     locale: "ro_RO",
     type: "website",
   },
 
-  // Twitter (X) Share
   twitter: {
     card: "summary_large_image",
     title: "Smile Live | Next-Gen Social Media",
@@ -65,7 +64,6 @@ export const metadata: Metadata = {
     images: ["/logosmile.jpeg"],
   },
 
-  // Favicons
   icons: {
     icon: "/logosmile.jpeg",
     shortcut: "/logosmile.jpeg",
@@ -79,8 +77,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ro">
-      <body>{children}</body>
+    <html lang="ro" className="scroll-smooth">
+      <body className="antialiased font-sans">
+        {children}
+      </body>
     </html>
   );
 }

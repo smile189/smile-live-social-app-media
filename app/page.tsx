@@ -5,6 +5,6 @@ export default function RootPage() {
   const userRole = "landing"; //
 
   if (userRole === "landing") redirect("/landing");
-  else if (userRole === "smile_social") redirect("/smile_social");
+  else if (userRole === "app") redirect("/app");
   else redirect("/dashboard");
 } 

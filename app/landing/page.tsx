@@ -21,9 +21,9 @@ export default function LandingPage() {
   const springY = useSpring(y, { stiffness: 60, damping: 30 });
 
   // Transformări diferite pentru Background vs Logo (Parallax Effect)
-  const bgX = useTransform(springX, (val) => val * 0.5); // Fundalul se mișcă mai puțin
+  const bgX = useTransform(springX, (val) => val * 0.5); // 
   const bgY = useTransform(springY, (val) => val * 0.5);
-  const logoX = useTransform(springX, (val) => val * 1.5); // Logo-ul se mișcă mai mult (efect 3D)
+  const logoX = useTransform(springX, (val) => val * 1.5); // 
   const logoY = useTransform(springY, (val) => val * 1.5);
 
   const enableSensors = async () => {
@@ -87,17 +87,11 @@ export default function LandingPage() {
         
         {/* Status Badge */}
         <motion.div className="mb-10 px-5 py-2 border border-white/10 bg-white/5 backdrop-blur-3xl rounded-full flex items-center gap-3 shadow-2xl">
-          <div className="relative flex h-2 w-2">
-            <span className={`absolute inset-0 rounded-full opacity-75 animate-ping ${isSensorActive ? 'bg-emerald-400' : 'bg-yellow-400'}`}></span>
-            <span className={`relative rounded-full h-2 w-2 ${isSensorActive ? 'bg-emerald-500' : 'bg-yellow-500'}`}></span>
-          </div>
-          <span className="text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-2">
-            {isSensorActive ? <Activity size={12} className="text-emerald-400" /> : <Zap size={12} className="text-yellow-400" />}
-            {isSensorActive ? "Neural Engine Active" : "Sensor System Ready"}
-          </span>
+
+
         </motion.div>
 
-        {/* LOGO DYNAMIC - ACUM SE MIȘCĂ REPROȘABIL */}
+        {/* LOGO DYNAMIC -  */}
         <motion.div 
           style={{ x: logoX, y: logoY }}
           className="relative mb-12"
@@ -135,7 +129,7 @@ export default function LandingPage() {
 
         <div className="mt-16 flex flex-col sm:flex-row gap-6 w-full justify-center items-center">
           <Link
-            href="/smile_social"
+            href="/app"
             onClick={enableSensors}
             className="group px-14 py-7 bg-white text-black font-black text-xs rounded-2xl flex items-center gap-4 hover:bg-yellow-400 transition-all shadow-[0_20px_50px_rgba(255,255,255,0.1)] active:scale-95 uppercase tracking-[0.2em]"
           >

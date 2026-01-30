@@ -19,7 +19,7 @@ import "./globals.css";
 
 // 1. VIEWPORT - Optimizat pentru Mobile (previne zoom-ul nedorit pe input-uri)
 export const viewport: Viewport = {
-  themeColor: "#facc15",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

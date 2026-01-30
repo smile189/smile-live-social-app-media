@@ -65,10 +65,13 @@ export const metadata: Metadata = {
   },
 
   icons: {
-    icon: "/logosmile.jpeg",
+    icon: [
+      { url: "/logosmile.jpeg", href: "/logosmile.jpeg" }, 
+    ],
     shortcut: "/logosmile.jpeg",
     apple: "/logosmile.jpeg",
   },
+
 };
 
 export default function RootLayout({

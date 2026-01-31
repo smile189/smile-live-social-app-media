@@ -1,6 +1,7 @@
 /**
- * PROJECT: Smile Live App Ecosystem
+ * PROJECT: Smile Live App Ecosystem- SOCIAL MEDIA PLATFORM
  * MODULE: RootLayout (Global Architecture)
+ * domain: smileliveapp.com/app/
  * -------------------------------------------------------------------------
  * EXECUTIVE BRIEF:
  * Smile Live is engineered as a high-fidelity digital ecosystem designed 
@@ -9,9 +10,16 @@
  * rigorous SEO compliance, and optimized core web vitals.
  * -------------------------------------------------------------------------
  * 
+ *  HISTORY VERSION (WEB app SUPPORT )
+ * 
+ * - v 0.13.270126 | 27-01-2026 | Initial creation of RootLayout with metadata and viewport settings.
+ * - v 0.13.270126 | 28-01-2026 | Updated metadata for SEO and social sharing optimization.
+ * -------------------------------------------------------------------------
+ * 
  * GOVERNANCE & ATTRIBUTION:
  * - Vision & Storytelling: S Alexandra
  * - Integration Technology & Lead Writing: BM
+ * * © 2026 Smile Live App. All rights reserved.
  * -------------------------------------------------------------------------
  */
 import type { Metadata, Viewport } from "next";
@@ -87,3 +95,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+//*************************************************  END OF STORY **************************************/

@@ -8,3 +8,4 @@ export default function RootPage() {
   else if (userRole === "app") redirect("/app");
   else redirect("/dashboard");
 } 
+//*************************************************  END OF STORY **************************************/

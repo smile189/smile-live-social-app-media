@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ActionButton from "@/components/ActionButton";
+import SidebarActions from "@/components/ActionButton";
 import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav"; //
 
@@ -27,6 +28,9 @@ export default function AppPage() {
           </section>
         ))}
       </div>
+         
+       <SidebarActions />
+
 
       {/* STRATUL 3: FOOTER (BOTTOM NAV) */}
       <BottomNav />

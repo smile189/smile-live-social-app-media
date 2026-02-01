@@ -12,7 +12,7 @@
  * 
  *  HISTORY VERSION (WEB app SUPPORT )
  * 
- * - v 0.13.270126 | 27-01-2026 | Initial creation of RootLayout with metadata and viewport settings.
+ * - v 0.13.270126 | 27-01-2026 | Initial creation of RootLayout with metadata and viewport settings (base version).
  * - v 0.13.270126 | 28-01-2026 | Updated metadata for SEO and social sharing optimization.
  * -------------------------------------------------------------------------
  * 
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   description: "Inspired by Alexandra Storyteller. Experience the next evolution of social media with 4K live streams and real-time interaction.",
   
-  keywords: ["Smile Live", "Social Media App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
+  keywords: ["Smile Live", "Social Media platform App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
   authors: [{ name: "Smile Live Team" }],
   
   openGraph: {

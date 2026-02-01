@@ -18,12 +18,7 @@ export default function AppPage() {
       <div className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar">
         {items.map((item) => (
           <section key={item.id} className="h-screen w-full snap-start relative flex flex-col justify-end p-8 pb-32">
-            <div className="absolute right-6 bottom-36 flex flex-col gap-6 z-20">
-              <ActionButton icon="💛" count="1.2k" />
-              <ActionButton icon="🗨️" count="452" />
-              <ActionButton icon="✈️" count="89" />
-            </div>
-            
+
             {/* Metadata Placeholder */}
             <div className="z-10">
               <div className="w-32 h-5 bg-yellow-400/20 border border-yellow-400/30 rounded mb-2" />

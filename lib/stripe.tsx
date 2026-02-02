@@ -11,11 +11,11 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 // init stripe business
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-
-  apiVersion: '2026', 
+  
+  apiVersion: '2025-01-27.clover', // 
   typescript: true,
   appInfo: {
     name: "smileliveapp.com stripe payments",
-    version: "1.13.0",
   },
 });
+

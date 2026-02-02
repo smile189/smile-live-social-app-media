@@ -36,7 +36,6 @@ export const viewport: Viewport = {
 
 
 export const metadata: Metadata = {
-
   metadataBase: new URL('https://www.smileliveapp.com'), 
   
   title: {
@@ -48,10 +47,11 @@ export const metadata: Metadata = {
   keywords: ["Smile Live", "Social Media platform App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
   authors: [{ name: "Smile Live Team" }],
   
+  // OpenGraph -  Facebook, WhatsApp, LinkedIn
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
     description: "Experience 4K live feeds and interactive social moments. Inspired by Alexandra Storyteller.",
-    url: "https://www.smileliveapp.com", // 
+    url: "https://www.smileliveapp.com",
     siteName: "Smile Live App",
     images: [
       {
@@ -65,21 +65,41 @@ export const metadata: Metadata = {
     type: "website",
   },
 
+  // x
   twitter: {
     card: "summary_large_image",
     title: "Smile Live | Next-Gen Social Media",
     description: "Join the future of 4K live streaming and real-time connection.",
     images: ["/logosmile.jpeg"],
+    // Optional: site: "@usernameX"
   },
 
+  // Icons - 
   icons: {
-    icon: [
-      { url: "./logosmile.jpeg", href: "/logosmile.jpeg" }, 
+    icon: "/logosmile.ico",         // Browser favicon
+    shortcut: "/logosmile.ico",     // Desktop shortcut
+    apple: "/logosmile.jpeg",       // Apple Touch Icon 
+    other: [
+      {
+        rel: 'icon',
+        type: 'image/jpeg',
+        url: '/logosmile.jpeg',
+      },
     ],
-    shortcut: "./logosmile.jpeg",
-    apple: "./logosmile.jpeg",
   },
 
+  // 
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({

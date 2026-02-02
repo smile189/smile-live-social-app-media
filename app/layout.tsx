@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     title: "Smile Live | Next-Gen Social Media",
     description: "Join the future of 4K live streaming and real-time connection.",
     images: ["/logosmile.jpeg"],
-    // Optional: site: "@usernameX"
+    // 
   },
 
   // Icons - 

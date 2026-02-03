@@ -7,11 +7,20 @@ interface PrivacySettings {
   personalization: boolean;
 }
 
+// Interfață pentru proprietățile componentei ToggleRow
+interface ToggleRowProps {
+  title: string;
+  desc: string;
+  active: boolean;
+  onChange?: (v: boolean) => void;
+  disabled?: boolean;
+}
+
 const GDPR: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [view, setView] = useState<'banner' | 'settings'>('banner');
   const [settings, setSettings] = useState<PrivacySettings>({
-    essential: true, // Strictly Necessary
+    essential: true,
     analytics: false,
     marketing: false,
     personalization: false,
@@ -24,8 +33,11 @@ const GDPR: React.FC = () => {
 
   const handleAction = (type: 'all' | 'none' | 'custom') => {
     let finalSettings = settings;
-    if (type === 'all') finalSettings = { essential: true, analytics: true, marketing: true, personalization: true };
-    if (type === 'none') finalSettings = { essential: true, analytics: false, marketing: false, personalization: false };
+    if (type === 'all') {
+      finalSettings = { essential: true, analytics: true, marketing: true, personalization: true };
+    } else if (type === 'none') {
+      finalSettings = { essential: true, analytics: false, marketing: false, personalization: false };
+    }
     
     localStorage.setItem('smile_live_gdpr', JSON.stringify({ ...finalSettings, date: new Date().toISOString() }));
     setIsVisible(false);
@@ -37,7 +49,6 @@ const GDPR: React.FC = () => {
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
       <div className="w-full max-w-xl bg-white dark:bg-[#0F0F0F] rounded-t-3xl sm:rounded-[32px] border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden">
         
-        {/* Header cu Back Button logic */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-900">
           {view === 'settings' ? (
             <button onClick={() => setView('banner')} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-[#FFD700] transition-colors">
@@ -59,7 +70,6 @@ const GDPR: React.FC = () => {
                 </p>
               </div>
 
-              {/* GDPR Requirement: Equal visual weight for Accept/Reject */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button 
                   onClick={() => handleAction('all')}
@@ -94,13 +104,13 @@ const GDPR: React.FC = () => {
                   title="Content Personalization" 
                   desc="Used to tailor your video feed." 
                   active={settings.personalization} 
-                  onChange={(v) => setSettings({...settings, personalization: v})} 
+                  onChange={(v: boolean) => setSettings({...settings, personalization: v})} 
                 />
                 <ToggleRow 
                   title="Analytics & Research" 
                   desc="Helps us fix bugs and improve Smile Live." 
                   active={settings.analytics} 
-                  onChange={(v) => setSettings({...settings, analytics: v})} 
+                  onChange={(v: boolean) => setSettings({...settings, analytics: v})} 
                 />
               </div>
               <button 
@@ -117,15 +127,16 @@ const GDPR: React.FC = () => {
   );
 };
 
-const ToggleRow = ({ title, desc, active, onChange, disabled = false }: any) => (
+const ToggleRow: React.FC<ToggleRowProps> = ({ title, desc, active, onChange, disabled = false }) => (
   <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
     <div className="flex-1 pr-4">
       <h4 className="text-[13px] font-black uppercase italic text-zinc-900 dark:text-zinc-100">{title}</h4>
       <p className="text-[10px] text-zinc-500 font-medium leading-tight">{desc}</p>
     </div>
     <button 
+      type="button"
       disabled={disabled}
-      onClick={() => onChange(!active)}
+      onClick={() => onChange && onChange(!active)}
       className={`relative w-11 h-6 rounded-full transition-all ${disabled ? 'opacity-50 grayscale' : ''} ${active ? 'bg-[#FFD700]' : 'bg-zinc-300 dark:bg-zinc-700'}`}
     >
       <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${active ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -134,4 +145,3 @@ const ToggleRow = ({ title, desc, active, onChange, disabled = false }: any) => 
 );
 
 export default GDPR;
-

@@ -67,7 +67,7 @@ const PolicyPage = () => {
 
 
           <Link 
-            href="/" 
+            href="/landing" 
             className="w-full sm:w-auto flex items-center justify-center gap-4 px-12 py-6 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black hover:bg-[#FFD700] dark:hover:bg-[#FFD700] hover:text-black transition-all rounded-2xl group shadow-xl shadow-black/5"
           >
             <svg 

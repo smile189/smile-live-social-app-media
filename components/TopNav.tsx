@@ -77,7 +77,7 @@ export default function TopNav() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search premium pulse..."
+                placeholder="Search smile live ..."
                 className="w-full bg-white/[0.05] backdrop-blur-3xl border border-white/10 rounded-2xl py-2 px-5 text-sm text-white focus:outline-none"
               />
               <button onClick={() => setIsSearching(false)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">

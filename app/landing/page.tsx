@@ -7,6 +7,7 @@ import { motion, useMotionValue, useSpring, useTransform, useInView } from "fram
 import { ArrowRight, Zap, Globe, Shield, Radio, Users, Sparkles, Cpu, Smartphone, BarChart3, Play } from "lucide-react";
 import Header from "./header/header";
 import Footer from "./footer/footer";
+import GDPR from "./gdpr/gdpr";
 
 // --- STATS COMPONENT ---
 const StatItem = ({ label, value }: { label: string; value: string }) => {
@@ -169,7 +170,7 @@ export default function LandingPage() {
         </section>
 
       </main>
-
+        <GDPR /> {/* GDPR EU   */} 
       <Footer />
     </div>
   );

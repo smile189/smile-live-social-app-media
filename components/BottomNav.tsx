@@ -7,7 +7,7 @@ export default function BottomNav() {
   const [active, setActive] = useState("feed");
 
   const navItems = [
-    { id: "feed", label: "Feed", icon: Home },
+    { id: "feed", label: "Home", icon: Home },
     { id: "hot", label: "Hot", icon: Compass },
     { id: "add", label: "Create", icon: Plus, isSpecial: true },
     { id: "chat", label: "Chat", icon: MessageSquare },

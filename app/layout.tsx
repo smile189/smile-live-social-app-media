@@ -24,7 +24,7 @@
  */
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
+import PageTransition from "./landing/layout_anim";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -110,7 +110,9 @@ export default function RootLayout({
   return (
     <html lang="ro" className="scroll-smooth">
       <body className="antialiased font-sans">
+        <PageTransition >
         {children}
+        </PageTransition >
       </body>
     </html>
   );

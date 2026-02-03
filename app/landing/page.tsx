@@ -79,7 +79,28 @@ export default function LandingPage() {
 
 
 
-
+          {/* LOGO DYNAMIC - THE PIECE DE RESISTANCE */}
+          <motion.div 
+            style={{ rotateX: logoRotationX, rotateY: logoRotationY, perspective: 1000 }}
+            className="relative z-10 mb-16 group cursor-none"
+          >
+            <div className="absolute -inset-16 bg-red-600/30 blur-[120px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
+            <motion.div 
+              whileHover={{ scale: 1.1 }}
+              className="relative p-2 rounded-[50px] bg-gradient-to-br from-white/30 via-transparent to-white/5 backdrop-blur-3xl border border-white/20 shadow-[0_50px_100px_-20px_rgba(255,0,0,0.3)]"
+            >
+              <div className="relative w-40 h-40 sm:w-60 sm:h-60 overflow-hidden rounded-[44px]">
+                <Image 
+                  src="/logosmile.jpeg" 
+                  alt="Smile Logo" 
+                  fill 
+                  priority
+                  unoptimized
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
 
          <h1 className="relative z-10 text-3xl md:text-9xl lg:text-[12rem] xl:text-[15rem] font-black tracking-[-0.08em] leading-[0.8] sm:leading-[0.7] italic mb-10 select-none">
             SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>

@@ -77,14 +77,7 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-10 mix-blend-overlay" />
           </div>
 
-          {/* RESTE ELEMENTELOR RĂMÂN ABSOLUT INTACTE */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative z-10 mb-12 px-5 py-2 border border-white/10 bg-white/5 backdrop-blur-2xl rounded-full flex items-center gap-3"
-          >
 
-          </motion.div>
 
           {/* LOGO DYNAMIC - THE PIECE DE RESISTANCE */}
           <motion.div 

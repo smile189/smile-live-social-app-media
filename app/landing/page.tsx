@@ -83,11 +83,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="relative z-10 mb-12 px-5 py-2 border border-white/10 bg-white/5 backdrop-blur-2xl rounded-full flex items-center gap-3"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute h-full w-full rounded-full bg-red-500 opacity-75"></span>
-              <span className="relative rounded-full h-2 w-2 bg-red-600"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Next-Gen Live Infrastructure</span>
+
           </motion.div>
 
           {/* LOGO DYNAMIC - THE PIECE DE RESISTANCE */}

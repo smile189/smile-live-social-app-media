@@ -48,7 +48,7 @@ const CleanSocialInvestorPage = () => {
           
           <div className="flex flex-col gap-2 border-l border-zinc-100 pl-6 h-fit">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Current Phase</span>
-            <span className="text-2xl font-medium tracking-tight italic">Seed Round 2026</span>
+            <span className="text-2xl font-medium tracking-tight italic">Start-up 2026</span>
           </div>
         </header>
 
@@ -62,9 +62,7 @@ const CleanSocialInvestorPage = () => {
             />
             <div className="absolute inset-0 border border-black/[0.03] pointer-events-none" />
           </div>
-          <p className="mt-4 text-[9px] font-medium text-zinc-400 uppercase tracking-widest text-right">
-            Visualization: Infrastructure Node v1.02 // Bucharest HQ
-          </p>
+
         </section>
 
         {/* --- DETAILED TEXT SECTIONS --- */}

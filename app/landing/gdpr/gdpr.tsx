@@ -66,7 +66,7 @@ const GDPR: React.FC = () => {
               <div className="space-y-3 text-center sm:text-left">
                 <h2 className="text-2xl font-black text-zinc-900 dark:text-white leading-tight uppercase italic">Your Privacy Choice</h2>
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
-                  Smile Live values your data. We use cookies for security, analytics, and to show you content that makes you smile. See our <a href="/privacy" className="text-[#FFD700] underline font-bold">Privacy Policy</a>.
+                  Smile Live values your data. We use cookies for security, analytics, and to show you content that makes you smile. See our <a href="landing/policy" className="text-[#FFD700] underline font-bold">Privacy Policy</a>.
                 </p>
               </div>
 

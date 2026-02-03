@@ -51,26 +51,52 @@ export default function Footer() {
             <div className="space-y-6">
               <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Explore</h4>
               <ul className="flex flex-col gap-4">
-                {["Platform", "Ecosystem", "Network", "Nodes"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors">
-                      {item} <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-y-1" />
+                {[
+                  { name: "Platform", href: "/app" },
+                  { name: "Ecosystem", href: "/" },
+                  { name: "Network", href: "/" },
+                  { name: "Nodes", href: "/" },
+                ].map((item) => (
+                  <li key={item.name}>
+                    <Link 
+                      href={item.href} 
+                      className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors"
+                    >
+                      {item.name} 
+                      <ArrowUpRight 
+                        size={12} 
+                        className="opacity-0 group-hover:opacity-100 transition-all -translate-y-0.5 group-hover:translate-x-0.5" 
+                      />
                     </Link>
                   </li>
                 ))}
               </ul>
+
             </div>
             <div className="space-y-6">
               <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Studio</h4>
-              <ul className="flex flex-col gap-4">
-                {["Manifesto", "Careers", "Privacy", "Security"].map((item) => (
-                  <li key={item}>
-                    <Link href="#" className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors">
-                      {item} <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-y-1" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+<ul className="flex flex-col gap-4">
+  {[
+    { name: "Manifesto", href: "/" },
+    { name: "Careers", href: "/" },
+    { name: "Privacy", href: "/landing/policy" }, // Ruta unde ai salvat fișierul anterior
+    { name: "Security", href: "/" },
+  ].map((item) => (
+    <li key={item.name}>
+      <Link 
+        href={item.href} 
+        className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors"
+      >
+        {item.name} 
+        <ArrowUpRight 
+          size={12} 
+          className="opacity-0 group-hover:opacity-100 transition-all -translate-y-0.5 group-hover:translate-x-0.5" 
+        />
+      </Link>
+    </li>
+  ))}
+</ul>
+
             </div>
           </div>
 

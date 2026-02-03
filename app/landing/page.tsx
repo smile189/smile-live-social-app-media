@@ -9,6 +9,7 @@ import Header from "./header/header";
 import Footer from "./footer/footer";
 import GDPR from "./gdpr/gdpr";
 
+
 // --- STATS COMPONENT ---
 const StatItem = ({ label, value }: { label: string; value: string }) => {
   const ref = useRef(null);

@@ -35,8 +35,8 @@ export default function SocialLandingNav() {
 
   const navLinks = [
     { id: "home", path: "/", icon: <Home size={20} /> },
-    { id: "explore", path: "/explore", icon: <Compass size={20} /> },
-    { id: "chat", path: "/messages", icon: <MessageCircle size={20} /> },
+    { id: "explore", path: "/", icon: <Compass size={20} /> },
+    { id: "chat", path: "/", icon: <MessageCircle size={20} /> },
   ];
 
   const devOptions = [
@@ -186,9 +186,12 @@ export default function SocialLandingNav() {
                   </div>
 
                   <div className="mt-2 p-3 border-t border-black/5 dark:border-white/5 text-center">
-                    <button className="w-full py-3 bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-tighter hover:bg-rose-600 transition-all shadow-lg">
-                      Investor Relations
-                    </button>
+<Link href="/landing/resource/sponsor" className="w-full">
+  <button className="w-full py-3 bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-tighter hover:bg-rose-600 transition-all shadow-lg">
+    Investor Relations
+  </button>
+</Link>
+
                   </div>
                 </motion.div>
               )}

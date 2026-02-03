@@ -113,6 +113,134 @@ export default function LandingPage() {
           </div>
         </section>
 
+
+        {/* --- SECTION: INDUSTRIAL ROADMAP WITH SEMI-OBSCURED SOCIAL BACKDROP --- */}
+        <section className="px-6 py-40 max-w-6xl mx-auto relative bg-black overflow-hidden">
+          
+          {/* FUNDAL SOCIAL AFUMAT (RADIAL PROJECTION) */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <Image 
+              src="/roadmap.jpg" 
+              alt="Social Backdrop"
+              fill
+              className="object-cover grayscale brightness-[0.15] contrast-[1.2]"
+              priority
+            />
+            {/* Mască Radială pentru integrare perfectă în negru */}
+            <div className="absolute inset-0 bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_10%,#000_85%)]" />
+            
+            {/* Textură Grainy */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-10 mix-blend-soft-light" />
+            
+            {/* Scanline Roșu Subtil */}
+            <motion.div 
+              animate={{ top: ["0%", "100%"] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+              className="absolute left-0 w-full h-[1px] bg-red-600/10 shadow-[0_0_15px_#ff0000] z-0"
+            />
+          </div>
+
+          {/* TITLU SECȚIUNE */}
+          <div className="mb-32 relative z-10">
+            <motion.div 
+              initial={{ width: 0 }}
+              whileInView={{ width: "100px" }}
+              className="h-[4px] bg-red-600 mb-6 shadow-[0_0_30px_#ff0000]"
+            />
+            <h2 className="text-7xl md:text-[10rem] font-black italic uppercase tracking-tighter leading-[0.8]">
+              The <span className="text-[#FFD700]">Roadmap.</span>
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-zinc-800 mt-4 italic">
+              Social_Infrastructure_Execution_Protocol_v2.0
+            </p>
+          </div>
+
+          <div className="relative z-10">
+            {/* LINIA DE PROGRES (CENTRALĂ/LATERALĂ) */}
+            <div className="absolute left-4 md:left-1/2 top-0 w-[2px] h-full bg-zinc-900/50 -translate-x-1/2">
+               <motion.div 
+                 initial={{ height: 0 }}
+                 whileInView={{ height: "100%" }}
+                 viewport={{ once: false }}
+                 transition={{ duration: 2.5, ease: "linear" }}
+                 className="absolute top-0 left-0 w-full bg-gradient-to-b from-red-600 via-[#FFD700] to-transparent shadow-[0_0_25px_#ff0000]"
+               />
+            </div>
+
+            <div className="space-y-32 md:space-y-56">
+              {[
+                { q: "Q1 2026", title: "Sovereign Node", status: "ACTIVE", desc: "Deployment of initial EEA server clusters. Bucharest node operational with <10ms latency.", side: "left" },
+                { q: "Q2 2026", title: "Spatial Gifting", status: "LOCKED", desc: "AR-based virtual economy. Proprietary 4K high-fidelity gift rendering engine.", side: "right" },
+                { q: "Q3 2026", title: "EU Grid Expand", status: "PLANNED", desc: "Berlin & Paris node activation. Full GDPR data residency sovereignty compliance.", side: "left" },
+                { q: "Q4 2026", title: "Series A Round", status: "PLANNED", desc: "Institutional scaling. Strategic expansion of sovereign node network across Tier-1 EU cities.", side: "right" },
+                { q: "Q1 2027", title: "Spatial Audio", status: "RESEARCH", desc: "Object-based audio protocol for immersive social environments and real-time spatial events.", side: "left" },
+                { q: "Q2 2027", title: "Creator Studio", status: "DEVELOPMENT", desc: "Next-gen dashboard with real-time analytics and integrated AR filter production tools.", side: "right" },
+                { q: "Q3 2027", title: "Global Mesh", status: "VISION", desc: "Decentralized node distribution crossing the Atlantic. Initial US-East Coast presence.", side: "left" },
+                { q: "Q4 2027", title: "Smile Protocol", status: "VISION", desc: "Opening the API for 3rd party high-fidelity social app development on our sovereign infra.", side: "right" }
+              ].map((phase, idx) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ margin: "-100px" }}
+                  className={`relative flex items-center justify-between w-full flex-col md:flex-row ${
+                    phase.side === 'right' ? 'md:flex-row-reverse' : ''
+                  }`}
+                >
+                  {/* Indicatorul care pulsează pe linie */}
+                  <div className="absolute left-4 md:left-1/2 -translate-x-1/2 w-4 h-4 bg-black border-2 border-red-600 rounded-full z-20 flex items-center justify-center">
+                    <motion.div 
+                        whileInView={{ scale: [1, 1.4, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className={`w-1.5 h-1.5 rounded-full ${phase.status === 'ACTIVE' ? 'bg-[#FFD700] shadow-[0_0_10px_#FFD700]' : 'bg-zinc-800'}`} 
+                    />
+                  </div>
+
+                  {/* Cardul cu Glitch la titlu */}
+                  <div className="w-full md:w-[45%] ml-12 md:ml-0 group">
+                    <div className="p-10 bg-black/40 backdrop-blur-md border border-zinc-900 group-hover:border-[#ff0000]/50 transition-all duration-500 relative overflow-hidden">
+                      
+                      <div className="flex justify-between items-center mb-6">
+                        <span className="text-[11px] font-black text-red-600 uppercase tracking-widest italic">
+                            {phase.q}
+                        </span>
+                        <span className="text-[9px] font-black text-zinc-700 uppercase tracking-tighter">Phase_0{idx + 1}</span>
+                      </div>
+                      
+                      {/* Titlu cu efect de glitch subtil la hover */}
+                      <h3 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter mb-6 group-hover:text-[#FFD700] transition-all group-hover:skew-x-1">
+                        {phase.title}
+                      </h3>
+                      
+                      <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tight leading-relaxed italic border-l border-zinc-800 pl-6 group-hover:border-[#FFD700] transition-colors">
+                        {phase.desc}
+                      </p>
+
+                      {/* Watermark Fundal */}
+                      <div className="absolute -bottom-4 -right-4 text-7xl font-black italic text-zinc-900 opacity-10 pointer-events-none group-hover:text-red-600/20 transition-colors">
+                        {phase.status}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="hidden md:block w-[45%]" />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* FOOTER ROADMAP */}
+          <div className="mt-40 text-center relative z-10">
+             <div className="h-px bg-gradient-to-r from-transparent via-zinc-900 to-transparent mb-12" />
+             <p className="text-[10px] font-black text-zinc-800 uppercase tracking-[1.5em] hover:text-red-600 transition-all cursor-default">
+               Execution_Is_Sovereignty
+             </p>
+          </div>
+        </section>
+
+
+
+
         {/* SECTION: BENTO GRID TECH */}
         <section className="px-6 py-32 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto">

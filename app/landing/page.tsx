@@ -229,54 +229,98 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* FOOTER ROADMAP */}
-          <div className="mt-40 text-center relative z-10">
-             <div className="h-px bg-gradient-to-r from-transparent via-zinc-900 to-transparent mb-12" />
-             <p className="text-[10px] font-black text-zinc-800 uppercase tracking-[1.5em] hover:text-red-600 transition-all cursor-default">
-               Execution_Is_Sovereignty
-             </p>
-          </div>
+
         </section>
 
 
 
+  {/* --- SECTION: 3D SOCIAL ECOSYSTEM RING --- */}
+<section className="relative py-40 md:py-60 bg-black overflow-hidden min-h-screen flex flex-col justify-center">
+  
+  {/* BACKGROUND EFFECTS */}
+  <div className="absolute inset-0 z-0">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[900px] h-[600px] md:h-[900px] bg-red-600 opacity-[0.03] blur-[120px] rounded-full" />
+    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-20 mix-blend-overlay pointer-events-none" />
+  </div>
 
-        {/* SECTION: BENTO GRID TECH */}
-        <section className="px-6 py-32 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto">
-            {/* Live Preview Card */}
-            <div className="md:col-span-8 relative bg-zinc-900/40 border border-white/10 rounded-[50px] overflow-hidden group min-h-[400px]">
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-transparent to-transparent" />
-                <Image 
-                    src="https://images.unsplash.com" 
-                    alt="4K Stream" fill unoptimized className="object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000" 
-                />
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <motion.div whileHover={{ scale: 1.2 }} className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-black cursor-pointer">
-                        <Play fill="black" size={32} />
-                    </motion.div>
-                </div>
-                <div className="absolute bottom-10 left-10 z-20">
-                    <h3 className="text-3xl font-black italic uppercase tracking-tighter">Ultra-Low Latency</h3>
-                    <p className="text-zinc-400 max-w-xs text-sm">Engineered for real-time interaction at global scale.</p>
-                </div>
-            </div>
+  <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-20 items-center">
+    
+    {/* LEFT SIDE: TEXT CONTENT */}
+    <div className="space-y-8">
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        className="flex items-center gap-3"
+      >
+        <div className="w-12 h-[1px] bg-[#FFD700]" />
+        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FFD700]">smile live ecosystem</span>
+      </motion.div>
+      
+      <h2 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.8] mb-6">
+        SMILE LIVE <br /> 
+        <span className="text-transparent" style={{ WebkitTextStroke: '1px #ff0000' }}></span>
+      </h2>
+      
+      <p className="text-zinc-500 max-w-md text-lg font-bold italic leading-relaxed uppercase tracking-tight">
+        Our ecosystem is a open social economy. From <span className="text-white">proprietary AR nodes</span> to high-fidelity creator expressions.
+      </p>
 
-            {/* Feature Cards */}
-            <div className="md:col-span-4 space-y-6">
-                <div className="p-10 bg-zinc-900/40 border border-white/10 rounded-[40px] hover:border-red-600/50 transition-colors group">
-                    <Smartphone className="text-red-600 mb-6 group-hover:scale-110 transition-transform" size={40} />
-                    <h4 className="text-xl font-black uppercase italic mb-2">Mobile Native</h4>
-                    <p className="text-zinc-500 text-sm italic">Stream 4K from any device, anywhere.</p>
-                </div>
-                <div className="p-10 bg-zinc-900/40 border border-white/10 rounded-[40px] hover:border-yellow-400/50 transition-colors group">
-                    <BarChart3 className="text-yellow-400 mb-6 group-hover:scale-110 transition-transform" size={40} />
-                    <h4 className="text-xl font-black uppercase italic mb-2">Live Metrics</h4>
-                    <p className="text-zinc-500 text-sm italic">Real-time engagement heatmaps.</p>
-                </div>
+      <div className="flex gap-12 pt-10">
+        <div className="flex flex-col">
+          <span className="text-4xl font-black italic text-red-600">0.01s</span>
+          <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest mt-2 italic">Node Latency</span>
+        </div>
+        <div className="flex flex-col border-l border-zinc-900 pl-12">
+          <span className="text-4xl font-black italic text-[#FFD700]">35%</span>
+          <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest mt-2 italic">Platform Yield</span>
+        </div>
+      </div>
+    </div>
+
+    {/* RIGHT SIDE: 3D RING CAROUSEL */}
+    <div className="relative h-[500px] md:h-[700px] flex items-center justify-center [perspective:1500px]">
+      
+
+
+      {/* The 3D Ring */}
+      <motion.div 
+        className="relative w-full h-full flex items-center justify-center [transform-style:preserve-3d]"
+        animate={{ rotateY: [0, 360] }}
+        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+      >
+        {[1, 2, 3, 4, 5, 6].map((id, idx) => (
+          <motion.div
+            key={id}
+            className="absolute w-40 h-60 md:w-56 md:h-80 rounded-2xl overflow-hidden border border-white/10 bg-zinc-900/40 backdrop-blur-md group"
+            style={{
+              transform: `rotateY(${idx * 60}deg) translateZ(clamp(250px, 30vw, 450px))`,
+            }}
+          >
+            <Image 
+              src={`/social${id}.jpg`} // Asigură-te că ai pozele social1.jpg, social2.jpg... în public
+              alt="Social Frame" 
+              fill 
+              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 opacity-60 group-hover:opacity-100"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+            <div className="absolute bottom-4 left-4 right-4">
+               <div className="h-[1px] w-8 bg-red-600 mb-3" />
+               <p className="text-[10px] font-black uppercase tracking-widest text-[#FFD700]">@User_Node_{id}</p>
+               <p className="text-[8px] font-bold text-zinc-500 uppercase italic">Live Protocol // AR</p>
             </div>
-          </div>
-        </section>
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  </div>
+
+  {/* Accent Line Footer */}
+  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-red-600/30 to-transparent" />
+</section>
+
+
+
+
 
         {/* SECTION: MASSIVE STATS */}
         <section className="px-6 py-40 bg-zinc-900/20 border-y border-white/5">

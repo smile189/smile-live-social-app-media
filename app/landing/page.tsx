@@ -58,12 +58,30 @@ export default function LandingPage() {
 
       <main className="relative z-10">
         
-        {/* HERO SECTION CU LOGO-UL REVENIT */}
-        <section className="flex flex-col items-center justify-center px-6 pt-40 pb-20 min-h-screen text-center">
+            {/* HERO SECTION CU LOGO-UL REVENIT ȘI POZĂ SCUFUNDATĂ */}
+        <section className="relative flex flex-col items-center justify-center px-6 pt-40 pb-20 min-h-screen text-center overflow-hidden">
+          
+          {/* POZĂ SCUFUNDATĂ ÎN FUNDAL (SUBMERGED IMAGE) */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <Image 
+              src="/herosmile.webp" // 
+              alt="Submerged Background"
+              fill
+              priority
+              className="object-cover grayscale opacity-20 brightness-[0.4] contrast-[1.2]"
+            />
+            {/* Mască radială pentru topire în fundalul negru */}
+            <div className="absolute inset-0 bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_10%,#000_80%)]" />
+            
+            {/* Textura Grainy pentru integrare fină */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-10 mix-blend-overlay" />
+          </div>
+
+          {/* RESTE ELEMENTELOR RĂMÂN ABSOLUT INTACTE */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-12 px-5 py-2 border border-white/10 bg-white/5 backdrop-blur-2xl rounded-full flex items-center gap-3"
+            className="relative z-10 mb-12 px-5 py-2 border border-white/10 bg-white/5 backdrop-blur-2xl rounded-full flex items-center gap-3"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute h-full w-full rounded-full bg-red-500 opacity-75"></span>
@@ -75,7 +93,7 @@ export default function LandingPage() {
           {/* LOGO DYNAMIC - THE PIECE DE RESISTANCE */}
           <motion.div 
             style={{ rotateX: logoRotationX, rotateY: logoRotationY, perspective: 1000 }}
-            className="relative mb-16 group cursor-none"
+            className="relative z-10 mb-16 group cursor-none"
           >
             <div className="absolute -inset-16 bg-red-600/30 blur-[120px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
             <motion.div 
@@ -95,23 +113,23 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-         <h1 className="text-3xl md:text-9xl lg:text-[12rem] xl:text-[15rem] font-black tracking-[-0.08em] leading-[0.8] sm:leading-[0.7] italic mb-10 select-none">
-  SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>
-</h1>
+         <h1 className="relative z-10 text-3xl md:text-9xl lg:text-[12rem] xl:text-[15rem] font-black tracking-[-0.08em] leading-[0.8] sm:leading-[0.7] italic mb-10 select-none">
+            SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>
+         </h1>
 
-
-          <p className="max-w-3xl mx-auto text-zinc-400 text-lg sm:text-2xl font-medium leading-relaxed mb-16">
+          <p className="relative z-10 max-w-3xl mx-auto text-zinc-400 text-lg sm:text-2xl font-medium leading-relaxed mb-16">
             Social infrastructure built for <span className="text-white italic underline decoration-yellow-400 decoration-4 underline-offset-8">insane performance</span>. 
             Experience 4K without the lag.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-6">
+          <div className="relative z-10 flex flex-col sm:flex-row gap-6">
             <Link href="/app" className="group relative px-16 py-8 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]">
                <div className="absolute inset-0 bg-yellow-400 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                <span className="relative z-10 flex items-center gap-4">Go to app <ArrowRight size={20} /></span>
             </Link>
           </div>
         </section>
+
 
 
         {/* --- SECTION: INDUSTRIAL ROADMAP WITH SEMI-OBSCURED SOCIAL BACKDROP --- */}

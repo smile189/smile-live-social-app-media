@@ -99,6 +99,7 @@ export default function AppPage() {
         ))}
       </div>
 
+
       {/* SIDEBAR */}
       <SidebarActions />
 

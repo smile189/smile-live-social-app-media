@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, X, Sparkles, Users, Compass, Play, Zap, Flame } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Bell, X, Sparkles, Users, Compass, Flame } from "lucide-react";
 
 interface LiveUser {
   id: string;
@@ -13,6 +14,7 @@ interface LiveUser {
 }
 
 export default function TopNav() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("foryou");
   const [isSearching, setIsSearching] = useState(false);
   const [showLiveGlass, setShowLiveGlass] = useState(false);
@@ -20,7 +22,7 @@ export default function TopNav() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // [SUPABASE INTERFACE] - Fetch active streams here
+    // Simulăm fetch-ul din Supabase
     const mockData: LiveUser[] = [
       { id: "1", username: "alex_live", avatar: "AL", viewers: "1.2K", color: "#ff4d4d", isHot: true },
       { id: "2", username: "maria.vibe", avatar: "MV", viewers: "850", color: "#a855f7" },
@@ -30,6 +32,14 @@ export default function TopNav() {
     ];
     setLiveUsers(mockData);
   }, []);
+
+  // Navigare către componenta cadru (LiveFrame)
+  const enterStream = (username: string) => {
+    setShowLiveGlass(false);
+    // Componenta de destinație va prelua username-ul pentru a cere stream-ul din CDN
+    //router.push(`/live/${username}`);
+    router.push(`app/live`);
+  };
 
   return (
     <>
@@ -47,8 +57,9 @@ export default function TopNav() {
                 <span className="relative w-2 h-2 bg-red-500 rounded-full shadow-[0_0_12px_#ef4444]" />
               </div>
               <div className="flex flex-col items-start leading-none">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Live</span>
-                <span className="text-[9px] font-bold text-red-500/80">{liveUsers.length} active</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-300"> smile</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">Live</span>
+                <span className="text-[9px] font-bold text-red-500/80">{liveUsers.length} </span>
               </div>
             </button>
           </div>
@@ -57,39 +68,22 @@ export default function TopNav() {
           <div className="flex-1 flex justify-center px-4">
             {!isSearching ? (
               <nav className="flex items-center bg-white/[0.03] backdrop-blur-3xl border border-white/[0.08] p-1 rounded-[22px] shadow-2xl">
-                {[
-                  { id: "friends", label: "Friends", icon: <Users size={14} /> },
-                  { id: "foryou", label: "For You", icon: <Sparkles size={14} /> },
-                  { id: "discover", label: "Discover", icon: <Compass size={14} /> }
-                ].map((tab) => (
+                {[{ id: "friends", label: "Friends", icon: <Users size={14} /> }, { id: "foryou", label: "For You", icon: <Sparkles size={14} /> }, { id: "discover", label: "Discover", icon: <Compass size={14} /> }].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex items-center gap-2 px-4 sm:px-8 py-2.5 rounded-[18px] transition-all duration-500 ease-out ${
-                      activeTab === tab.id ? "text-black" : "text-white/40 hover:text-white"
-                    }`}
+                    className={`relative flex items-center gap-2 px-4 sm:px-8 py-2.5 rounded-[18px] transition-all duration-500 ease-out ${activeTab === tab.id ? "text-black" : "text-white/40 hover:text-white"}`}
                   >
-                    {activeTab === tab.id && (
-                      <div className="absolute inset-0 bg-white rounded-[18px] shadow-[0_10px_20px_rgba(255,255,255,0.2)] animate-in zoom-in duration-300" />
-                    )}
+                    {activeTab === tab.id && <div className="absolute inset-0 bg-white rounded-[18px] shadow-[0_10px_20px_rgba(255,255,255,0.2)] animate-in zoom-in duration-300" />}
                     <span className="relative z-10">{tab.icon}</span>
-                    <span className="relative z-10 text-[10px] font-black uppercase tracking-widest hidden sm:block">
-                      {tab.label}
-                    </span>
+                    <span className="relative z-10 text-[10px] font-black uppercase tracking-widest hidden sm:block">{tab.label}</span>
                   </button>
                 ))}
               </nav>
             ) : (
               <div className="w-full max-w-lg relative animate-in slide-in-from-top-2 duration-300">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search streams, creators, or friends..."
-                  className="w-full bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl py-3 px-6 text-sm text-white outline-none focus:ring-2 ring-white/20 transition-all"
-                />
-                <button onClick={() => setIsSearching(false)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
-                  <X size={18} />
-                </button>
+                <input ref={searchInputRef} type="text" placeholder="Search streams..." className="w-full bg-white/10 backdrop-blur-3xl border border-white/20 rounded-2xl py-3 px-6 text-sm text-white outline-none focus:ring-2 ring-white/20 transition-all" />
+                <button onClick={() => setIsSearching(false)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"><X size={18} /></button>
               </div>
             )}
           </div>
@@ -111,22 +105,29 @@ export default function TopNav() {
 
       {/* --- LIVE MEDIA LIBRARY OVERLAY --- */}
       {showLiveGlass && (
-        <div className="fixed inset-0 z-[60] animate-in fade-in duration-700 overflow-hidden">
-          <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-[80px]" onClick={() => setShowLiveGlass(false)} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
+          {/* Backdrop cu blur masiv */}
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-[100px] animate-in fade-in duration-700" onClick={() => setShowLiveGlass(false)} />
           
-          <div className="relative h-full flex flex-col justify-center">
-            {/* Header Overlay */}
+          <div className="relative w-full h-full flex flex-col justify-center animate-in zoom-in-95 fade-in duration-500">
+            
+            {/* Header: Logo REC pe Rosu + Scanline */}
             <div className="absolute top-8 sm:top-12 left-0 w-full flex justify-between px-6 sm:px-12 items-center z-50">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.5)]">
-                  <Flame size={24} className="text-white" />
+                <div className="relative w-14 h-14 rounded-full flex items-center justify-center overflow-hidden border-2 border-red-600 shadow-[0_0_30px_rgba(220,38,38,0.5)] bg-black">
+                  <img src="/logosmile.jpeg" alt="REC" className="w-full h-full object-cover grayscale contrast-125 brightness-75" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-500/20 to-transparent h-1/2 w-full animate-[scan_2s_linear_infinite]" />
+                  <div className="absolute top-2 right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600 shadow-[0_0_10px_red]"></span>
+                  </div>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-white uppercase italic leading-none tracking-tighter">Smile Live</h2>
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest mt-1">Live Media Library</p>
+                  <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Smile <span className="text-red-600">Studio</span></h2>
+                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.4em]">Ready to Stream</p>
                 </div>
               </div>
-              <button onClick={() => setShowLiveGlass(false)} className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white transition-all active:scale-90">
+              <button onClick={() => setShowLiveGlass(false)} className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white transition-all hover:rotate-90">
                 <X size={32} />
               </button>
             </div>
@@ -134,59 +135,47 @@ export default function TopNav() {
             {/* SCROLLABLE CIRCULAR DISPLAY */}
             <div className="w-full flex overflow-x-auto no-scrollbar snap-x snap-mandatory touch-pan-x px-[15%] sm:px-[38%] gap-12 sm:gap-36 py-20">
               {liveUsers.map((user) => (
-                <div key={user.id} className="flex-shrink-0 snap-center group relative flex flex-col items-center w-[260px] sm:w-[400px]">
-                  
-                  {/* BACKGROUND DESIGN: AURA & RINGS */}
+                <div 
+                  key={user.id} 
+                  onClick={() => enterStream(user.username)}
+                  className="flex-shrink-0 snap-center group relative flex flex-col items-center w-[260px] sm:w-[400px] cursor-pointer"
+                >
+                  {/* Aura & Glow Effect */}
                   <div 
-                    className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-[480px] sm:h-[480px] opacity-20 rounded-full blur-[100px] transition-opacity duration-700 animate-float-aura"
+                    className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 sm:w-[480px] sm:h-[480px] opacity-10 rounded-full blur-[120px] transition-all duration-700 group-hover:opacity-40"
                     style={{ backgroundColor: user.color }}
                   />
-                  <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-[320px] sm:h-[320px] border border-white/5 rounded-full scale-110 group-hover:scale-125 group-hover:border-white/20 transition-all duration-1000" />
-                  <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 sm:w-[280px] sm:h-[280px] border border-white/10 rounded-full scale-100 group-hover:scale-150 group-hover:border-white/5 transition-all duration-1000 delay-100" />
-
-                  {/* AVATAR CIRCLE */}
-                  <div className="relative w-44 h-44 sm:w-64 sm:h-64 z-10 group-hover:scale-105 transition-transform duration-500">
-                    <div className="w-full h-full rounded-full p-[5px] bg-gradient-to-tr from-white/40 via-white/5 to-white/20 group-hover:rotate-6 transition-transform duration-700 shadow-2xl">
-                      <div className="w-full h-full rounded-full bg-zinc-900 border-[3px] border-white/10 overflow-hidden flex items-center justify-center relative">
-                        <span className="text-4xl sm:text-7xl font-black text-white/5 uppercase select-none">{user.avatar}</span>
-                        
-                        {/* Play Overlay */}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
-                          <div className="bg-red-600 p-6 rounded-full shadow-[0_0_40px_rgba(220,38,38,0.6)] scale-50 group-hover:scale-100 transition-transform duration-500">
-                            <Play fill="white" className="text-white ml-1" size={40} />
-                          </div>
-                        </div>
+                  
+                  {/* Circular Frame */}
+                  <div className="relative w-52 h-52 sm:w-80 sm:h-80 rounded-full border-4 border-white/5 flex items-center justify-center bg-zinc-900 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-700 group-hover:scale-110 group-hover:border-red-600/50">
+                    <span className="text-white/20 font-black text-7xl absolute group-hover:text-white/10 transition-colors">{user.avatar}</span>
+                    
+                    {/* CDN Stream Simulation Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent translate-y-full group-hover:translate-y-[-100%] transition-transform duration-1000 ease-in-out" />
+                    
+                    {user.isHot && (
+                      <div className="absolute top-10 flex items-center gap-1 bg-red-600 px-4 py-1 rounded-full animate-pulse shadow-lg">
+                        <Flame size={14} className="text-white fill-white" />
+                        <span className="text-[10px] font-black text-white uppercase">Live Now</span>
                       </div>
-                    </div>
-
-                    {/* LIVE BADGE */}
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 px-5 py-1.5 rounded-full border border-white/30 shadow-2xl z-30">
-                      <span className="text-[10px] font-black text-white tracking-[0.2em] animate-pulse">LIVE</span>
-                    </div>
+                    )}
                   </div>
 
-                  {/* USER INFO */}
-                  <div className="mt-16 text-center z-10">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                       {user.isHot && <Flame size={20} className="text-orange-500 fill-orange-500" />}
-                       <h3 className="text-white font-black text-3xl sm:text-5xl tracking-tighter uppercase group-hover:tracking-[0.1em] transition-all duration-700">
-                         @{user.username}
-                       </h3>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-3xl px-6 py-2.5 rounded-full border border-white/10 inline-flex items-center gap-3 shadow-xl mt-2">
-                       <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" />
-                       <span className="text-[12px] text-white font-black uppercase tracking-widest">{user.viewers} Watching</span>
-                    </div>
+                  <h3 className="mt-8 text-white font-black text-2xl uppercase tracking-widest group-hover:text-red-500 transition-colors">@{user.username}</h3>
+                  <div className="mt-3 px-6 py-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full flex items-center gap-3 group-hover:bg-red-600 transition-all duration-500">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-xs font-bold text-white uppercase tracking-tighter">{user.viewers} Watching</span>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Interaction Hint */}
-            <div className="absolute bottom-12 left-0 w-full text-center">
-               <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.6em] animate-bounce">Swipe to discover creators</p>
-            </div>
           </div>
+
+          <style jsx global>{`
+            @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(200%); } }
+            .no-scrollbar::-webkit-scrollbar { display: none; }
+            .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          `}</style>
         </div>
       )}
     </>

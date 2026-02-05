@@ -123,8 +123,8 @@ export default function TopNav() {
                   </div>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Smile <span className="text-red-600">Studio</span></h2>
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.4em]">Ready to Stream</p>
+                  <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Smile <span className="text-red-600">LIVE</span></h2>
+                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.4em]">CREATORS</p>
                 </div>
               </div>
               <button onClick={() => setShowLiveGlass(false)} className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white transition-all hover:rotate-90">

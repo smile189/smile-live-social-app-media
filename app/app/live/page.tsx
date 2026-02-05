@@ -1,6 +1,6 @@
 "use client";
 
-import ActionStream from "./ActionStream";
+
 
 export default function LivePage() {
   return (
@@ -36,10 +36,7 @@ export default function LivePage() {
             </button>
           </div>
 
-          {/* Bottom Section (ActionStream preia controlul) */}
-          <div className="w-full max-w-md pointer-events-auto">
-            <ActionStream />
-          </div>
+  
 
         </div>
       </div>

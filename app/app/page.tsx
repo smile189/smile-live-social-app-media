@@ -5,6 +5,8 @@ import SidebarActions from "@/components/ActionButton";
 import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav"; //
 
+
+
 export default function AppPage() {
   const [items] = useState(Array.from({ length: 5 }, (_, i) => ({ id: i })));
 

@@ -5,134 +5,88 @@ import { Gift, Heart, Star, Crown, Gem, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 
-/* =======================
-   TYPES
-======================= */
-type ChatMessage = {
-  id: number;
-  text: string;
-  user: string;
-  isGift: boolean;
-};
-
-type FloatingHeart = {
-  id: number;
-  x: number;
-};
-
-type LuxuryGift = {
-  id: string;
-  icon: JSX.Element;
-  label: string;
-  color: string;
-};
-
-/* =======================
-   GIFTS CONFIG
-======================= */
-const LUXURY_GIFTS: readonly LuxuryGift[] = [
-  { id: "rose", icon: <Star className="text-pink-400" />, label: "Rose", color: "#f472b6" },
-  { id: "gem", icon: <Gem className="text-blue-400" />, label: "Gem", color: "#60a5fa" },
-  { id: "crown", icon: <Crown className="text-yellow-400" />, label: "Crown", color: "#fbbf24" },
-  { id: "rocket", icon: <Rocket className="text-purple-400" />, label: "Rocket", color: "#a855f7" },
+const GIFTS = [
+  { id: "rose", icon: Star, label: "Rose", color: "#f472b6" },
+  { id: "gem", icon: Gem, label: "Gem", color: "#60a5fa" },
+  { id: "crown", icon: Crown, label: "Crown", color: "#fbbf24" },
+  { id: "rocket", icon: Rocket, label: "Rocket", color: "#a855f7" },
 ];
 
-/* =======================
-   COMPONENT
-======================= */
 export default function ActionStream() {
   const [message, setMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [hearts, setHearts] = useState<FloatingHeart[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [hearts, setHearts] = useState<any[]>([]);
   const [showGifts, setShowGifts] = useState(false);
-  const [activeBigAnnounce, setActiveBigAnnounce] = useState<LuxuryGift | null>(null);
+  const [bigGift, setBigGift] = useState<any>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  /* Auto-scroll chat */
+  /* auto scroll */
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [messages]);
 
-  /* Auto-hide gift announce */
+  /* hide big gift */
   useEffect(() => {
-    if (!activeBigAnnounce) return;
-    const t = setTimeout(() => setActiveBigAnnounce(null), 3000);
+    if (!bigGift) return;
+    const t = setTimeout(() => setBigGift(null), 2500);
     return () => clearTimeout(t);
-  }, [activeBigAnnounce]);
+  }, [bigGift]);
 
-  const handleSendMessage = (textOverride?: string, isGift = false) => {
-    if (!textOverride && !message.trim()) return;
+  const sendMessage = (text?: string, isGift = false) => {
+    const content = text || message;
+    if (!content.trim()) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
-      text: textOverride || message,
-      user: "SMILE_USER",
-      isGift,
-    };
+    setMessages(prev => [
+      ...prev.slice(-12),
+      { id: Date.now(), text: content, isGift },
+    ]);
 
-    setChatMessages(prev => [...prev.slice(-10), newMessage]);
-    if (!isGift) setMessage("");
+    setMessage("");
   };
 
-  const sendGift = (gift: LuxuryGift) => {
-    setActiveBigAnnounce(gift);
+  const sendGift = (gift: any) => {
+    setBigGift(gift);
 
     confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: [gift.color, "#ffffff", "#FFD700"],
+      particleCount: 120,
+      spread: 60,
+      origin: { y: 0.7 },
+      colors: [gift.color, "#ffffff"],
     });
 
-    handleSendMessage(`A TRIMIS UN ${gift.label.toUpperCase()}! 🎁`, true);
+    sendMessage(`Sent a ${gift.label}! 🎁`, true);
     setShowGifts(false);
   };
 
   const triggerHeart = () => {
     const id = Date.now();
-    setHearts(prev => [...prev, { id, x: Math.random() * 60 - 30 }]);
+    setHearts(prev => [...prev, { id, x: Math.random() * 80 - 40 }]);
+
     setTimeout(() => {
       setHearts(prev => prev.filter(h => h.id !== id));
-    }, 2000);
+    }, 1800);
   };
 
   return (
-    <div className="flex flex-col h-[70vh] w-full max-w-md relative overflow-visible">
+    <div className="flex flex-col h-[70vh] max-w-md w-full relative">
 
-      {/* BIG GIFT ANNOUNCEMENT */}
+      {/* BIG GIFT */}
       <AnimatePresence>
-        {activeBigAnnounce && (
+        {bigGift && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 100 }}
-            animate={{ opacity: 1, scale: 1.2, y: -50 }}
-            exit={{ opacity: 0, scale: 1.5, filter: "blur(20px)" }}
-            className="absolute -top-40 left-0 right-0 flex flex-col items-center z-[100] pointer-events-none"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 1.4, opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
           >
-            <div className="relative">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 bg-white/20 blur-[60px] rounded-full"
-              />
-              <div className="bg-black/60 backdrop-blur-2xl border-2 border-white/20 p-8 rounded-[3rem] shadow-[0_0_50px_rgba(255,255,255,0.2)] flex flex-col items-center">
-                <motion.div
-                  animate={{ y: [0, -20, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="text-7xl mb-4"
-                >
-                  {activeBigAnnounce.icon}
-                </motion.div>
-                <h2 className="text-2xl font-black text-white italic tracking-tighter text-center leading-none">
-                  SUPER GIFT!
-                  <br />
-                  <span style={{ color: activeBigAnnounce.color }}>
-                    {activeBigAnnounce.label}
-                  </span>
-                </h2>
-              </div>
+            <div className="bg-black/80 backdrop-blur-xl p-10 rounded-3xl text-center border border-white/10">
+              <bigGift.icon size={70} color={bigGift.color} />
+              <p className="text-white font-bold mt-3 text-xl">
+                {bigGift.label}
+              </p>
             </div>
           </motion.div>
         )}
@@ -141,95 +95,83 @@ export default function ActionStream() {
       {/* CHAT */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide flex flex-col justify-end"
+        className="flex-1 overflow-y-auto p-4 space-y-2"
       >
-        <AnimatePresence>
-          {chatMessages.map(m => (
-            <motion.div
-              key={m.id}
-              initial={{ x: -30, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className={`p-3 rounded-2xl backdrop-blur-lg border ${
-                m.isGift
-                  ? "bg-white/20 border-yellow-500/50 shadow-lg"
-                  : "bg-black/30 border-white/5"
-              }`}
-            >
-              <p
-                className={`text-[10px] font-bold ${
-                  m.isGift ? "text-yellow-400" : "text-red-500"
-                }`}
-              >
-                {m.user}
-              </p>
-              <p className="text-sm text-white font-medium">{m.text}</p>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {messages.map(m => (
+          <div
+            key={m.id}
+            className={`p-3 rounded-2xl text-sm ${
+              m.isGift
+                ? "bg-yellow-500/20 border border-yellow-400/40"
+                : "bg-white/5"
+            }`}
+          >
+            <span className="text-white">{m.text}</span>
+          </div>
+        ))}
       </div>
 
       {/* HEARTS */}
-      <div className="absolute bottom-24 right-6 pointer-events-none">
+      <div className="absolute bottom-24 right-5 pointer-events-none">
         <AnimatePresence>
           {hearts.map(h => (
             <motion.div
               key={h.id}
-              initial={{ y: 0 }}
-              animate={{ y: -300, x: h.x, opacity: 0, scale: 2 }}
+              initial={{ y: 0, opacity: 1 }}
+              animate={{ y: -250, x: h.x, opacity: 0, scale: 1.8 }}
+              exit={{ opacity: 0 }}
               className="absolute bottom-0 text-red-500"
             >
-              <Heart size={30} fill="currentColor" />
+              <Heart fill="currentColor" stroke="none" />
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
-      {/* ACTION BAR */}
-      <div className="p-4 bg-zinc-900/50 backdrop-blur-xl rounded-t-[2.5rem] border-t border-white/10 flex items-center gap-3">
+      {/* BAR */}
+      <div className="p-3 flex gap-2 bg-zinc-900/70 backdrop-blur-xl border-t border-white/10">
+
         <input
-          type="text"
           value={message}
           onChange={e => setMessage(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleSendMessage()}
+          onKeyDown={e => e.key === "Enter" && sendMessage()}
           placeholder="Say something..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-full px-5 py-3 text-sm text-white outline-none focus:border-red-500"
+          className="flex-1 bg-white/5 rounded-full px-4 py-2 text-white outline-none"
         />
 
         <button
           onClick={() => setShowGifts(v => !v)}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-            showGifts ? "bg-yellow-500 text-black" : "bg-white/10 text-yellow-500"
-          }`}
+          className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-yellow-400"
         >
-          <Gift size={20} />
+          <Gift size={18} />
         </button>
 
         <motion.button
-          whileTap={{ scale: 0.6 }}
+          whileTap={{ scale: 0.7 }}
           onClick={triggerHeart}
-          className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white"
+          className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center"
         >
-          <Heart size={24} fill="currentColor" stroke="none" />
+          <Heart fill="white" stroke="none" size={18} />
         </motion.button>
       </div>
 
-      {/* GIFT MENU */}
+      {/* GIFTS */}
       <AnimatePresence>
         {showGifts && (
           <motion.div
-            initial={{ y: 100 }}
+            initial={{ y: 80 }}
             animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="absolute bottom-24 left-0 right-0 bg-black/90 p-6 rounded-[2rem] border border-white/10 grid grid-cols-4 gap-2 z-50 shadow-2xl"
+            exit={{ y: 80 }}
+            className="absolute bottom-20 left-2 right-2 bg-black/95 p-4 rounded-2xl grid grid-cols-4 gap-2"
           >
-            {LUXURY_GIFTS.map(g => (
+            {GIFTS.map(g => (
               <button
                 key={g.id}
                 onClick={() => sendGift(g)}
-                className="flex flex-col items-center p-2 hover:bg-white/5 rounded-xl transition-all"
+                className="flex flex-col items-center gap-1 p-2 hover:bg-white/5 rounded-xl"
               >
-                <div className="text-3xl mb-1">{g.icon}</div>
-                <span className="text-[9px] text-white/60 font-bold uppercase">
+                <g.icon color={g.color} />
+                <span className="text-[10px] text-white/70">
                   {g.label}
                 </span>
               </button>
@@ -237,6 +179,7 @@ export default function ActionStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }

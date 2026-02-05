@@ -31,7 +31,6 @@ export default function AppPage() {
        <SidebarActions />
 
 
-
       {/* STRATUL 3: FOOTER (BOTTOM NAV) */}
       <BottomNav />
 

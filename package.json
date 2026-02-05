@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.454.0",

@@ -1,7 +1,5 @@
 "use client";
 
-
-
 export default function LivePage() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden flex flex-col lg:flex-row text-white font-sans selection:bg-red-600">

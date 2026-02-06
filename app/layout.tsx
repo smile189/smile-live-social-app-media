@@ -110,9 +110,9 @@ export default function RootLayout({
   return (
     <html lang="ro" className="scroll-smooth">
       <body className="antialiased font-sans">
-        <PageTransition >
+       
         {children}
-        </PageTransition >
+   
       </body>
     </html>
   );

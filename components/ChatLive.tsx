@@ -31,37 +31,35 @@ export default function ChatLive() {
   const [activeGifts, setActiveGifts] = useState<{ id: number; x: number; emoji: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // SUPABASE REALTIME PLACEHOLDER
-  // Aici vei folosi useEffect pentru a asculta canalul: 
-  // const channel = supabase.channel('live-chat').on('postgres_changes', ...).subscribe()
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
+  // Funcție pentru sunetul spectaculos
+  const playPopSound = () => {
+    const audio = new Audio('https://assets.mixkit.co');
+    audio.volume = 0.4;
+    audio.play().catch(() => console.log("Audio interaction required"));
+  };
+
   const triggerSpectacularGift = (emoji: string) => {
     const id = Date.now();
     const xPos = 20 + Math.random() * 60;
     
-    // 1. Trimite evenimentul către Supabase aici (ex: supabase.from('gifts').insert(...))
-    
+    playPopSound(); // Activează sunetul la click
     setActiveGifts(prev => [...prev, { id, x: xPos, emoji }]);
     setShowGifts(false);
     
-    // Curățare după animația lungă (3s)
+    // Curățare după animația lungă (7s)
     setTimeout(() => {
       setActiveGifts(prev => prev.filter(g => g.id !== id));
-    }, 3000);
+    }, 7000);
   };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-    
-    // 2. Aici vei face insert în Supabase: 
-    // const { error } = await supabase.from('messages').insert([{ text: inputValue, user: ... }])
-
     const newMessage = { id: Date.now().toString(), username: 'Tu', text: inputValue, color: '#fbbf24' };
     setMessages(prev => [...prev, newMessage]);
     setInputValue('');
@@ -70,28 +68,31 @@ export default function ChatLive() {
   return (
     <div className="relative h-full w-full flex flex-col justify-end overflow-visible px-4">
       
-      {/* 1. LAYER SPECTACULAR GIFTS (Zbor & Shockwave) */}
-      <div className="absolute inset-0 pointer-events-none z-[100] overflow-hidden">
+      {/* 1. LAYER SPECTACULOS (Confeti + Emoji Centrat + Zbor Lin) */}
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden flex justify-center">
         {activeGifts.map((g) => (
           <div 
             key={g.id} 
-            className="absolute bottom-20 flex flex-col items-center animate-gift-supernova"
-            style={{ left: `${g.x}%` }}
+            className="absolute bottom-10 animate-gift-spectacular flex flex-col items-center"
+            style={{ left: `calc(50% + ${(g.x - 50) / 4}%)` }}
           >
-            {/* Flash de lumină / Glow exterior */}
-            <div className="absolute w-32 h-32 bg-white/40 rounded-full blur-[60px] animate-pulse" />
-            
-            {/* Particule radiale (Explozie) */}
-            {[...Array(8)].map((_, i) => (
-              <div 
-                key={i}
-                className="absolute w-1.5 h-1.5 bg-yellow-400 rounded-full animate-particle-out"
-                style={{ '--delay': `${i * 0.1}s`, '--angle': `${i * 45}deg` } as any}
-              />
-            ))}
+            {/* Explozie de Confeti */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {[...Array(16)].map((_, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full animate-confetti-burst"
+                  style={{ 
+                    backgroundColor: ['#fbbf24', '#f472b6', '#00d4ff', '#a855f7'][i % 4],
+                    '--angle': `${i * 22.5}deg`,
+                    '--delay': `${Math.random() * 0.2}s`
+                  } as any}
+                />
+              ))}
+            </div>
 
-            {/* Emoji-ul Principal */}
-            <span className="text-8xl drop-shadow-[0_0_30px_rgba(255,255,255,0.8)] filter brightness-125">
+            {/* Emoji-ul Principal Strălucitor */}
+            <span className="text-[10rem] drop-shadow-[0_0_50px_rgba(255,255,255,0.4)] brightness-110 animate-shimmer select-none">
               {g.emoji}
             </span>
           </div>
@@ -118,7 +119,7 @@ export default function ChatLive() {
       {/* 3. CONTROLS AREA */}
       <div className="relative z-[110] pb-6 flex flex-col gap-4">
         {showGifts && (
-          <div className="grid grid-cols-4 gap-3 bg-black/80 backdrop-blur-3xl p-5 rounded-[2.5rem] border border-white/10 animate-in slide-in-from-bottom-10 duration-300">
+          <div className="grid grid-cols-4 gap-3 bg-black/80 backdrop-blur-3xl p-5 rounded-[2.5rem] border border-white/10 animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
             {GIFT_OPTIONS.map((gift) => (
               <button
                 key={gift.label}
@@ -128,31 +129,30 @@ export default function ChatLive() {
                 <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/5">
                   {gift.emoji}
                 </div>
-                <span className="text-[9px] font-black text-white/30 tracking-widest">{gift.label}</span>
+                <span className="text-[9px] font-black text-white/30 tracking-widest uppercase">{gift.label}</span>
               </button>
             ))}
           </div>
         )}
 
         <div className="flex items-center gap-3">
-
-<div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl h-14 px-5 flex items-center shadow-2xl focus-within:border-yellow-400/50 transition-all group">
-  <input 
-    value={inputValue}
-    onChange={(e) => setInputValue(e.target.value)}
-    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-    placeholder="Smile words..." 
-    className="bg-transparent w-full text-sm outline-none text-white placeholder:text-white/20"
-  />
-  {inputValue.trim() && (
-    <button 
-      onClick={handleSendMessage}
-      className="bg-yellow-400 hover:bg-yellow-300 text-black w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 animate-in zoom-in slide-in-from-right-2"
-    >
-      <span className="text-lg font-bold"> ➤</span>
-    </button>
-  )}
-</div>
+          <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl h-14 px-5 flex items-center shadow-2xl focus-within:border-yellow-400/50 transition-all group">
+            <input 
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Smile words..." 
+              className="bg-transparent w-full text-sm outline-none text-white placeholder:text-white/20"
+            />
+            {inputValue.trim() && (
+              <button 
+                onClick={handleSendMessage}
+                className="bg-yellow-400 hover:bg-yellow-300 text-black w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 animate-in zoom-in slide-in-from-right-2"
+              >
+                <span className="text-lg font-bold">➤</span>
+              </button>
+            )}
+          </div>
 
           <button 
             onClick={() => setShowGifts(!showGifts)}
@@ -160,23 +160,38 @@ export default function ChatLive() {
           >
             <span className="text-2xl drop-shadow-md">🎁</span>
           </button>
-          
         </div>
       </div>
 
       <style jsx global>{`
-        @keyframes gift-supernova {
-          0% { transform: translateY(0) scale(0) rotate(0deg); opacity: 0; filter: blur(20px); }
-          20% { transform: translateY(-100px) scale(1.5) rotate(-10deg); opacity: 1; filter: blur(0px); }
-          40% { transform: translateY(-250px) scale(1.2) rotate(10deg); }
-          100% { transform: translateY(-1000px) scale(0.5) rotate(45deg); opacity: 0; }
+        @keyframes gift-spectacular {
+          0% { transform: translateY(0) scale(0); opacity: 0; filter: brightness(2); }
+          10% { transform: translateY(-150px) scale(1.3); opacity: 1; filter: brightness(1.2); }
+          100% { transform: translateY(-2200px) scale(0.6); opacity: 0; filter: blur(10px); }
         }
-        @keyframes particle-out {
-          0% { transform: rotate(var(--angle)) translateY(0); opacity: 1; }
-          100% { transform: rotate(var(--angle)) translateY(-80px); opacity: 0; }
+
+        @keyframes confetti-burst {
+          0% { transform: rotate(var(--angle)) translateY(0) scale(1); opacity: 1; }
+          100% { transform: rotate(var(--angle)) translateY(-250px) scale(0); opacity: 0; }
         }
-        .animate-gift-supernova { animation: gift-supernova 3s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
-        .animate-particle-out { animation: particle-out 1s var(--delay) ease-out forwards; }
+
+        @keyframes shimmer {
+          0%, 100% { filter: brightness(1) drop-shadow(0 0 30px rgba(255,255,255,0.2)); }
+          50% { filter: brightness(1.5) drop-shadow(0 0 60px rgba(252,211,77,0.8)); }
+        }
+
+        .animate-gift-spectacular { 
+          animation: gift-spectacular 7s cubic-bezier(0.15, 0.85, 0.3, 1) forwards; 
+        }
+
+        .animate-confetti-burst {
+          animation: confetti-burst 1.5s var(--delay) ease-out forwards;
+        }
+
+        .animate-shimmer {
+          animation: shimmer 2s infinite alternate;
+        }
+
         .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

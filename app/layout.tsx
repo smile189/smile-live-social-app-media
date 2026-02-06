@@ -61,7 +61,7 @@ export const metadata: Metadata = {
         alt: "Smile Live App Interface Preview",
       },
     ],
-    locale: "ro_RO",
+    locale: "en_US",
     type: "website",
   },
 

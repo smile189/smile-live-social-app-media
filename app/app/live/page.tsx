@@ -3,6 +3,7 @@
 import React from 'react';
 import ChatLive from '@/components/ChatLive';
 
+
 /**
  * MainLive - SmileLive WOW Edition
  * Fundal ultra-vibrant mov, umbre profunde și watermark stilizat.
@@ -41,6 +42,8 @@ export default function MainLive() {
 
       {/* Middle - Spatiu liber pentru stream video / alerte */}
       <div className="relative z-20 flex-1" />
+
+
 
 {/* Bottom - Chat & Brand */}
 <div className="relative z-20 w-full flex flex-col items-center gap-6 mt-auto">

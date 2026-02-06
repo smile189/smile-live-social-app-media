@@ -45,7 +45,6 @@ export default function ChatLive() {
   };
 
   const handleTap = (e: React.MouseEvent) => {
-    // Detectăm click-ul și creăm emoji-ul 🥰
     const id = Date.now();
     setTaps(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
     setTimeout(() => setTaps(prev => prev.filter(t => t.id !== id)), 2000);
@@ -62,41 +61,35 @@ export default function ChatLive() {
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-    const newMessage = { id: Date.now().toString(), username: 'Tu', text: inputValue, color: '#fbbf24' };
+    const newMessage = { id: Date.now().toString(), username: 'You', text: inputValue, color: '#fbbf24' };
     setMessages(prev => [...prev, newMessage]);
     setInputValue('');
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Live Stream', url: window.location.href });
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+      }
+    } catch (e) {}
   };
 
   return (
     <div className="relative h-full w-full flex flex-col justify-end overflow-hidden px-4 select-none touch-none">
       
-      {/* AREA PENTRU TAP-TAP (Inimioare 🥰) */}
-      <div 
-        className="absolute inset-0 z-0 cursor-pointer" 
-        onClick={handleTap} 
-      />
+      <div className="absolute inset-0 z-0 cursor-pointer" onClick={handleTap} />
 
-      {/* LAYER VIZUAL TAP-TAP */}
       <div className="fixed inset-0 pointer-events-none z-[50]">
         {taps.map(tap => (
-          <div 
-            key={tap.id}
-            className="absolute animate-tap-float text-6xl drop-shadow-2xl"
-            style={{ left: tap.x - 30, top: tap.y - 30 }}
-          >
-            🥰
-          </div>
+          <div key={tap.id} className="absolute animate-tap-float text-6xl drop-shadow-2xl" style={{ left: tap.x - 30, top: tap.y - 30 }}>🥰</div>
         ))}
       </div>
 
-      {/* 1. LAYER SPECTACULOS (Gifts) */}
       <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden flex justify-center">
         {activeGifts.map((g) => (
-          <div 
-            key={g.id} 
-            className="absolute bottom-10 animate-gift-spectacular flex flex-col items-center"
-            style={{ left: `calc(50% + ${(g.x - 50) / 4}%)` }}
-          >
+          <div key={g.id} className="absolute bottom-10 animate-gift-spectacular flex flex-col items-center" style={{ left: `calc(50% + ${(g.x - 50) / 4}%)` }}>
             <div className="absolute inset-0 flex items-center justify-center">
               {[...Array(16)].map((_, i) => (
                 <div key={i} className="absolute w-2 h-2 rounded-full animate-confetti-burst"
@@ -104,14 +97,11 @@ export default function ChatLive() {
                 />
               ))}
             </div>
-            <span className="text-[10rem] drop-shadow-[0_0_50px_rgba(255,255,255,0.4)] brightness-110 animate-shimmer">
-              {g.emoji}
-            </span>
+            <span className="text-[10rem] drop-shadow-[0_0_50px_rgba(255,255,255,0.4)] brightness-110 animate-shimmer">{g.emoji}</span>
           </div>
         ))}
       </div>
 
-      {/* 2. CHAT FLOW */}
       <div 
         ref={scrollRef}
         className="relative z-10 overflow-y-auto max-h-[300px] space-y-3 pb-8 scrollbar-hide pointer-events-none"
@@ -128,8 +118,23 @@ export default function ChatLive() {
         ))}
       </div>
 
-      {/* 3. CONTROLS AREA */}
       <div className="relative z-[110] pb-6 flex flex-col gap-4">
+        
+        {/* TIKTOK SHARE BUTTON */}
+        <div className="flex justify-end pr-2">
+          <div className="flex flex-col items-center gap-1">
+            <button 
+              onClick={handleShare}
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl active:scale-75 transition-transform"
+            >
+              <svg viewBox="0 0 24 24" className="w-7 h-7 text-white fill-current drop-shadow-lg">
+                <path d="M14.545 3l7.455 7.455-7.455 7.455V13.8C8.8 13.8 4.8 15.6 2 19.6c.6-5.6 4-11.2 12.545-12.4V3z" />
+              </svg>
+            </button>
+            <span className="text-[10px] font-black text-white/60 uppercase tracking-tighter">Share</span>
+          </div>
+        </div>
+
         {showGifts && (
           <div className="grid grid-cols-4 gap-3 bg-black/80 backdrop-blur-3xl p-5 rounded-[2.5rem] border border-white/10 animate-in slide-in-from-bottom-10 duration-300 shadow-2xl">
             {GIFT_OPTIONS.map((gift) => (
@@ -163,6 +168,7 @@ export default function ChatLive() {
       </div>
 
       <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
         @keyframes gift-spectacular {
           0% { transform: translateY(0) scale(0); opacity: 0; filter: brightness(2); }
           10% { transform: translateY(-150px) scale(1.3); opacity: 1; filter: brightness(1.2); }
@@ -177,14 +183,13 @@ export default function ChatLive() {
           100% { transform: rotate(var(--angle)) translateY(-250px) scale(0); opacity: 0; }
         }
         @keyframes shimmer {
-          0%, 100% { filter: brightness(1) drop-shadow(0 0 30px rgba(255,255,255,0.2)); }
-          50% { filter: brightness(1.5) drop-shadow(0 0 60px rgba(252,211,77,0.8)); }
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.4); }
         }
-        .animate-gift-spectacular { animation: gift-spectacular 7s cubic-bezier(0.15, 0.85, 0.3, 1) forwards; }
-        .animate-tap-float { animation: tap-float 1.8s ease-out forwards; }
-        .animate-confetti-burst { animation: confetti-burst 1.5s var(--delay) ease-out forwards; }
-        .animate-shimmer { animation: shimmer 2s infinite alternate; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .animate-gift-spectacular { animation: gift-spectacular 7s cubic-bezier(0.2, 0, 0.2, 1) forwards; }
+        .animate-tap-float { animation: tap-float 2s ease-out forwards; }
+        .animate-confetti-burst { animation: confetti-burst 0.8s ease-out forwards; }
+        .animate-shimmer { animation: shimmer 2s infinite; }
       `}</style>
     </div>
   );

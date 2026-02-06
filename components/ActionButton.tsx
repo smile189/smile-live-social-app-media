@@ -27,6 +27,9 @@ export default function SidebarActions() {
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [likes, setLikes] = useState<{ id: number; left: number; delay: number }[]>([]);
 
+   const [showTerms, setShowTerms] = useState(false);  //terms and privacy  
+
+
   const triggerLike = () => {
     const id = Date.now();
     const randomLeft = Math.floor(Math.random() * 100) - 50;
@@ -106,7 +109,16 @@ export default function SidebarActions() {
           {showMenu && (
             <div className="absolute bottom-0 right-14 sm:right-16 w-56 sm:w-60 bg-zinc-900/95 backdrop-blur-3xl border border-white/10 rounded-[28px] sm:rounded-[32px] p-3 sm:p-4 shadow-2xl animate-in fade-in slide-in-from-right-8 duration-300">
               <div className="flex flex-col gap-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-white/60">
-                <a href="#" className="flex items-center gap-4 p-2.5 sm:p-3 hover:bg-white/10 hover:text-white rounded-2xl transition-all"><FileText size={18} /> Terms</a>
+               <button
+  onClick={() => {
+    setShowTerms(true);
+    setShowMenu(false);
+  }}
+  className="flex w-full items-center gap-4 p-2.5 sm:p-3 hover:bg-white/10 hover:text-white rounded-2xl transition-all"
+>
+  <FileText size={18} /> Terms
+</button>
+
                 <a href="#" className="flex items-center gap-4 p-2.5 sm:p-3 hover:bg-white/10 hover:text-white rounded-2xl transition-all"><ShieldAlert size={18} /> Privacy</a>
                 <div className="h-[1px] bg-white/10 my-2" />
                 <button className="flex items-center gap-4 p-2.5 sm:p-3 hover:text-orange-400 rounded-2xl transition-all"><Ban size={18} /> Not Interested</button>
@@ -192,6 +204,66 @@ export default function SidebarActions() {
           </div>
         </div>
       </div>
+
+
+   {/* TERMS OVERLAY */}
+{showTerms && (
+  <div
+    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-in fade-in"
+    onClick={() => setShowTerms(false)}
+  />
+)}
+
+{/* TERMS SHEET */}
+<div
+  className={`fixed bottom-[10vh] left-4 right-4 sm:left-auto sm:right-4 z-50 bg-white/95 backdrop-blur-3xl rounded-[40px] shadow-[0_25px_80px_rgba(0,0,0,0.3)] transform transition-all duration-500 ease-out sm:max-w-2xl ${
+    showTerms ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"
+  }`}
+>
+  <div className="p-8 font-sans max-h-[75vh] overflow-y-auto no-scrollbar">
+    <div className="w-12 h-1 bg-zinc-200 rounded-full mx-auto mb-6" />
+
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-2xl font-black text-zinc-950 uppercase tracking-tighter">
+        Terms & Conditions
+      </h3>
+
+      <button
+        onClick={() => setShowTerms(false)}
+        className="bg-zinc-100 p-3 rounded-full text-zinc-400 hover:text-black transition-all"
+      >
+        <X size={20} />
+      </button>
+    </div>
+
+    <div className="space-y-4 text-zinc-600 text-[14px] leading-relaxed font-medium">
+      <p>
+        By accessing and using SmileLive, you agree to comply with and be bound by
+        these Terms and Conditions.
+      </p>
+
+      <p>
+        You must be at least 13 years old to use this platform. Users are responsible
+        for maintaining respectful behavior and complying with all applicable laws.
+      </p>
+
+      <p>
+        Posting harmful, illegal, abusive, or misleading content is strictly
+        prohibited and may result in account suspension.
+      </p>
+
+      <p>
+        SmileLive reserves the right to remove content or restrict access at our
+        discretion to protect the community.
+      </p>
+
+      <p>
+        Continued use of the platform constitutes acceptance of any future updates
+        to these terms.
+      </p>
+    </div>
+  </div>
+</div>
 
       <style jsx global>{`
         @keyframes heart-slow {

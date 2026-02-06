@@ -135,13 +135,7 @@ export default function ChatLive() {
         )}
 
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowGifts(!showGifts)}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${showGifts ? 'bg-yellow-400 border-white rotate-12 scale-110' : 'bg-white/5 border-white/10 text-white'}`}
-          >
-            <span className="text-2xl drop-shadow-md">🎁</span>
-          </button>
-          
+
 <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl h-14 px-5 flex items-center shadow-2xl focus-within:border-yellow-400/50 transition-all group">
   <input 
     value={inputValue}
@@ -160,6 +154,13 @@ export default function ChatLive() {
   )}
 </div>
 
+          <button 
+            onClick={() => setShowGifts(!showGifts)}
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${showGifts ? 'bg-yellow-400 border-white rotate-12 scale-110' : 'bg-white/5 border-white/10 text-white'}`}
+          >
+            <span className="text-2xl drop-shadow-md">🎁</span>
+          </button>
+          
         </div>
       </div>
 

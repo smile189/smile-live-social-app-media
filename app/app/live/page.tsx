@@ -42,17 +42,21 @@ export default function MainLive() {
       {/* Middle - Spatiu liber pentru stream video / alerte */}
       <div className="relative z-20 flex-1" />
 
-      {/* Bottom - Chat & Brand */}
-      <div className="relative z-20 w-full flex flex-col gap-6">
-        
-    
-        
-        {/* Zona pentru componenta CHAT */}
-        <div id="chat-mount-point" className="h-[350px] w-full max-w-lg mb-4">
-           {/* Componenta ta de Chat va fi randată aici */}
-              <ChatLive />
-        </div>
-      </div>
+{/* Bottom - Chat & Brand */}
+<div className="relative z-20 w-full flex flex-col items-center gap-6 mt-auto">
+  
+  {/* Zona CHAT - Pe desktop o forțăm pe centru cu mx-auto */}
+  <div 
+    id="chat-mount-point" 
+    className="h-[350px] w-full max-w-lg mb-4 px-4 md:mx-auto flex flex-col items-center"
+  >
+     <div className="w-full h-full flex justify-center">
+        <ChatLive />
+     </div>
+  </div>
+
+</div>
+
 
     </main>
   );

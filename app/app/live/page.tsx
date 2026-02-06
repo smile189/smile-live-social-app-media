@@ -2,7 +2,7 @@
 
 import React from 'react';
 import ChatLive from '@/components/ChatLive';
-
+import FLive from '@/components/FLive';
 
 /**
  * MainLive - SmileLive WOW Edition
@@ -43,7 +43,7 @@ export default function MainLive() {
       {/* Middle - Spatiu liber pentru stream video / alerte */}
       <div className="relative z-20 flex-1" />
 
-
+<FLive />
 
 {/* Bottom - Chat & Brand */}
 <div className="relative z-20 w-full flex flex-col items-center gap-6 mt-auto">

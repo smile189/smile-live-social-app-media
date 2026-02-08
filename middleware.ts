@@ -1,3 +1,11 @@
+/**
+ * middleware.ts - Middleware for region-based access control in Smile Live App
+ * This middleware checks the geographic location of incoming requests to protected routes (e.g., /app, /dashboard) and blocks 
+ * access from high-risk countries based on a predefined blacklist.
+ * authored by BM, inspired by Alexandra Storyteller's vision for a secure and compliant platform that respects global regulatory landscapes while prioritizing user safety.
+ * copyright 2026 Smile Live App. All rights reserved.
+ */
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -11,7 +19,7 @@ export function middleware(req: NextRequest) {
   const country = (req as any).geo?.country || 'US'; 
 // black list of high-risk countries based on geopolitical and security considerations (e.g., Russia, North Korea, Venezuela, Cuba, China, Iran, Syria, Vietnam, India)
   const BLOCKED = [ 
-    'RU', 'KP', // Rusia, Coreea de Nord
+    'RU', 'KP', // 
     
     // AMERICA LATINĂ (Zone cu risc ridicat sau restricții comerciale)
     'VE', // Venezuela

@@ -1,3 +1,11 @@
+/**
+ * components/ActionButton.tsx - Floating action buttons for live stream interactions (like, comment, share, report)
+ * technology: React with Tailwind CSS for styling and Lucide icons for visuals.
+ * copyright 2026 Smile Live App. All rights reserved.
+ * authored by BM, inspired by Alexandra Storyteller's vision for a dynamic and intuitive interaction layer that enhances user 
+ * engagement while maintaining a sleek and unobtrusive design.
+ */
+
 import { useState } from "react";
 import {
   Heart,

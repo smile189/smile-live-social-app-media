@@ -1,3 +1,12 @@
+/**
+ * app/dashboard/page.tsx - Super Admin Dashboard with advanced analytics and management tools
+ * about the app/dashboard page: 
+ * authored by BM, inspired by Alexandra Storyteller's vision for a powerful and intuitive admin console to oversee the entire Smile Live ecosystem. 
+ * This dashboard provides real-time insights into user activity, content performance, financial metrics, and moderation queues,
+ *  all wrapped in a sleek and responsive design.
+ * dream team: BM (Lead Developer, technology integrater), S Alexandra (Vision & Storytelling), UI/UX by BM, with design elements inspired by Alexandra's storytelling aesthetics.
+ */
+
 "use client";
 
 import React, { useState, useEffect } from "react";

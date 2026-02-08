@@ -1,3 +1,9 @@
+/**
+ * app/landing/page.tsx - The landing page for Smile Live App, showcasing the brand's vision, roadmap, and key features with a dynamic and immersive design.
+ * authored by BM, inspired by Alexandra Storyteller's vision for a captivating and engaging landing experience that immediately communicates the essence of Smile Live.
+ * copyright 2026 Smile Live App. All rights reserved.
+ */
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";

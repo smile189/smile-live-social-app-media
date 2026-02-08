@@ -1,3 +1,9 @@
+/**
+ * app/page.tsx - Main application page with layered UI structure:
+ * authored by BM, inspired by Alexandra Storyteller's vision for a dynamic social media experience.
+ * copyright 2026 Smile Live App. All rights reserved.
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -32,7 +38,8 @@ export default function AppPage() {
           </section>
         ))}
       </div>
-         
+
+       {/* STRATUL 3: ACTION BUTTONS (FLOATING) */}  
        <SidebarActions />
 
 

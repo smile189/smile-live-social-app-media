@@ -321,6 +321,7 @@ export default function LandingPage() {
     </div>
   </div>
 
+
   {/* Accent Line Footer */}
   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-red-600/30 to-transparent" />
 </section>

@@ -7,8 +7,25 @@ export function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  const country = (req as any).geo?.country || 'BD'; 
-  const BLOCKED = ['BD', 'RU', 'KP']; 
+  // Folosim RO ca fallback pentru a evita auto-blocarea la teste
+  const country = (req as any).geo?.country || 'US'; 
+
+  const BLOCKED = [ 
+    'RU', 'KP', // Rusia, Coreea de Nord
+    
+    // AMERICA LATINĂ (Zone cu risc ridicat sau restricții comerciale)
+    'VE', // Venezuela
+    'CU', // Cuba
+    'BR', // Brazilia
+    'CO', // Columbia
+    
+    // ASIA (Zone cu restricții de securitate sau reglementări stricte)
+    'CN', // China
+    'IR', // Iran
+    'SY', // Siria
+    'VN', // Vietnam
+    'IN'  // India (opțional, dacă ai probleme cu bot-trafic)
+  ];
 
   if (BLOCKED.includes(country)) {
     return new NextResponse(

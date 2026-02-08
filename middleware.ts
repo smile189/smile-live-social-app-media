@@ -7,9 +7,9 @@ export function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  // Folosim RO ca fallback pentru a evita auto-blocarea la teste
-  const country = (req as any).geo?.country || 'US'; 
 
+  const country = (req as any).geo?.country || 'US'; 
+// black list of high-risk countries based on geopolitical and security considerations (e.g., Russia, North Korea, Venezuela, Cuba, China, Iran, Syria, Vietnam, India)
   const BLOCKED = [ 
     'RU', 'KP', // Rusia, Coreea de Nord
     

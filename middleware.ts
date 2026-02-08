@@ -1,33 +1,29 @@
-// middleware.ts
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-  const country = req.geo?.country || 'RO'; // 'RO' forțat pentru test local
-  const BLOCKED = ['RO', 'RU', 'KP']; // Țările blocate
+  // TypeScript nu vede .geo pe NextRequest, așa că forțăm tipul 'any'
+  const requestWithGeo = req as any;
+  
+  // Extragem țara. Pe Vercel va fi populat, local va fi 'RO'
+  const country = requestWithGeo.geo?.country || 'RO';
 
+  const BLOCKED = ['RO', 'RU', 'KP'];
   const { pathname } = req.nextUrl;
 
-  // Dacă utilizatorul e blocat, verificăm ce rută accesează
+  // Verificăm dacă ruta curentă este /blocked ca să nu facem buclă infinită
+  if (pathname.startsWith('/blocked')) {
+    return NextResponse.next();
+  }
+
   if (BLOCKED.includes(country)) {
-    // 1. Permitem accesul la pagina /blocked ca să nu facem loop
-    if (pathname.startsWith('/blocked')) return NextResponse.next();
-
-    // 2. Aplicăm blocarea pe toate componentele tale:
-    const isProtected = 
-      pathname === '/' ||                // Landing
-      pathname.startsWith('/app') ||      // App-ul tău principal
-      pathname.startsWith('/dashboard');  // Dashboard-ul
-
-    if (isProtected) {
-      // Trimite-i pe toți la aceeași pagină de eroare
-      return NextResponse.rewrite(new URL('/blocked', req.url));
-    }
+    // Îi arătăm conținutul din app/blocked/page.tsx
+    return NextResponse.rewrite(new URL('/blocked', req.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Matcher-ul asigură că middleware-ul verifică tot ce mi-ai zis
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

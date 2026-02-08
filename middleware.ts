@@ -7,8 +7,8 @@ export function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  const country = (req as any).geo?.country || 'RO'; 
-  const BLOCKED = ['RO', 'RU', 'KP']; 
+  const country = (req as any).geo?.country || 'BD'; 
+  const BLOCKED = ['BD', 'RU', 'KP']; 
 
   if (BLOCKED.includes(country)) {
     return new NextResponse(

@@ -1,24 +1,22 @@
+// middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-  // TypeScript nu vede .geo pe NextRequest, așa că forțăm tipul 'any'
-  const requestWithGeo = req as any;
-  
-  // Extragem țara. Pe Vercel va fi populat, local va fi 'RO'
-  const country = requestWithGeo.geo?.country || 'RO';
-
+  const country = (req as any).geo?.country || 'RO'; 
   const BLOCKED = ['RO', 'RU', 'KP'];
-  const { pathname } = req.nextUrl;
-
-  // Verificăm dacă ruta curentă este /blocked ca să nu facem buclă infinită
-  if (pathname.startsWith('/blocked')) {
-    return NextResponse.next();
-  }
 
   if (BLOCKED.includes(country)) {
-    // Îi arătăm conținutul din app/blocked/page.tsx
-    return NextResponse.rewrite(new URL('/blocked', req.url));
+    // În loc de rewrite (care caută un fișier), trimitem un răspuns HTML direct
+    return new NextResponse(
+      `<html><body style="background:black;color:white;display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
+        <div style="text-align:center;border:1px solid #333;padding:50px;border-radius:20px;">
+          <h1 style="color:#facc15;">SMILE LIVE APP</h1>
+          <p>Access denied for region: ${country}</p>
+        </div>
+      </body></html>`,
+      { status: 451, headers: { 'content-type': 'text/html' } }
+    );
   }
 
   return NextResponse.next();

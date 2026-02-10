@@ -1,10 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 import { Home, Compass, MessageSquare, Plus, User } from "lucide-react";
 
 export default function BottomNav() {
+  const router = useRouter();
   const [active, setActive] = useState("feed");
+  const [user, setUser] = useState<any>(null);
+
+  // Inițializăm clientul Supabase pentru verificare sesiune
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // Verificăm starea userului la încărcare și la schimbări de auth
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  const handleAction = async (id: string) => {
+    setActive(id);
+
+    // 1. Logica pentru HOME (Refresh/Scroll)
+    if (id === "feed") {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 2. Verificăm dacă userul este logat pentru restul funcțiilor
+    if (!user) {
+      // Dacă NU e logat, orice buton (Hot, Create, Chat, Connect) îl duce la login
+      router.push("app/login");
+      return;
+    }
+
+    // 3. Dacă ESTE logat, deblocăm rutele specifice
+    switch (id) {
+      case "connect":
+        router.push("/profile"); // Pagina lui de profil
+        break;
+      case "add":
+        router.push("/upload"); // Pagina de urcare clipuri
+        break;
+      case "chat":
+        router.push("/messages"); // Mesageria
+        break;
+      case "hot":
+        console.log("Loading trending content...");
+        break;
+      default:
+        break;
+    }
+  };
 
   const navItems = [
     { id: "feed", label: "Home", icon: Home },
@@ -22,15 +76,12 @@ export default function BottomNav() {
           const Icon = item.icon;
           const isActive = active === item.id;
 
-          // --- BUTONUL CENTRAL GALBEN CU ANIMAȚIE ---
           if (item.isSpecial) {
             return (
               <div key={item.id} className="relative group -translate-y-4">
-                {/* Aura de fundal animată (Pulse) */}
                 <div className="absolute inset-0 bg-yellow-400/40 blur-2xl rounded-full scale-150 animate-[pulse_4s_ease-in-out_infinite]" />
-                
                 <button 
-                  onClick={() => setActive(item.id)}
+                  onClick={() => handleAction(item.id)}
                   className="relative w-14 h-14 bg-yellow-400 rounded-2xl flex items-center justify-center text-black shadow-[0_10px_30px_rgba(250,204,21,0.4)] hover:scale-110 active:scale-90 transition-all duration-300"
                 >
                   <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" />
@@ -39,11 +90,10 @@ export default function BottomNav() {
             );
           }
 
-          // BUTOANELE STANDARD
           return (
             <button
               key={item.id}
-              onClick={() => setActive(item.id)}
+              onClick={() => handleAction(item.id)}
               className="flex flex-col items-center gap-1 min-w-[60px] group transition-all"
             >
               <div className="relative">
@@ -68,13 +118,11 @@ export default function BottomNav() {
         })}
       </nav>
 
-      {/* Stiluri pentru animația sporadică și eliminarea tap-ului pe mobil */}
       <style jsx global>{`
         @keyframes pulse-custom {
           0%, 100% { opacity: 0.2; transform: scale(1.2); }
           50% { opacity: 0.6; transform: scale(1.8); }
         }
-        body { background-color: #000000 !important; }
         * { -webkit-tap-highlight-color: transparent; }
       `}</style>
     </div>

@@ -7,6 +7,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false); // bifa
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
@@ -18,8 +19,15 @@ export default function AuthPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificăm bifa doar la înregistrare
+    if (!isLogin && !agreed) {
+      setErrorMsg("Please accept the Terms & Conditions to proceed.");
+      return;
+    }
+
     setLoading(true);
-    setErrorMsg(null); // Resetăm eroarea la fiecare încercare
+    setErrorMsg(null);
 
     const { error } = isLogin 
       ? await supabase.auth.signInWithPassword({ email, password })
@@ -34,71 +42,110 @@ export default function AuthPage() {
       setLoading(false);
     } else {
       if (isLogin) {
-        router.push("/");
+        router.push("/app");
         router.refresh();
       } else {
-        setErrorMsg("Succes! Verifică e-mail-ul pentru confirmare."); // Afișat ca succes
+        setErrorMsg("Success! Please verify your email."); 
       }
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-screen w-full bg-black flex items-center justify-center p-6 text-white font-sans">
-      <div className="w-full max-w-sm flex flex-col gap-8">
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-5xl font-black text-yellow-400 tracking-tighter italic">SMILE</h1>
-          <p className="text-zinc-500 font-medium">
-            {isLogin ? "Welcome back, star." : "Join the spotlight."}
+    <div className="h-screen w-full bg-[#000] flex items-center justify-center p-4 sm:p-6 text-white font-sans relative overflow-hidden">
+      
+      {/* BACKGROUND - */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20 z-10" />
+        <img 
+          src="/herosmile.webp" 
+          alt="SMILE Background"
+          className="w-full h-full object-cover opacity-60 scale-105" 
+        />
+      </div>
+
+      <div className="w-full max-w-[380px] flex flex-col gap-10 relative z-20">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-6xl font-black text-yellow-400 tracking-[calc(-0.05em)] italic drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+            SMILE LIVE 
+          </h1>
+          <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.4em] mt-2 opacity-80">
+            {isLogin ? "Enjoy the Social Revolution" : "Join the Social Revolution"}
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="flex flex-col gap-4">
-          {/* Mesaj de Eroare/Succes Dinamic */}
+        {/* Form Container */}
+        <form onSubmit={handleAuth} className="flex flex-col gap-5">
           {errorMsg && (
-            <div className={`p-4 rounded-xl text-sm font-bold border ${
-              errorMsg.includes("Succes") 
-                ? "bg-green-500/10 border-green-500/50 text-green-500" 
-                : "bg-red-500/10 border-red-500/50 text-red-500"
+            <div className={`p-4 rounded-2xl text-[13px] font-semibold border backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-300 ${
+              errorMsg.includes("Success") 
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                : "bg-red-500/10 border-red-500/20 text-red-400"
             }`}>
               {errorMsg}
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <input 
-              type="email" placeholder="Email" required
-              className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all text-lg"
+              type="email" placeholder="Email Address" required
+              className="w-full bg-white/[0.03] backdrop-blur-[20px] border border-white/10 p-4 rounded-2xl outline-none focus:border-yellow-400/50 focus:bg-white/[0.07] transition-all text-[15px] placeholder:text-zinc-600"
               onChange={(e) => setEmail(e.target.value)}
             />
+            
             <input 
-              type="password" placeholder="Parolă" required
-              className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all text-lg"
+              type="password" placeholder="Password" required
+              className="w-full bg-white/[0.03] backdrop-blur-[20px] border border-white/10 p-4 rounded-2xl outline-none focus:border-yellow-400/50 focus:bg-white/[0.07] transition-all text-[15px] placeholder:text-zinc-600"
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
+          {/* Bifa de Terms & Policy (Doar la Register) */}
+          {!isLogin && (
+            <label className="flex items-start gap-3 px-1 cursor-pointer group">
+              <div className="relative flex items-center justify-center mt-1">
+                <input 
+                  type="checkbox" 
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="peer h-4 w-4 appearance-none rounded border border-white/20 bg-white/5 transition-all checked:bg-yellow-400 checked:border-yellow-400 outline-none"
+                />
+                <svg className="absolute w-3 h-3 text-black pointer-events-none hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-[11px] text-zinc-500 leading-tight group-hover:text-zinc-300 transition-colors">
+                I agree to the <span className="text-white font-bold underline">Terms of Service</span> and <span className="text-white font-bold underline">Privacy Policy</span>.
+              </span>
+            </label>
+          )}
+
           <button 
             type="submit" 
             disabled={loading} 
-            className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-lg hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:hover:scale-100 mt-2 shadow-lg shadow-yellow-400/10"
+            className="bg-yellow-400 text-black font-black py-4 rounded-2xl text-[14px] uppercase tracking-widest hover:bg-yellow-300 active:scale-[0.97] transition-all disabled:opacity-50 mt-2 shadow-[0_20px_40px_rgba(250,204,21,0.15)]"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                Processing...
+                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                Processing
               </span>
-            ) : (isLogin ? "LOG IN" : "CREATE ACCOUNT")}
+            ) : (isLogin ? "Sign In" : "Register Now")}
           </button>
         </form>
 
-        <button 
-          onClick={() => { setIsLogin(!isLogin); setErrorMsg(null); }} 
-          className="text-zinc-400 text-sm font-semibold hover:text-white transition-colors"
-        >
-          {isLogin ? "Don't have an account? Sign up" : "Already a member? Log in"}
-        </button>
+        <div className="flex flex-col items-center gap-4">
+          <button 
+            onClick={() => { setIsLogin(!isLogin); setErrorMsg(null); }} 
+            className="text-zinc-400 text-xs font-bold hover:text-white transition-colors uppercase tracking-widest"
+          >
+            {isLogin ? "Don't have account? Sign Up" : "Back to Login"}
+          </button>
+        </div>
       </div>
+
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-yellow-400/5 blur-[120px] rounded-full pointer-events-none" />
     </div>
   );
 }

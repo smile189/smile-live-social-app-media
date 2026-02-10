@@ -1,3 +1,9 @@
+/**
+ * signup/route.tsx - API route for user registration in Smile Live App
+ * This route handles POST requests to create a new user account using Supabase authentication.
+ * 
+ */
+
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase' // 
 

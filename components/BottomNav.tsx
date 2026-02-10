@@ -1,3 +1,11 @@
+/**
+ * bottomNav.tsx - component for the bottom navigation bar in Smile Live App
+ * author: BM, responsible for rendering the fixed bottom navigation with interactive icons and handling user authentication state to conditionally navigate users to appropriate pages based on their login status.
+ * This component uses Supabase for authentication state management and Next.js router for navigation. It features a visually appealing design with smooth animations and responsive interactions, enhancing the user experience on mobile devices.
+ * The navigation includes icons for Home, Hot, Create, Chat, and Connect, with special handling for the Create button to make it stand out. User authentication is checked before allowing access to certain routes, ensuring a secure and intuitive navigation flow.
+ */
+
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,13 +18,13 @@ export default function BottomNav() {
   const [active, setActive] = useState("feed");
   const [user, setUser] = useState<any>(null);
 
-  // Inițializăm clientul Supabase pentru verificare sesiune
+  // Init supabase client for auth state management
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Verificăm starea userului la încărcare și la schimbări de auth
+  // Verify user authentication state on component mount and on auth changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -44,13 +52,13 @@ export default function BottomNav() {
     // 3. Dacă ESTE logat, deblocăm rutele specifice
     switch (id) {
       case "connect":
-        router.push("/profile"); // Pagina lui de profil
+        router.push("app/profile"); // Pagina lui de profil
         break;
       case "add":
-        router.push("/upload"); // Pagina de urcare clipuri
+        router.push("app/upload"); // Pagina de urcare clipuri
         break;
       case "chat":
-        router.push("/messages"); // Mesageria
+        router.push("app/messages"); // Mesageria
         break;
       case "hot":
         console.log("Loading trending content...");

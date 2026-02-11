@@ -31,9 +31,10 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<NavItemType>("overview");
   const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("darkMode") === "true" ?? true;
-    }
+const [darkMode, setDarkMode] = useState(() => 
+  typeof window !== "undefined" ? localStorage.getItem("darkMode") === "true" : true
+);
+
     return true;
   });
   const [userEmail, setUserEmail] = useState<string | null>(null);

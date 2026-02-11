@@ -92,7 +92,17 @@ export default function SuperAdminDashboard() {
           ))}
         </nav>
 
-
+        <div className="p-6 border-t border-slate-200 dark:border-zinc-800">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl bg-slate-100 dark:bg-zinc-900 hover:bg-yellow-400 hover:text-black transition-all group shadow-inner"
+          >
+            <span className="text-xl">{darkMode ? "☀️" : "🌙"}</span>
+            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </span>
+          </button>
+        </div>
       </aside>
 
       {/* MAIN */}

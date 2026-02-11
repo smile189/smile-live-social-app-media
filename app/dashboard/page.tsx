@@ -23,13 +23,8 @@ export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState<NavItemType>("overview");
   const [darkMode, setDarkMode] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [activeLives, setActiveLives] = useState(0);
-  const [coinsSupply, setCoinsSupply] = useState(0);
 
-  // check logged-in user
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
@@ -39,33 +34,10 @@ export default function SuperAdminDashboard() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) router.push("dashboard/admin");
-      else setUserEmail(user.email);
+      else setUserEmail(user.email ?? null); // FIX TypeScript
     };
     fetchUser();
   }, [darkMode]);
-
-  // fetch overview stats
-  useEffect(() => {
-    const fetchStats = async () => {
-      const { data: usersData } = await supabase
-        .from("profiles")
-        .select("id");
-      setTotalUsers(usersData?.length ?? 0);
-
-      const { data: livesData } = await supabase
-        .from("lives")
-        .select("id")
-        .eq("is_active", true);
-      setActiveLives(livesData?.length ?? 0);
-
-      const { data: coinsData } = await supabase
-        .from("coins")
-        .select("amount");
-      const totalCoins = coinsData?.reduce((sum, c) => sum + (c.amount ?? 0), 0);
-      setCoinsSupply(totalCoins ?? 0);
-    };
-    fetchStats();
-  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -201,9 +173,7 @@ export default function SuperAdminDashboard() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {activeTab === "overview" && (
-              <OverviewTab totalUsers={totalUsers} activeLives={activeLives} coinsSupply={coinsSupply} />
-            )}
+            {activeTab === "overview" && <OverviewTab />}
             {activeTab === "users" && <UsersTab />}
           </motion.div>
         </AnimatePresence>
@@ -236,14 +206,24 @@ function MenuBtn({ icon, label, active, onClick }: any) {
   );
 }
 
-function OverviewTab({ totalUsers, activeLives, coinsSupply }: any) {
+function OverviewTab() {
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      const { count } = await supabase.from("profiles").select("*", { count: "exact" });
+      setTotalUsers(count ?? 0);
+    };
+    fetchTotalUsers();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCard label="Total Users" value={totalUsers} icon="👥" />
-        <StatCard label="Active Lives" value={activeLives} icon="🔴" />
-        <StatCard label="Coins Supply" value={coinsSupply} icon="🪙" />
-        <StatCard label="Revenue" value="$45.2k" icon="💵" />
+        <StatCard label="Total Users" value={totalUsers.toString()} icon="👥" />
+        <StatCard label="Live Revenue" value="$45.2k" icon="💵" />
+        <StatCard label="Active Lives" value="24" icon="🔴" />
+        <StatCard label="Coins Supply" value="1.2M" icon="🪙" />
       </div>
     </div>
   );
@@ -259,76 +239,74 @@ function UsersTab() {
       .from("profiles")
       .select("id, username, full_name, role, updated_at")
       .order("updated_at", { ascending: false });
+
     if (error) console.error("Error fetching users:", error.message);
     else setUsers(data ?? []);
     setLoading(false);
+  };
+
+  const deleteUser = async (id: string) => {
+    const { error } = await supabase.from("profiles").delete().eq("id", id);
+    if (error) console.error(error.message);
+    else fetchUsers();
   };
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const deleteUser = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-    const { error } = await supabase.from("profiles").delete().eq("id", id);
-    if (error) alert("Error deleting user: " + error.message);
-    else setUsers(users.filter(u => u.id !== id));
-  };
-
-  if (loading) return <p className="italic text-gray-500">Loading users...</p>;
-  if (!users.length) return <p className="italic text-gray-500">No users found.</p>;
-
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-black text-yellow-400">User Directory</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-lg">
-          <thead className="bg-slate-100 dark:bg-zinc-900">
-            <tr>
-              <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Username</th>
-              <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Full Name</th>
-              <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Role</th>
-              <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Last Updated</th>
-              <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <motion.tr
-                key={user.id}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, backgroundColor: "#fef3c7" }}
-                transition={{ duration: 0.2 }}
-                className="border-b border-slate-200 dark:border-zinc-800"
-              >
-                <td className="p-4 font-bold">{user.username}</td>
-                <td className="p-4">{user.full_name ?? "-"}</td>
-                <td className="p-4 uppercase font-black">{user.role ?? "user"}</td>
-                <td className="p-4 text-xs italic">{user.updated_at ? new Date(user.updated_at).toLocaleString() : "-"}</td>
-                <td className="p-4">
-                  <button
-                    onClick={() => deleteUser(user.id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <p className="text-gray-500 italic">Loading users...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-lg">
+            <thead className="bg-slate-100 dark:bg-zinc-900">
+              <tr>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Username</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Full Name</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Role</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Last Updated</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <motion.tr
+                  key={user.id}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.01, backgroundColor: "#fef3c7" }}
+                  transition={{ duration: 0.2 }}
+                  className="border-b border-slate-200 dark:border-zinc-800"
+                >
+                  <td className="p-4 font-bold">{user.username}</td>
+                  <td className="p-4">{user.full_name ?? "-"}</td>
+                  <td className="p-4 uppercase font-black">{user.role}</td>
+                  <td className="p-4 text-xs italic">{new Date(user.updated_at).toLocaleString()}</td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => deleteUser(user.id)}
+                      className="px-2 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 function StatCard({ label, value, icon }: any) {
   return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-8 rounded-[2.5rem] shadow-sm group"
-    >
+    <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-8 rounded-[2.5rem] shadow-sm group">
       <span className="text-3xl mb-4 block group-hover:rotate-12 transition-transform">{icon}</span>
       <h3 className="text-4xl font-black tracking-tighter">{value}</h3>
       <p className="text-slate-400 dark:text-zinc-600 text-[10px] font-black uppercase tracking-widest mt-2">{label}</p>

@@ -1,8 +1,11 @@
 /**
  * bottomNav.tsx - component for the bottom navigation bar in Smile Live App
- * author: BM, responsible for rendering the fixed bottom navigation with interactive icons and handling user authentication state to conditionally navigate users to appropriate pages based on their login status.
- * This component uses Supabase for authentication state management and Next.js router for navigation. It features a visually appealing design with smooth animations and responsive interactions, enhancing the user experience on mobile devices.
- * The navigation includes icons for Home, Hot, Create, Chat, and Connect, with special handling for the Create button to make it stand out. User authentication is checked before allowing access to certain routes, ensuring a secure and intuitive navigation flow.
+ * author: BM, responsible for rendering the fixed bottom navigation with interactive icons and handling user authentication state 
+ * to conditionally navigate users to appropriate pages based on their login status.
+ * This component uses Supabase for authentication state management and Next.js router for navigation.
+ *  It features a visually appealing design with smooth animations and responsive interactions, enhancing the user experience on mobile devices.
+ * The navigation includes icons for Home, Hot, Create, Chat, and Connect, with special handling for
+ *  the Create button to make it stand out. User authentication is checked before allowing access to certain routes, ensuring a secure and intuitive navigation flow.
  */
 
 

@@ -1,5 +1,12 @@
 /**
  * dashboard/page.tsx - Main dashboard page for super admins, showing real-time stats and management tools.
+ * Authored by BM, this page serves as the central hub for super admins to monitor and manage the Smile Live app ecosystem. 
+ * It features a sidebar navigation for different management sections (Overview, Users, Content, Finances, Moderation),
+ *  a top bar with profile and logout options, and a main content area that dynamically updates based on the selected section. 
+ * The dashboard integrates with Supabase to fetch real-time data on users, live streams, revenue, and more, providing super admins with actionable 
+ * insights and controls to effectively oversee the platform.
+ * The design emphasizes a clean, modern aesthetic with a focus on usability and quick access to key metrics and actions, 
+ * making it an essential tool for super admins to maintain the health and growth of the Smile Live community.
  */
 
 "use client";

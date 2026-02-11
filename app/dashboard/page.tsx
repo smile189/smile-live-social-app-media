@@ -1,6 +1,5 @@
 /**
  * dashboard/page.tsx - Main dashboard page for super admins, showing real-time stats and management tools.
- * 
  */
 
 "use client";
@@ -30,17 +29,19 @@ type NavItemType =
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<NavItemType>("overview");
-  const [darkMode, setDarkMode] = useState(() => {
-const [darkMode, setDarkMode] = useState(() => 
-  typeof window !== "undefined" ? localStorage.getItem("darkMode") === "true" : true
-);
-
-    return true;
-  });
+  const [darkMode, setDarkMode] = useState(true); // default true
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // --- dark mode ---
+  // --- Load dark mode preference from localStorage on client ---
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("darkMode") === "true";
+      setDarkMode(saved);
+    }
+  }, []);
+
+  // --- Apply dark mode class and save preference ---
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
@@ -66,13 +67,11 @@ const [darkMode, setDarkMode] = useState(() =>
     <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-zinc-100 transition-colors duration-500 font-sans flex">
       {/* SIDEBAR */}
       <aside className="fixed top-0 left-0 h-full w-20 lg:w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 z-50 flex flex-col transition-all shadow-2xl">
-<div className="p-8 flex flex-col items-start gap-2">
-
-  <span className="hidden lg:block font-black text-xl tracking-tighter italic uppercase">
-    DASHBOARD <span className="text-yellow-400">SMILELIVE</span>
-  </span>
-</div>
-
+        <div className="p-8 flex flex-col items-start gap-2">
+          <span className="hidden lg:block font-black text-xl tracking-tighter italic uppercase">
+            DASHBOARD <span className="text-yellow-400">SMILELIVE</span>
+          </span>
+        </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
           {[

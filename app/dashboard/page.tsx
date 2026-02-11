@@ -1,9 +1,18 @@
+/**
+ * dashboard/page.tsx - Main dashboard page for super admins, showing real-time stats and management tools.
+ * 
+ */
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, PieChart, Pie, Cell, Legend
+} from "recharts";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,99 +30,73 @@ type NavItemType =
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<NavItemType>("overview");
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("darkMode") === "true" ?? true;
+    }
+    return true;
+  });
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  // --- dark mode ---
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
+    localStorage.setItem("darkMode", darkMode.toString());
+  }, [darkMode]);
 
+  // --- fetch current admin user ---
+  useEffect(() => {
     const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) router.push("dashboard/admin");
-      else setUserEmail(user.email ?? null); // FIX TypeScript
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) router.push("/dashboard/admin");
+      else setUserEmail(user.email ?? null);
     };
     fetchUser();
-  }, [darkMode]);
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("dashboard/admin");
+    router.push("/dashboard/admin");
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-zinc-100 transition-colors duration-500 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-zinc-100 transition-colors duration-500 font-sans flex">
       {/* SIDEBAR */}
       <aside className="fixed top-0 left-0 h-full w-20 lg:w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 z-50 flex flex-col transition-all shadow-2xl">
-        <div className="p-8 flex items-center gap-3">
-          <motion.div
-            whileHover={{ rotate: 180 }}
-            className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black font-black shadow-lg shadow-yellow-400/20"
-          >
-            S
-          </motion.div>
-          <span className="hidden lg:block font-black text-xl tracking-tighter italic uppercase">
-            SMILE<span className="text-yellow-400">LIVE</span>
-          </span>
-        </div>
+<div className="p-8 flex flex-col items-start gap-2">
+
+  <span className="hidden lg:block font-black text-xl tracking-tighter italic uppercase">
+    DASHBOARD <span className="text-yellow-400">SMILELIVE</span>
+  </span>
+</div>
+
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
-          <MenuBtn
-            icon="📊"
-            label="Overview"
-            active={activeTab === "overview"}
-            onClick={() => setActiveTab("overview")}
-          />
-          <MenuBtn
-            icon="👥"
-            label="Users"
-            active={activeTab === "users"}
-            onClick={() => setActiveTab("users")}
-          />
-          <MenuBtn
-            icon="🎬"
-            label="Posts & Video"
-            active={activeTab === "content"}
-            onClick={() => setActiveTab("content")}
-          />
-          <MenuBtn
-            icon="💰"
-            label="Finances & Coins"
-            active={activeTab === "finances"}
-            onClick={() => setActiveTab("finances")}
-          />
-          <MenuBtn
-            icon="🎁"
-            label="Gifts Config"
-            active={activeTab === "gifts"}
-            onClick={() => setActiveTab("gifts")}
-          />
-          <MenuBtn
-            icon="🚩"
-            label="Moderation"
-            active={activeTab === "moderation"}
-            onClick={() => setActiveTab("moderation")}
-          />
+          {[
+            { icon: "📊", label: "Overview", key: "overview" },
+            { icon: "👥", label: "Users", key: "users" },
+            { icon: "🎬", label: "Posts & Video", key: "content" },
+            { icon: "💰", label: "Finances & Coins", key: "finances" },
+            { icon: "🎁", label: "Gifts Config", key: "gifts" },
+            { icon: "🚩", label: "Moderation", key: "moderation" },
+          ].map((item) => (
+            <MenuBtn
+              key={item.key}
+              icon={item.icon}
+              label={item.label}
+              active={activeTab === item.key}
+              onClick={() => setActiveTab(item.key as NavItemType)}
+            />
+          ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-200 dark:border-zinc-800">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl bg-slate-100 dark:bg-zinc-900 hover:bg-yellow-400 hover:text-black transition-all group shadow-inner"
-          >
-            <span className="text-xl">{darkMode ? "☀️" : "🌙"}</span>
-            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </span>
-          </button>
-        </div>
+
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 ml-20 lg:ml-64 p-6 lg:p-12">
+      <main className="flex-1 ml-20 lg:ml-64 p-6 lg:p-12 w-full">
         {/* TOP BAR */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -175,6 +158,10 @@ export default function SuperAdminDashboard() {
           >
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "users" && <UsersTab />}
+            {activeTab === "content" && <BlankTab name="Posts & Video" />}
+            {activeTab === "finances" && <BlankTab name="Finances & Coins" />}
+            {activeTab === "gifts" && <BlankTab name="Gifts Config" />}
+            {activeTab === "moderation" && <BlankTab name="Moderation" />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -182,7 +169,7 @@ export default function SuperAdminDashboard() {
   );
 }
 
-// --- SUB COMPONENTS ---
+// --- COMPONENTS ---
 function MenuBtn({ icon, label, active, onClick }: any) {
   return (
     <button
@@ -206,29 +193,117 @@ function MenuBtn({ icon, label, active, onClick }: any) {
   );
 }
 
+function StatCard({ label, value, icon }: any) {
+  return (
+    <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-8 rounded-[2.5rem] shadow-sm group">
+      <span className="text-3xl mb-4 block group-hover:rotate-12 transition-transform">{icon}</span>
+      <h3 className="text-4xl font-black tracking-tighter">{value}</h3>
+      <p className="text-slate-400 dark:text-zinc-600 text-[10px] font-black uppercase tracking-widest mt-2">{label}</p>
+    </motion.div>
+  );
+}
+
+// --- OverviewTab Real-Time ---
 function OverviewTab() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [liveRevenue, setLiveRevenue] = useState<number>(0);
+  const [activeLives, setActiveLives] = useState<number>(0);
+  const [coinsSupply, setCoinsSupply] = useState<number>(0);
+
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [activeLivesData, setActiveLivesData] = useState<any[]>([]);
+  const [coinsData, setCoinsData] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchTotalUsers = async () => {
+    const fetchStats = async () => {
+      // Total Users
       const { count } = await supabase.from("profiles").select("*", { count: "exact" });
       setTotalUsers(count ?? 0);
+
+      // Live Revenue
+      const { data: rev } = await supabase.from("gift_transactions").select("coins_amount, created_at");
+      const revenueSum = rev?.reduce((a, b) => a + (b.coins_amount ?? 0), 0) ?? 0;
+      setLiveRevenue(revenueSum);
+      setRevenueData(rev?.map(r => ({ date: r.created_at?.slice(0,10), revenue: r.coins_amount })) ?? []);
+
+      // Active Lives
+      const { count: liveCount, data: livePosts } = await supabase.from("posts").select("id, created_at", { count: "exact" });
+      setActiveLives(liveCount ?? 0);
+      setActiveLivesData(livePosts?.map(p => ({ date: p.created_at?.slice(0,10), active: 1 })) ?? []);
+
+      // Coins Supply
+      const { data: coins } = await supabase.from("profiles").select("coins");
+      const totalCoins = coins?.reduce((a,b) => a + (b.coins ?? 0),0) ?? 0;
+      setCoinsSupply(totalCoins);
+      setCoinsData(coins?.map((c,i) => ({ name: `User ${i+1}`, value: c.coins })) ?? []);
     };
-    fetchTotalUsers();
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000); // every 10 sec
+    return () => clearInterval(interval);
   }, []);
+
+  const COLORS = ["#FFD700", "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1"];
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCard label="Total Users" value={totalUsers.toString()} icon="👥" />
-        <StatCard label="Live Revenue" value="$45.2k" icon="💵" />
-        <StatCard label="Active Lives" value="24" icon="🔴" />
-        <StatCard label="Coins Supply" value="1.2M" icon="🪙" />
+        <StatCard label="Total Users" value={totalUsers} icon="👥" />
+        <StatCard label="Live Revenue" value={liveRevenue} icon="💵" />
+        <StatCard label="Active Lives" value={activeLives} icon="🔴" />
+        <StatCard label="Coins Supply" value={coinsSupply} icon="🪙" />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Revenue Line Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
+          <h3 className="font-black text-yellow-400 mb-4 text-center">Live Revenue</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={revenueData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="revenue" stroke="#FFD700" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Active Lives Bar Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
+          <h3 className="font-black text-yellow-400 mb-4 text-center">Active Lives</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={activeLivesData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="active" fill="#FF6F61" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Coins Pie Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
+          <h3 className="font-black text-yellow-400 mb-4 text-center">Coins Supply</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={coinsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}>
+                {coinsData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
 }
 
+// --- UsersTab Real-Time ---
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -239,8 +314,7 @@ function UsersTab() {
       .from("profiles")
       .select("id, username, full_name, role, updated_at")
       .order("updated_at", { ascending: false });
-
-    if (error) console.error("Error fetching users:", error.message);
+    if (error) console.error(error.message);
     else setUsers(data ?? []);
     setLoading(false);
   };
@@ -253,6 +327,8 @@ function UsersTab() {
 
   useEffect(() => {
     fetchUsers();
+    const interval = setInterval(fetchUsers, 10000); // every 10 sec
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -304,12 +380,11 @@ function UsersTab() {
   );
 }
 
-function StatCard({ label, value, icon }: any) {
+// --- BlankTab ---
+function BlankTab({ name }: { name: string }) {
   return (
-    <motion.div whileHover={{ y: -5 }} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-8 rounded-[2.5rem] shadow-sm group">
-      <span className="text-3xl mb-4 block group-hover:rotate-12 transition-transform">{icon}</span>
-      <h3 className="text-4xl font-black tracking-tighter">{value}</h3>
-      <p className="text-slate-400 dark:text-zinc-600 text-[10px] font-black uppercase tracking-widest mt-2">{label}</p>
-    </motion.div>
+    <div className="p-12 bg-white dark:bg-zinc-900 rounded-3xl shadow-lg text-center text-gray-400 dark:text-gray-500 font-black">
+      {name} — blank page ready for future content
+    </div>
   );
 }

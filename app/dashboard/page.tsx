@@ -40,6 +40,8 @@ export default function SuperAdminDashboard() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  const version = "1.13.130226"; // Dashboard version for reference..0.13..13..
+
   // --- Load dark mode preference from localStorage on client ---
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -121,7 +123,7 @@ export default function SuperAdminDashboard() {
               {activeTab} <span className="text-yellow-400 font-light">Console</span>
             </h1>
             <p className="text-slate-500 dark:text-zinc-500 text-sm mt-4 font-medium tracking-wide">
-              Smile Live Network Management Hub
+              Smile Live -business administration <strong>Version {version}  </strong> 
             </p>
           </motion.div>
 
@@ -256,7 +258,7 @@ function OverviewTab() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 10000); // every 10 sec
+    const interval = setInterval(fetchStats, 60000); // every 60 sec
     return () => clearInterval(interval);
   }, []);
 
@@ -319,80 +321,111 @@ function OverviewTab() {
     </div>
   );
 }
-
-// --- UsersTab Real-Time ---
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 15;
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const from = page * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+
+    let query = supabase
       .from("profiles")
-      .select("id, username, full_name, role, updated_at")
-      .order("updated_at", { ascending: false });
+      .select("id, username, full_name, role, updated_at");
+
+    // Căutare în DB pe coloanele care există sigur
+    if (searchTerm) {
+      query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+    }
+
+    const { data, error } = await query
+      .order("updated_at", { ascending: false })
+      .range(from, to);
+
     if (error) console.error(error.message);
     else setUsers(data ?? []);
     setLoading(false);
   };
 
-  const deleteUser = async (id: string) => {
-    const { error } = await supabase.from("profiles").delete().eq("id", id);
-    if (error) console.error(error.message);
-    else fetchUsers();
-  };
-
   useEffect(() => {
     fetchUsers();
-    const interval = setInterval(fetchUsers, 10000); // every 10 sec
+    const interval = setInterval(fetchUsers, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [page, searchTerm]); // Se reîmprospătează la search sau pagină nouă
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-black text-yellow-400">User Directory</h2>
-      {loading ? (
-        <p className="text-gray-500 italic">Loading users...</p>
+      {/* Header cu Bara de Căutare */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <h2 className="text-xl font-black text-yellow-400">User database</h2>
+        <input
+          type="text"
+          placeholder="Search from name or user..."
+          value={searchTerm}
+          onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+          className="w-full md:w-72 px-4 py-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-yellow-400 transition"
+        />
+      </div>
+
+      {loading && users.length === 0 ? (
+        <p className="text-gray-500 italic text-center p-10 animate-pulse">Loading users...</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-lg">
+        <div className="overflow-x-auto border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-lg">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-slate-100 dark:bg-zinc-900">
               <tr>
+                <th className="p-4 text-[10px] font-black uppercase border-b border-slate-200 dark:border-zinc-800">ID (Short)</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Username</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Full Name</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Role</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Last Updated</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Actions</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Updated</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <motion.tr
                   key={user.id}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.01, backgroundColor: "#fef3c7" }}
-                  transition={{ duration: 0.2 }}
-                  className="border-b border-slate-200 dark:border-zinc-800"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ backgroundColor: "rgba(254, 243, 199, 0.4)" }}
+                  className="border-b border-slate-200 dark:border-zinc-800 transition-colors"
                 >
-                  <td className="p-4 font-bold">{user.username}</td>
-                  <td className="p-4">{user.full_name ?? "-"}</td>
-                  <td className="p-4 uppercase font-black">{user.role}</td>
-                  <td className="p-4 text-xs italic">{new Date(user.updated_at).toLocaleString()}</td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => deleteUser(user.id)}
-                      className="px-2 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition"
-                    >
-                      Delete
-                    </button>
+                  <td className="p-4 font-mono text-[10px] text-zinc-500">{user.id.slice(0, 8)}...</td>
+                  <td className="p-4 font-bold text-yellow-600 dark:text-yellow-400">@{user.username}</td>
+                  <td className="p-4 text-sm">{user.full_name ?? "-"}</td>
+                  <td className="p-4 uppercase font-black text-[10px]">
+                    <span className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded-md">{user.role}</span>
                   </td>
+                  <td className="p-4 text-[10px] italic">{new Date(user.updated_at).toLocaleDateString()}</td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Paginare Simplă */}
+      <div className="flex justify-center items-center gap-4 mt-4">
+        <button 
+          disabled={page === 0} 
+          onClick={() => setPage(p => p - 1)}
+          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-800 disabled:opacity-30"
+        >
+          PREV
+        </button>
+        <span className="text-xs font-mono">PAGINA {page + 1}</span>
+        <button 
+          disabled={users.length < itemsPerPage} 
+          onClick={() => setPage(p => p + 1)}
+          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-800 disabled:opacity-30"
+        >
+          NEXT
+        </button>
+      </div>
     </div>
   );
 }

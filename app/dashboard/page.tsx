@@ -328,8 +328,10 @@ function UsersTab() {
   const [page, setPage] = useState(0);
   const itemsPerPage = 15;
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  // fetchUsers primește isSilent ca să nu arate loading-ul la auto-refresh
+  const fetchUsers = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    
     const from = page * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
@@ -337,7 +339,7 @@ function UsersTab() {
       .from("profiles")
       .select("id, username, full_name, role, updated_at");
 
-    // Căutare în DB pe coloanele care există sigur
+    // Căutare în DB pe coloanele sigure
     if (searchTerm) {
       query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
     }
@@ -346,61 +348,86 @@ function UsersTab() {
       .order("updated_at", { ascending: false })
       .range(from, to);
 
-    if (error) console.error(error.message);
-    else setUsers(data ?? []);
+    if (error) {
+      console.error("Supabase Error:", error.message);
+    } else {
+      setUsers(data ?? []);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
+    // 1. Fetch inițial la schimbarea paginii sau search-ului
     fetchUsers();
-    const interval = setInterval(fetchUsers, 10000);
+
+    // 2. Refresh automat la 30 secunde (30000ms)
+    const interval = setInterval(() => {
+      fetchUsers(true); // isSilent = true
+    }, 30000);
+
     return () => clearInterval(interval);
-  }, [page, searchTerm]); // Se reîmprospătează la search sau pagină nouă
+  }, [page, searchTerm]); 
 
   return (
     <div className="space-y-6">
-      {/* Header cu Bara de Căutare */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-black text-yellow-400">User database</h2>
+      {/* Header cu Bara de Căutare - Responsive */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-black text-yellow-400 uppercase tracking-tighter">User Database</h2>
+          {loading && <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>}
+        </div>
+        
         <input
           type="text"
-          placeholder="Search from name or user..."
+          placeholder="Search name or username..."
           value={searchTerm}
           onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-          className="w-full md:w-72 px-4 py-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-yellow-400 transition"
+          className="w-full md:w-80 px-4 py-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-yellow-400 transition shadow-inner"
         />
       </div>
 
       {loading && users.length === 0 ? (
-        <p className="text-gray-500 italic text-center p-10 animate-pulse">Loading users...</p>
+        <p className="text-gray-500 italic text-center p-20 animate-pulse bg-zinc-900/10 rounded-2xl">
+          Syncing users...
+        </p>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-lg">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-100 dark:bg-zinc-900">
+        <div className="overflow-x-auto border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl bg-white dark:bg-zinc-950">
+          <table className="w-full text-left border-collapse min-w-[600px]">
+            <thead className="bg-slate-50 dark:bg-zinc-900">
               <tr>
-                <th className="p-4 text-[10px] font-black uppercase border-b border-slate-200 dark:border-zinc-800">ID (Short)</th>
+                <th className="p-4 text-[10px] font-black uppercase border-b border-slate-200 dark:border-zinc-800 text-zinc-500">ID</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Username</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Full Name</th>
                 <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Role</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Updated</th>
+                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800 text-right">Updated</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
               {users.map((user) => (
                 <motion.tr
                   key={user.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  whileHover={{ backgroundColor: "rgba(254, 243, 199, 0.4)" }}
-                  className="border-b border-slate-200 dark:border-zinc-800 transition-colors"
+                  whileHover={{ backgroundColor: "rgba(254, 243, 199, 0.2)" }}
+                  className="transition-colors group"
                 >
-                  <td className="p-4 font-mono text-[10px] text-zinc-500">{user.id.slice(0, 8)}...</td>
-                  <td className="p-4 font-bold text-yellow-600 dark:text-yellow-400">@{user.username}</td>
-                  <td className="p-4 text-sm">{user.full_name ?? "-"}</td>
-                  <td className="p-4 uppercase font-black text-[10px]">
-                    <span className="px-2 py-1 bg-zinc-200 dark:bg-zinc-800 rounded-md">{user.role}</span>
+                  <td className="p-4 font-mono text-[9px] text-zinc-500 tracking-tighter uppercase">
+                    {user.id.slice(0, 8)}...
                   </td>
-                  <td className="p-4 text-[10px] italic">{new Date(user.updated_at).toLocaleDateString()}</td>
+                  <td className="p-4 font-bold text-yellow-600 dark:text-yellow-500">
+                    @{user.username}
+                  </td>
+                  <td className="p-4 text-sm text-zinc-700 dark:text-zinc-300">
+                    {user.full_name ?? <span className="opacity-30">—</span>}
+                  </td>
+                  <td className="p-4">
+                    <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black rounded border border-zinc-200 dark:border-zinc-700 uppercase">
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="p-4 text-[10px] font-mono text-zinc-500 text-right">
+                    {new Date(user.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
@@ -408,20 +435,22 @@ function UsersTab() {
         </div>
       )}
 
-      {/* Paginare Simplă */}
-      <div className="flex justify-center items-center gap-4 mt-4">
+      {/* Control Paginare */}
+      <div className="flex justify-between items-center px-4 py-2">
         <button 
           disabled={page === 0} 
           onClick={() => setPage(p => p - 1)}
-          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-800 disabled:opacity-30"
+          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl text-[10px] font-black border border-zinc-200 dark:border-zinc-800 disabled:opacity-20 hover:border-yellow-400 transition"
         >
-          PREV
+          PREVIOUS
         </button>
-        <span className="text-xs font-mono">PAGINA {page + 1}</span>
+        <span className="text-[10px] font-black text-zinc-400 tracking-widest uppercase">
+          Page {page + 1}
+        </span>
         <button 
           disabled={users.length < itemsPerPage} 
           onClick={() => setPage(p => p + 1)}
-          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-lg text-xs font-bold border border-zinc-200 dark:border-zinc-800 disabled:opacity-30"
+          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl text-[10px] font-black border border-zinc-200 dark:border-zinc-800 disabled:opacity-20 hover:border-yellow-400 transition"
         >
           NEXT
         </button>

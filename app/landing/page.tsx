@@ -164,6 +164,13 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
+
+            {/* LEGAL DISCLOSURE BOX */}
+            <div className="mt-8 p-4 bg-zinc-900/30 border-l-2 border-yellow-400/50 rounded-r-xl max-w-md">
+              <p className="text-[10px] text-zinc-400 leading-relaxed uppercase font-bold tracking-tighter">
+                <span className="text-yellow-400">Contribution Disclosure:</span> By proceeding, you acknowledge this is a voluntary donation to support SMILE LIVE development. Smile Coins are pre-launch assets and will be officially credited to your account upon the platform's public release in 2026.
+              </p>
+            </div>
           </div>
 
           <div className="w-full md:w-[350px] bg-zinc-900 border border-zinc-800 p-8 rounded-2xl flex flex-col gap-6">
@@ -184,17 +191,19 @@ export default function LandingPage() {
                     const btn = document.getElementById('rev-btn') as HTMLButtonElement;
                     
                     if(priceEl) {
-                      
                       priceEl.innerText = (val * 0.01).toFixed(2);
-                      
                       if(val < 1000) {
                         priceEl.classList.add('text-red-600');
-                        if(btn) btn.style.opacity = "0.5";
-                        if(btn) btn.style.pointerEvents = "none";
+                        if(btn) {
+                          btn.style.opacity = "0.5";
+                          btn.style.pointerEvents = "none";
+                        }
                       } else {
                         priceEl.classList.remove('text-red-600');
-                        if(btn) btn.style.opacity = "1";
-                        if(btn) btn.style.pointerEvents = "auto";
+                        if(btn) {
+                          btn.style.opacity = "1";
+                          btn.style.pointerEvents = "auto";
+                        }
                       }
                     }
                   }}
@@ -215,16 +224,16 @@ export default function LandingPage() {
               onClick={() => {
                 const val = (document.getElementById('coin-input-field') as HTMLInputElement).value;
                 if(Number(val) >= 1000) {
-                   // 
-                   window.open('https://revolut.me', '@rzbrrob');
+                   // Folosim URL-ul corect pentru Revolut Me
+                   window.open('https://revolut.me', '@smile89');
                 }
               }}
               className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb]"
             >
               Transfer via Revolut <ArrowRight size={16} strokeWidth={3} />
             </button>
-            <p className="text-[9px] text-center text-zinc-600 font-bold uppercase tracking-tighter leading-tight">
-              * Minimum order: 1,000 coins. <br /> Added manually after verification.
+            <p className="text-[9px] text-center text-zinc-600 font-bold uppercase tracking-tighter leading-tight italic">
+              * Minimum order: 1,000 coins. <br /> Coins credited manually after verification.
             </p>
           </div>
         </section>

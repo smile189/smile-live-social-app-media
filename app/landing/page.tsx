@@ -239,7 +239,7 @@ export default function LandingPage() {
     }}
     className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb] shadow-xl shadow-[#0075eb]/20"
   >
-    Transfer via Revolut <ArrowRight size={16} strokeWidth={3} />
+    Donate via Revolut <ArrowRight size={16} strokeWidth={3} />
   </button>
 
   {/* MESAJUL DE MULȚUMIRE INTEGRAT (HIDDEN BY DEFAULT) */}

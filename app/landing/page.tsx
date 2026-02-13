@@ -219,19 +219,31 @@ export default function LandingPage() {
             </div>
 
             {/* BUTONUL CATRE REVOLUT PERSONAL */}
-            <button 
-              id="rev-btn"
-              onClick={() => {
-                const val = (document.getElementById('coin-input-field') as HTMLInputElement).value;
-                if(Number(val) >= 1000) {
-                   // 
-                   window.open('https://revolut.me/smile89', '_blank');
-                }
-              }}
-              className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb]"
-            >
-              Transfer via Revolut <ArrowRight size={16} strokeWidth={3} />
-            </button>
+<button 
+  id="rev-btn"
+  onClick={() => {
+    const valInput = document.getElementById('coin-input-field') as HTMLInputElement;
+    const val = valInput ? Number(valInput.value) : 0;
+    
+    if(val >= 1000) {
+       // Mesaj personalizat de mulțumire și instrucțiuni
+       const message = 
+         `THANK YOU FOR SUPPORTING SMILELIVEAPP.COM!\n\n` +
+         `To credit your ${val.toLocaleString()} coins correctly:\n` +
+         `1. Enter the amount: $${(val * 0.01).toFixed(2)}\n` +
+         `2. IMPORTANT: In the Revolut 'Note' field, write your Smile Username.\n\n` +
+         `Your contribution fuels the future of 4K streaming. Redirecting to Revolut...`;
+
+       if(confirm(message)) {
+         window.open('https://revolut.me/smile89', '_blank');
+       }
+    }
+  }}
+  className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb] shadow-xl shadow-[#0075eb]/20"
+>
+  Transfer via Revolut <ArrowRight size={16} strokeWidth={3} />
+</button>
+
             <p className="text-[9px] text-center text-zinc-600 font-bold uppercase tracking-tighter leading-tight italic">
               * Minimum order: 1,000 coins. <br /> Coins credited manually after verification.
             </p>

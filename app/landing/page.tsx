@@ -224,8 +224,8 @@ export default function LandingPage() {
               onClick={() => {
                 const val = (document.getElementById('coin-input-field') as HTMLInputElement).value;
                 if(Number(val) >= 1000) {
-                   // Folosim URL-ul corect pentru Revolut Me
-                   window.open('https://revolut.me', '@smile89');
+                   // 
+                   window.open('https://revolut.me/smile89', '_blank');
                 }
               }}
               className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb]"

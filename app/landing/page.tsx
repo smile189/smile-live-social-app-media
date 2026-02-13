@@ -151,7 +151,7 @@ export default function LandingPage() {
         <section className="px-6 py-24 max-w-5xl mx-auto border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="flex-1 space-y-4">
             <h2 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
-              SMILE <span className="text-yellow-400 font-black">COINS.</span>
+              Smile app <span className="text-yellow-400 font-black">contributing </span>
             </h2>
             <p className="text-zinc-500 text-sm font-medium leading-relaxed max-w-sm italic lowercase tracking-tight">
               direct infrastructure funding. transfer via revolut me. zero processing fees. 

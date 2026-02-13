@@ -34,6 +34,26 @@ const StatItem = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
+
+const handleStripePayment = async () => {
+  // Ia valoarea curentă din input
+  const input = document.querySelector('input[type="number"]') as HTMLInputElement;
+  const amount = parseInt(input.value) || 1000;
+
+  // Trimite la serverul API (fisierul route.ts creat anterior)
+  const res = await fetch("/api/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+
+  const { url } = await res.json();
+  if (url) window.location.href = url; // Te trimite la Stripe
+};
+
+
+
+
 export default function LandingPage() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -124,6 +144,91 @@ export default function LandingPage() {
             </Link>
           </div>
         </section>
+
+
+
+              {/* --- REVOLUT PERSONAL SUPPORT SECTION (MIN 1000 COINS) --- */}
+        <section className="px-6 py-24 max-w-5xl mx-auto border-t border-zinc-900 flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="flex-1 space-y-4">
+            <h2 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+              SMILE <span className="text-yellow-400 font-black">COINS.</span>
+            </h2>
+            <p className="text-zinc-500 text-sm font-medium leading-relaxed max-w-sm italic lowercase tracking-tight">
+              direct infrastructure funding. transfer via revolut me. zero processing fees. 
+            </p>
+            <div className="flex gap-8 pt-2">
+              <div>
+                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">Fixed Rate</p>
+                <p className="text-xl font-bold text-white tracking-tighter">
+                  $0.01 <span className="text-[10px] text-zinc-600 font-mono italic uppercase font-normal">usd / coin</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full md:w-[350px] bg-zinc-900 border border-zinc-800 p-8 rounded-2xl flex flex-col gap-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em]">Amount</label>
+                <span className="text-[9px] font-bold text-red-600 uppercase tracking-tighter">Min. 1000</span>
+              </div>
+              <div className="relative">
+                <input 
+                  id="coin-input-field"
+                  type="number" 
+                  min="1000"
+                  defaultValue="1000"
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    const priceEl = document.getElementById('total-price');
+                    const btn = document.getElementById('rev-btn') as HTMLButtonElement;
+                    
+                    if(priceEl) {
+                      
+                      priceEl.innerText = (val * 0.01).toFixed(2);
+                      
+                      if(val < 1000) {
+                        priceEl.classList.add('text-red-600');
+                        if(btn) btn.style.opacity = "0.5";
+                        if(btn) btn.style.pointerEvents = "none";
+                      } else {
+                        priceEl.classList.remove('text-red-600');
+                        if(btn) btn.style.opacity = "1";
+                        if(btn) btn.style.pointerEvents = "auto";
+                      }
+                    }
+                  }}
+                  className="w-full bg-black border border-zinc-800 rounded-xl px-5 py-4 text-2xl font-black text-white focus:border-yellow-400 outline-none transition-all appearance-none"
+                />
+                <Zap size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-yellow-400 opacity-30" />
+              </div>
+            </div>
+
+            <div className="flex items-baseline justify-between border-t border-zinc-800 pt-6">
+              <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Total to Send</span>
+              <span className="text-4xl font-black text-white">$<span id="total-price">10.00</span></span>
+            </div>
+
+            {/* BUTONUL CATRE REVOLUT PERSONAL */}
+            <button 
+              id="rev-btn"
+              onClick={() => {
+                const val = (document.getElementById('coin-input-field') as HTMLInputElement).value;
+                if(Number(val) >= 1000) {
+                   // 
+                   window.open('https://revolut.me', '@rzbrrob');
+                }
+              }}
+              className="w-full bg-[#0075eb] hover:bg-white hover:text-[#0075eb] text-white py-5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#0075eb]"
+            >
+              Transfer via Revolut <ArrowRight size={16} strokeWidth={3} />
+            </button>
+            <p className="text-[9px] text-center text-zinc-600 font-bold uppercase tracking-tighter leading-tight">
+              * Minimum order: 1,000 coins. <br /> Added manually after verification.
+            </p>
+          </div>
+        </section>
+
 
 
 

@@ -321,6 +321,12 @@ function OverviewTab() {
     </div>
   );
 }
+
+/**
+ * user tab -display a paginated list of users with search functionality, 
+ * fetching data from Supabase and auto-refreshing every 30 seconds for real-time updates.
+ * @returns 
+ */
 function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

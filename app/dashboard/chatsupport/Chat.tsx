@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Clock, ShieldCheck, Zap, Volume2, VolumeX } from "lucide-react";
+import { Send, Clock, ShieldCheck, Zap, Volume2, VolumeX, ChevronLeft, MessageCircle } from "lucide-react";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,17 +15,17 @@ export default function Chat() {
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [reply, setReply] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isMobileListVisible, setIsMobileListVisible] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // --- NOTIFICARE SONORĂ ---
   const playNotificationSound = () => {
     if (!soundEnabled) return;
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5 note
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
     gain.gain.setValueAtTime(0.1, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
     osc.connect(gain);
@@ -47,7 +47,7 @@ export default function Chat() {
     fetchConversations();
 
     const channel = supabase.channel("db-convs")
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, (payload: any) => {
         fetchConversations();
         if (payload.eventType === 'INSERT') playNotificationSound();
       })
@@ -69,9 +69,12 @@ export default function Chat() {
         schema: "public", 
         table: "messages", 
         filter: `conversation_id=eq.${selectedConv.id}` 
-      }, (payload) => {
-        if (payload.new.sender_type === 'client') playNotificationSound();
-        setMessages((prev) => [...prev, payload.new]);
+      }, (payload: any) => {
+        setMessages((prev) => {
+          if (prev.find(m => m.id === payload.new.id)) return prev;
+          if (payload.new.sender_type === 'client') playNotificationSound();
+          return [...prev, payload.new];
+        });
       })
       .subscribe();
 
@@ -82,9 +85,22 @@ export default function Chat() {
     if (!reply.trim() || !selectedConv) return;
     const { data: { user } } = await supabase.auth.getUser();
     const currentReply = reply;
+    const tempId = crypto.randomUUID();
     setReply("");
 
+    // Optimistic Update
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: selectedConv.id,
+      sender_id: user?.id,
+      sender_type: "agent",
+      text: currentReply,
+      created_at: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
     await supabase.from("messages").insert([{
+      id: tempId,
       conversation_id: selectedConv.id,
       sender_id: user?.id,
       sender_type: "agent",
@@ -97,103 +113,129 @@ export default function Chat() {
     }).eq("id", selectedConv.id);
   };
 
+  const selectConversation = (conv: any) => {
+    setSelectedConv(conv);
+    setIsMobileListVisible(false);
+  };
+
   return (
-    <div className="flex h-[75vh] bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl font-sans">
+    <div className="flex flex-col md:flex-row h-[90vh] md:h-[75vh] bg-white md:rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-2xl font-sans m-2 md:m-0">
       
-      {/* SIDEBAR - LIGHT */}
-      <div className="w-1/3 border-r border-slate-100 bg-slate-50 flex flex-col">
+      {/* SIDEBAR */}
+      <div className={`${isMobileListVisible ? 'flex' : 'hidden'} md:flex w-full md:w-1/3 border-r border-slate-100 bg-slate-50 flex-col transition-all`}>
         <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Support Center</span>
-            <button onClick={() => setSoundEnabled(!soundEnabled)} className="text-slate-400 hover:text-yellow-500">
-               {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Smile Panel</span>
+            <button onClick={() => setSoundEnabled(!soundEnabled)} className="text-slate-400 hover:text-yellow-500 transition-colors">
+               {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
           </div>
-          <Zap size={14} className="text-yellow-500 fill-yellow-500" />
+          <Zap size={16} className="text-yellow-500 fill-yellow-500" />
         </div>
         
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 && (
+            <div className="p-10 text-center text-slate-400 text-xs font-medium">No active chats</div>
+          )}
           {conversations.map((c) => (
             <div
               key={c.id}
-              onClick={() => setSelectedConv(c)}
+              onClick={() => selectConversation(c)}
               className={`p-5 cursor-pointer transition-all border-b border-slate-100 relative ${
-                selectedConv?.id === c.id ? 'bg-white shadow-sm' : 'hover:bg-slate-100/50'
+                selectedConv?.id === c.id ? 'bg-white shadow-sm' : 'hover:bg-slate-200/50'
               }`}
             >
-              {selectedConv?.id === c.id && <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500" />}
+              {selectedConv?.id === c.id && <motion.div layoutId="active" className="absolute left-0 top-0 h-full w-1.5 bg-yellow-400" />}
               <div className="flex justify-between items-start mb-1">
-                <p className="font-bold text-xs text-slate-800 truncate uppercase tracking-tighter">
-                  {c.user_email?.split('@')[0] || 'User'}
+                <p className="font-black text-[11px] text-slate-800 truncate uppercase tracking-tight">
+                  {c.user_email?.split('@')[0] || 'Guest User'}
                 </p>
-                <Clock size={10} className="text-slate-400" />
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter flex items-center gap-1">
+                   <Clock size={8} /> {new Date(c.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </span>
               </div>
-              <p className="text-[11px] truncate text-slate-500 font-medium">
-                {c.last_message_preview || "Waiting..."}
+              <p className="text-[11px] truncate text-slate-500 font-medium leading-tight">
+                {c.last_message_preview || "Wait for connection..."}
               </p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* CHAT AREA - CLEAN WHITE */}
-      <div className="flex-1 flex flex-col bg-white">
+      {/* CHAT AREA */}
+      <div className={`${!isMobileListVisible || !isMobileListVisible && selectedConv ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-white w-full h-full relative`}>
         {selectedConv ? (
-          <div className="flex-1 flex flex-col h-full">
-            {/* Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-md">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-400 shadow-inner">
-                  {selectedConv.user_email?.charAt(0).toUpperCase()}
+          <div className="flex flex-col h-full">
+            {/* Header Chat */}
+            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-3 md:gap-4">
+                <button onClick={() => setIsMobileListVisible(true)} className="md:hidden p-2 -ml-2 text-slate-400">
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center font-black text-black shadow-lg shadow-yellow-400/20 uppercase">
+                  {selectedConv.user_email?.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-[11px] font-black uppercase text-slate-800 tracking-widest">{selectedConv.user_email}</p>
-                  <p className="text-[9px] text-green-500 font-bold flex items-center gap-1">
-                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> LIVE SYNC
-                  </p>
+                  <p className="text-[11px] font-black uppercase text-slate-800 tracking-widest leading-none mb-1">{selectedConv.user_email}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[9px] text-green-600 font-black uppercase tracking-tighter">Live Connection</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-100">
-                <ShieldCheck size={12} className="text-yellow-600" />
-                <span className="text-[9px] font-black text-yellow-600 uppercase tracking-tighter">Verified Agent</span>
+              <div className="hidden sm:flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl">
+                <ShieldCheck size={12} className="text-yellow-400" />
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Agent</span>
               </div>
             </div>
 
-            {/* Messages */}
-            <div ref={scrollRef} className="flex-1 p-8 overflow-y-auto space-y-6 bg-slate-50/30">
+            {/* Messages Area */}
+            <div ref={scrollRef} className="flex-1 p-4 md:p-8 overflow-y-auto space-y-4 bg-slate-50/50">
               {messages.map((m, i) => (
-                <div key={m.id || i} className={`flex ${m.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] px-5 py-3 rounded-[1.5rem] text-[13px] shadow-sm ${
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={m.id || i} 
+                  className={`flex ${m.sender_type === 'agent' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[85%] md:max-w-[70%] px-5 py-3 rounded-3xl text-[13px] shadow-sm leading-relaxed ${
                     m.sender_type === 'agent' 
                     ? 'bg-yellow-400 text-black font-bold rounded-tr-none' 
                     : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none'
                   }`}>
                     {m.text}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
 
-            {/* Input */}
-            <div className="p-8 bg-white">
-              <div className="flex gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 ring-yellow-400/20 transition-all">
+            {/* Input Area */}
+            <div className="p-4 md:p-8 bg-white border-t border-slate-100">
+              <div className="flex gap-2 md:gap-4 bg-slate-100 border border-slate-200 rounded-[1.5rem] p-2 focus-within:ring-4 ring-yellow-400/10 transition-all">
                 <input
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  className="flex-1 bg-transparent border-none text-slate-800 px-4 py-2 text-sm outline-none placeholder:text-slate-400 font-medium"
-                  placeholder="Type your reply..."
+                  placeholder="Type your message..."
+                  className="flex-1 bg-transparent border-none text-slate-800 px-4 py-2 text-sm outline-none font-medium"
                 />
-                <button onClick={handleSend} className="bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-md transition-transform active:scale-95">
-                  Send
+                <button 
+                  onClick={handleSend}
+                  disabled={!reply.trim()}
+                  className="p-3 bg-yellow-400 rounded-2xl text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale shadow-lg shadow-yellow-400/20"
+                >
+                  <Send size={18} strokeWidth={2.5} />
                 </button>
               </div>
+              <p className="text-center text-[8px] text-slate-300 font-bold uppercase tracking-[0.4em] mt-4">
+                Smile Support &copy; {new Date().getFullYear()}
+              </p>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center opacity-30 grayscale">
-            <Zap size={48} className="text-slate-300 mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Select a Ticket</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-300 gap-4">
+            <MessageCircle size={48} strokeWidth={1} />
+            <p className="text-[10px] font-black uppercase tracking-widest">Select a conversation to start</p>
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, MessageSquare, ShieldCheck, CheckCircle2, UserCircle } from "lucide-react";
+import { Send, X, MessageSquare, ShieldCheck, CheckCircle2, UserCircle, Circle } from "lucide-react";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,26 +112,38 @@ export default function ChatWidget({ user }: { user: any }) {
             className="w-full h-full sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-white/10"
           >
             {/* HEADER */}
-            <div className="p-6 bg-gradient-to-b from-white/5 to-transparent border-b border-white/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-lg border border-white/20 relative">
-                    <span className="text-black font-black text-xl italic font-serif">S</span>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0c0c1d]" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-white tracking-[0.2em] mb-1">Smile Support</h4>
-                    <div className="flex items-center gap-2">
-                       <ShieldCheck size={10} className="text-yellow-400" />
-                       <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Christina LIVE</span>
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => setIsOpen(false)} className="p-2 bg-white/5 rounded-full text-zinc-400 hover:text-white transition-all">
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
+<div className="p-6 bg-yellow-400 border-b-2 border-yellow-500/20 sticky top-0 z-10">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-4">
+      {/* Logo pe fundal contrastant */}
+      <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center relative">
+        <span className="text-yellow-400 font-black text-xl italic font-serif">S</span>
+        <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-yellow-400" />
+      </div>
+      
+      <div>
+        <h4 className="text-xs font-black uppercase text-black tracking-widest mb-0.5">
+          Smile chat Support
+        </h4>
+        <div className="flex items-center gap-2">
+           <div className="w-2 h-2 rounded-full bg-green-600" />
+           <span className="text-[10px] text-black/60 font-bold uppercase tracking-widest">
+             Christina LIVE
+           </span>
+        </div>
+      </div>
+    </div>
+
+    {/* Buton închidere minimalist */}
+    <button 
+      onClick={() => setIsOpen(false)} 
+      className="p-2 hover:bg-black/10 rounded-lg text-black transition-colors"
+    >
+      <X size={20} strokeWidth={2.5} />
+    </button>
+  </div>
+</div>
+
 
             {/* CONTENT AREA */}
             <div className="flex-1 overflow-y-auto p-8 bg-[radial-gradient(circle_at_bottom_left,_rgba(250,204,21,0.03),_transparent)] flex flex-col">
@@ -195,6 +207,12 @@ export default function ChatWidget({ user }: { user: any }) {
                 </div>
               </div>
             )}
+                     {/* Fchat develope smiel team BM and Alexandra */}
+            <div className="pb-6 pt-2 text-center opacity-20 hover:opacity-50 transition-opacity cursor-default">
+              <p className="text-[8px] text-white  tracking-[0.3em]">
+                &copy; {new Date().getFullYear()} chat develope by smile team
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

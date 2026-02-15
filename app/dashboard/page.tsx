@@ -19,7 +19,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from "recharts";
-
+import Chat from "./chatsupport/Chat";
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -90,6 +90,7 @@ export default function SuperAdminDashboard() {
             { icon: "💰", label: "Finances & Coins", key: "finances" },
             { icon: "🎁", label: "Gifts Config", key: "gifts" },
             { icon: "🚩", label: "Moderation", key: "moderation" },
+            { icon: "💬", label: "Chat", key: "chat" },
           ].map((item) => (
             <MenuBtn
               key={item.key}
@@ -181,6 +182,7 @@ export default function SuperAdminDashboard() {
             {activeTab === "finances" && <BlankTab name="Finances & Coins" />}
             {activeTab === "gifts" && <BlankTab name="Gifts Config" />}
             {activeTab === "moderation" && <BlankTab name="Moderation" />}
+            {activeTab === "chat" && <Chat />}
           </motion.div>
         </AnimatePresence>
       </main>

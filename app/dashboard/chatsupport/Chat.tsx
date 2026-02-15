@@ -27,9 +27,18 @@ export default function Chat() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
 
+  // 🔥 unread counter
+  const [unread, setUnread] = useState<Record<string, number>>({});
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ---------- SOUND ----------
+  // ---------- DATE HELPERS ----------
+  const formatTime = (d: string) =>
+    new Date(d).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
   const playNotificationSound = () => {
     if (!soundEnabled) return;
     const ctx = new (window.AudioContext ||
@@ -57,18 +66,16 @@ export default function Chat() {
   }, [messages]);
 
   // ======================================================
-  // CONVERSATIONS REALTIME (NO REFETCH)
+  // CONVERSATIONS REALTIME
   // ======================================================
   useEffect(() => {
-    let mounted = true;
-
     const loadConversations = async () => {
       const { data } = await supabase
         .from("conversations")
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (mounted) setConversations(data || []);
+      setConversations(data || []);
     };
 
     loadConversations();
@@ -81,38 +88,22 @@ export default function Chat() {
         (payload: any) => {
           setConversations((prev) => {
             const updated = [...prev];
+            const idx = updated.findIndex((c) => c.id === payload.new.id);
 
-            if (payload.eventType === "INSERT") {
-              playNotificationSound();
-              return [payload.new, ...updated];
-            }
+            if (idx !== -1) updated[idx] = payload.new;
+            else updated.unshift(payload.new);
 
-            if (payload.eventType === "UPDATE") {
-              const idx = updated.findIndex(
-                (c) => c.id === payload.new.id
-              );
-              if (idx !== -1) updated[idx] = payload.new;
-              else updated.unshift(payload.new);
-
-              return [...updated].sort(
-                (a, b) =>
-                  new Date(b.updated_at).getTime() -
-                  new Date(a.updated_at).getTime()
-              );
-            }
-
-            return updated;
+            return [...updated].sort(
+              (a, b) =>
+                new Date(b.updated_at).getTime() -
+                new Date(a.updated_at).getTime()
+            );
           });
         }
       )
-      .subscribe((status) =>
-        console.log("Conversations realtime:", status)
-      );
+      .subscribe();
 
-    return () => {
-      mounted = false;
-      channel.unsubscribe();
-    };
+    return () => channel.unsubscribe();
   }, []);
 
   // ======================================================
@@ -121,16 +112,15 @@ export default function Chat() {
   useEffect(() => {
     if (!selectedConv) return;
 
-    let mounted = true;
-
     supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", selectedConv.id)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        if (mounted) setMessages(data || []);
-      });
+      .then(({ data }) => setMessages(data || []));
+
+    // reset unread when open chat
+    setUnread((prev) => ({ ...prev, [selectedConv.id]: 0 }));
 
     const channel = supabase
       .channel(`messages:${selectedConv.id}`)
@@ -144,28 +134,47 @@ export default function Chat() {
         },
         (payload: any) => {
           setMessages((prev) => {
-            // prevent duplicates
             if (prev.find((m) => m.id === payload.new.id)) return prev;
-
-            if (payload.new.sender_type === "client")
-              playNotificationSound();
-
             return [...prev, payload.new];
           });
+
+          if (payload.new.sender_type === "client") {
+            playNotificationSound();
+          }
         }
       )
-      .subscribe((status) =>
-        console.log("Messages realtime:", status)
-      );
+      .subscribe();
 
-    return () => {
-      mounted = false;
-      channel.unsubscribe();
-    };
+    return () => channel.unsubscribe();
+  }, [selectedConv]);
+
+  // 🔥 GLOBAL unread tracker
+  useEffect(() => {
+    const channel = supabase
+      .channel("unread-global")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload: any) => {
+          if (payload.new.sender_type !== "client") return;
+
+          const convId = payload.new.conversation_id;
+
+          if (selectedConv?.id !== convId) {
+            setUnread((prev) => ({
+              ...prev,
+              [convId]: (prev[convId] || 0) + 1,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => channel.unsubscribe();
   }, [selectedConv]);
 
   // ======================================================
-  // SEND MESSAGE
+  // SEND
   // ======================================================
   const handleSend = async () => {
     if (!reply.trim() || !selectedConv) return;
@@ -177,16 +186,15 @@ export default function Chat() {
 
     const tempId = crypto.randomUUID();
 
-    const optimistic = {
-      id: tempId,
-      conversation_id: selectedConv.id,
-      sender_id: user?.id,
-      sender_type: "agent",
-      text: msgText,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        sender_type: "agent",
+        text: msgText,
+        created_at: new Date().toISOString(),
+      },
+    ]);
 
     await supabase.from("messages").insert([
       {
@@ -197,24 +205,14 @@ export default function Chat() {
         text: msgText,
       },
     ]);
-
-    await supabase
-      .from("conversations")
-      .update({
-        last_message_preview: msgText,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedConv.id);
   };
 
   const selectConversation = (conv: any) => {
     setSelectedConv(conv);
     setIsMobileListVisible(false);
+    setUnread((p) => ({ ...p, [conv.id]: 0 }));
   };
 
-  // ======================================================
-  // UI (ORIGINAL STYLE PRESERVED)
-  // ======================================================
   return (
     <div className="flex flex-col md:flex-row h-[90vh] md:h-[75vh] bg-white md:rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-2xl font-sans m-2 md:m-0">
 
@@ -225,10 +223,7 @@ export default function Chat() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Smile Panel
             </span>
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className="text-slate-400 hover:text-yellow-500"
-            >
+            <button onClick={() => setSoundEnabled(!soundEnabled)}>
               {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
           </div>
@@ -240,24 +235,31 @@ export default function Chat() {
             <div
               key={c.id}
               onClick={() => selectConversation(c)}
-              className={`p-5 cursor-pointer border-b border-slate-100 ${
+              className={`p-5 cursor-pointer border-b ${
                 selectedConv?.id === c.id
                   ? "bg-white shadow-sm"
                   : "hover:bg-slate-200/50"
               }`}
             >
-              <div className="flex justify-between mb-1">
+              <div className="flex justify-between items-center mb-1">
                 <p className="font-black text-[11px] uppercase truncate">
-                  {c.user_email?.split("@")[0] || "Guest"}
+                  {c.user_email?.split("@")[0]}
                 </p>
-                <span className="text-[9px] text-slate-400 flex items-center gap-1">
-                  <Clock size={8} />
-                  {new Date(c.updated_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+
+                <div className="flex items-center gap-2">
+                  {unread[c.id] > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unread[c.id]}
+                    </span>
+                  )}
+
+                  <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <Clock size={10} />
+                    {formatTime(c.updated_at)}
+                  </span>
+                </div>
               </div>
+
               <p className="text-[11px] text-slate-500 truncate">
                 {c.last_message_preview}
               </p>
@@ -272,10 +274,7 @@ export default function Chat() {
           <>
             <div className="p-4 md:p-6 border-b flex justify-between bg-white">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsMobileListVisible(true)}
-                  className="md:hidden"
-                >
+                <button onClick={() => setIsMobileListVisible(true)} className="md:hidden">
                   <ChevronLeft size={20} />
                 </button>
                 <div className="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center font-black">
@@ -283,9 +282,7 @@ export default function Chat() {
                 </div>
                 <div>
                   <p className="text-xs font-black">{selectedConv.user_email}</p>
-                  <span className="text-[10px] text-green-600 font-bold">
-                    LIVE
-                  </span>
+                  <span className="text-[10px] text-green-600 font-bold">LIVE</span>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-xl">
@@ -294,26 +291,28 @@ export default function Chat() {
               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/50">
+            {/* 🔥 DARKER CHAT BG */}
+            <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-200">
               {messages.map((m) => (
                 <motion.div
                   key={m.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${
-                    m.sender_type === "agent"
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
+                  className={`flex ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}
                 >
-                  <div
-                    className={`max-w-[70%] px-5 py-3 rounded-3xl text-sm ${
-                      m.sender_type === "agent"
-                        ? "bg-yellow-400 text-black rounded-tr-none"
-                        : "bg-white border rounded-tl-none"
-                    }`}
-                  >
-                    {m.text}
+                  <div className="flex flex-col max-w-[70%]">
+                    <div
+                      className={`px-5 py-3 rounded-3xl text-sm ${
+                        m.sender_type === "agent"
+                          ? "bg-yellow-400 text-black rounded-tr-none"
+                          : "bg-white border rounded-tl-none"
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+
+                    {/* 🕒 TIME */}
+                    <span className="text-[10px] mt-1 text-slate-600 px-2">
+                      {formatTime(m.created_at)}
+                    </span>
                   </div>
                 </motion.div>
               ))}
@@ -328,10 +327,7 @@ export default function Chat() {
                   className="flex-1 bg-transparent px-3 outline-none"
                   placeholder="Type your message..."
                 />
-                <button
-                  onClick={handleSend}
-                  className="p-3 bg-yellow-400 rounded-xl"
-                >
+                <button onClick={handleSend} className="p-3 bg-yellow-400 rounded-xl">
                   <Send size={18} />
                 </button>
               </div>
@@ -340,9 +336,6 @@ export default function Chat() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-300">
             <MessageCircle size={48} />
-            <p className="text-xs uppercase mt-2">
-              Select a conversation
-            </p>
           </div>
         )}
       </div>

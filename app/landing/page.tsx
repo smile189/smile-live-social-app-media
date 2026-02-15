@@ -14,7 +14,7 @@ import { ArrowRight, Zap, Globe, Shield, Radio, Users, Sparkles, Cpu, Smartphone
 import Header from "./header/header";
 import Footer from "./footer/footer";
 import GDPR from "./gdpr/gdpr";
-
+import ChatWidget from "../../components/ChatWidget";
 
 // --- STATS COMPONENT ---
 const StatItem = ({ label, value }: { label: string; value: string }) => {
@@ -504,6 +504,7 @@ export default function LandingPage() {
 
       </main>
         <GDPR /> {/* GDPR EU   */} 
+         <ChatWidget user={{ id: 'anonim', email: 'vizitator@smile.live' }} />
       <Footer />
     </div>
   );

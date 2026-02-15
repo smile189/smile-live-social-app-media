@@ -31,7 +31,8 @@ type NavItemType =
   | "content"
   | "finances"
   | "moderation"
-  | "gifts";
+  | "gifts"
+  | "chat";
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -90,7 +91,8 @@ export default function SuperAdminDashboard() {
             { icon: "💰", label: "Finances & Coins", key: "finances" },
             { icon: "🎁", label: "Gifts Config", key: "gifts" },
             { icon: "🚩", label: "Moderation", key: "moderation" },
-            { icon: "💬", label: "Chat", key: "chat" },
+            { icon: "💬", label: "Chat Support", key: "chat" }, 
+
           ].map((item) => (
             <MenuBtn
               key={item.key}

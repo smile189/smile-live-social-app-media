@@ -17,12 +17,14 @@ export default function ChatWidget({ user }: { user: any }) {
   const [convId, setConvId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Scroll instant la mesaje noi
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" });
     }
   }, [messages]);
 
+  // Initializare chat & Realtime
   useEffect(() => {
     if (isOpen && user && !convId) {
       const initChat = async () => {
@@ -38,15 +40,27 @@ export default function ChatWidget({ user }: { user: any }) {
 
   useEffect(() => {
     if (!convId) return;
-    const fetchMsgs = async () => {
-      const { data } = await supabase.from("messages").select("*").eq("conversation_id", convId).order("created_at", { ascending: true });
-      setMessages(data || []);
-    };
-    fetchMsgs();
-    const channel = supabase.channel(`client-chat-${convId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${convId}` }, 
-      (payload) => setMessages((prev) => [...prev, payload.new]))
+
+    // Fetch initial
+    supabase.from("messages").select("*").eq("conversation_id", convId).order("created_at", { ascending: true })
+      .then(({ data }) => setMessages(data || []));
+
+    // ABONARE REALTIME (Sursa pentru "Instant")
+    const channel = supabase.channel(`realtime-messages-${convId}`)
+      .on("postgres_changes", { 
+        event: "INSERT", 
+        schema: "public", 
+        table: "messages", 
+        filter: `conversation_id=eq.${convId}` 
+      }, (payload) => {
+        setMessages((prev) => {
+          // Evităm duplicatele dacă inserarea locală a fost rapidă
+          if (prev.find(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        });
+      })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [convId]);
 
@@ -54,64 +68,68 @@ export default function ChatWidget({ user }: { user: any }) {
     if (!text.trim() || !convId) return;
     const msgText = text;
     setText("");
-    await supabase.from("messages").insert([{ conversation_id: convId, sender_id: user.id, sender_type: "client", text: msgText }]);
-    await supabase.from("conversations").update({ last_message_preview: msgText, updated_at: new Date() }).eq("id", convId);
+
+    // Inserare în DB
+    const { data: newMsg } = await supabase.from("messages").insert([{ 
+      conversation_id: convId, 
+      sender_id: user.id, 
+      sender_type: "client", 
+      text: msgText 
+    }]).select().single();
+
+    // Update UI local pentru viteză (Optimistic Update)
+    if (newMsg) setMessages(prev => [...prev, newMsg]);
+
+    await supabase.from("conversations").update({ 
+      last_message_preview: msgText, 
+      updated_at: new Date().toISOString() 
+    }).eq("id", convId);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] font-sans">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] font-sans">
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.9, rotate: 2 }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9, rotate: -2 }}
-            className="mb-6 w-[90vw] sm:w-[380px] h-[550px] bg-[#0c0c1d]/95 border border-white/10 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_80px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden ring-1 ring-white/20"
+            initial={{ opacity: 0, y: 30, scale: 0.9, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 30, scale: 0.9, filter: "blur(10px)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="mb-4 w-[calc(100vw-32px)] sm:w-[380px] h-[80vh] sm:h-[550px] bg-[#0c0c1d]/95 border border-white/10 backdrop-blur-2xl rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
           >
-            {/* TOP DECORATION GRADIENT */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent" />
-
-            {/* HEADER ARTISTIC */}
-            <div className="p-6 bg-gradient-to-b from-white/5 to-transparent flex justify-between items-center">
+            {/* HEADER */}
+            <div className="p-5 sm:p-6 bg-white/5 flex justify-between items-center border-b border-white/5">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-[0_0_15px_rgba(250,204,21,0.5)]">
-                    <Sparkles size={20} className="text-black animate-pulse" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0c0c1d]" />
+                <div className="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center shadow-lg shadow-yellow-400/20">
+                  <Sparkles size={20} className="text-black" />
                 </div>
                 <div>
-                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Smile Support</h4>
-                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Always Online</p>
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-white">Smile Support</h4>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Instant Sync</span>
+                  </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 hover:bg-red-500 hover:text-white transition-all"
-              >
-                <X size={16} />
+              <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                <X size={18} />
               </button>
             </div>
 
-            {/* MESSAGES AREA - AURORA STYLE */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[radial-gradient(circle_at_bottom_left,_rgba(250,204,21,0.03),_transparent)]">
-              {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-20">
-                  <MessageSquare size={40} className="text-zinc-500" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em]">Start a conversation</p>
-                </div>
-              )}
+            {/* MESSAGES */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
               {messages.map((m, i) => (
                 <motion.div 
-                  initial={{ opacity: 0, x: m.sender_type === 'client' ? 20 : -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  key={i} 
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.1 }}
+                  key={m.id || i} 
                   className={`flex ${m.sender_type === 'client' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] px-5 py-3.5 rounded-[1.8rem] text-[13px] leading-relaxed shadow-xl ${
+                  <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-[13px] leading-snug ${
                     m.sender_type === 'client' 
-                    ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 text-zinc-100 rounded-tr-none border border-white/5' 
-                    : 'bg-yellow-400 text-black font-extrabold rounded-tl-none shadow-yellow-400/10'
+                    ? 'bg-zinc-800 text-zinc-100 rounded-tr-none' 
+                    : 'bg-yellow-400 text-black font-extrabold rounded-tl-none'
                   }`}>
                     {m.text}
                   </div>
@@ -120,62 +138,49 @@ export default function ChatWidget({ user }: { user: any }) {
               <div ref={scrollRef} />
             </div>
 
-            {/* INPUT AREA - FLOATING STYLE */}
-            <div className="p-6 bg-transparent">
-              <div className="relative flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl p-2 pr-3 focus-within:border-yellow-400/50 transition-all focus-within:bg-white/10">
+            {/* INPUT */}
+            <div className="p-5 bg-white/5 border-t border-white/5">
+              <div className="relative flex items-center bg-black/40 border border-white/10 rounded-2xl p-1.5 focus-within:border-yellow-400/50 transition-all">
                 <input 
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask us anything..."
-                  className="flex-1 bg-transparent border-none text-[13px] text-white placeholder:text-zinc-600 focus:ring-0 outline-none px-3 py-2"
+                  placeholder="Type a message..."
+                  className="flex-1 bg-transparent border-none text-[13px] text-white px-3 outline-none"
                 />
-                <motion.button 
-                  whileTap={{ scale: 0.9 }}
+                <button 
                   onClick={handleSend} 
-                  className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center text-black shadow-lg hover:shadow-yellow-400/20 transition-all"
+                  className="w-9 h-9 bg-yellow-400 rounded-xl flex items-center justify-center text-black active:scale-90 transition-transform"
                 >
-                  <Send size={16} />
-                </motion.button>
+                  <Send size={14} />
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* FLOATING ACTION BUTTON - THE WOW FACTOR */}
+      {/* FAB BUTTON */}
       <motion.button 
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className={`group relative w-16 h-16 rounded-[2rem] flex items-center justify-center transition-all duration-500 shadow-2xl ${
-          isOpen ? 'bg-zinc-900 rotate-90' : 'bg-yellow-400'
+        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center shadow-2xl transition-colors duration-300 ${
+          isOpen ? 'bg-zinc-900' : 'bg-yellow-400 shadow-yellow-400/20'
         }`}
       >
-        <AnimatePresence mode="wait">
-          {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-              <X size={28} className="text-white" />
-            </motion.div>
-          ) : (
-            <motion.div key="open" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="relative">
-              <MessageSquare size={28} className="text-black" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-yellow-400" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* EXTERNAL RING ANIMATION */}
+        {isOpen ? <X size={24} className="text-white" /> : <MessageSquare size={26} className="text-black" />}
         {!isOpen && (
-          <div className="absolute inset-0 rounded-[2rem] border-2 border-yellow-400 animate-ping opacity-20" />
+          <span className="absolute -top-1 -right-1 flex h-4 w-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-yellow-400"></span>
+          </span>
         )}
       </motion.button>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #fbbf24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
       `}</style>
     </div>
   );

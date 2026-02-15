@@ -27,7 +27,7 @@ export default function Chat() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
 
-  // 🔥 unread counter
+  // unread counter
   const [unread, setUnread] = useState<Record<string, number>>({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -41,8 +41,7 @@ export default function Chat() {
 
   const playNotificationSound = () => {
     if (!soundEnabled) return;
-    const ctx = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
@@ -103,7 +102,7 @@ export default function Chat() {
       )
       .subscribe();
 
-    return () => channel.unsubscribe();
+    return () => { channel.unsubscribe(); };
   }, []);
 
   // ======================================================
@@ -138,14 +137,12 @@ export default function Chat() {
             return [...prev, payload.new];
           });
 
-          if (payload.new.sender_type === "client") {
-            playNotificationSound();
-          }
+          if (payload.new.sender_type === "client") playNotificationSound();
         }
       )
       .subscribe();
 
-    return () => channel.unsubscribe();
+    return () => { channel.unsubscribe(); };
   }, [selectedConv]);
 
   // 🔥 GLOBAL unread tracker
@@ -170,7 +167,7 @@ export default function Chat() {
       )
       .subscribe();
 
-    return () => channel.unsubscribe();
+    return () => { channel.unsubscribe(); };
   }, [selectedConv]);
 
   // ======================================================

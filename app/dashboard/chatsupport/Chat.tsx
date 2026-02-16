@@ -1,15 +1,8 @@
-/**
- * chat support dashboard for agents to reply to clients in real time
- * - list of conversations with unread counters
- * - real time messages with auto scroll
- * - design inspired by BM
- */
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Clock,
@@ -19,6 +12,9 @@ import {
   VolumeX,
   ChevronLeft,
   MessageCircle,
+  Search,
+  User,
+  MoreHorizontal
 } from "lucide-react";
 
 const supabase = createBrowserClient(
@@ -33,6 +29,9 @@ export default function Chat() {
   const [reply, setReply] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
+
+  // SEARCH LOGIC
+  const [searchTerm, setSearchTerm] = useState("");
 
   // unread counter
   const [unread, setUnread] = useState<Record<string, number>>({});
@@ -125,7 +124,6 @@ export default function Chat() {
       .order("created_at", { ascending: true })
       .then(({ data }) => setMessages(data || []));
 
-    // reset unread when open chat
     setUnread((prev) => ({ ...prev, [selectedConv.id]: 0 }));
 
     const channel = supabase
@@ -217,129 +215,155 @@ export default function Chat() {
     setUnread((p) => ({ ...p, [conv.id]: 0 }));
   };
 
+  // FILTER LOGIC
+  const filteredConversations = conversations.filter((c) =>
+    c.user_email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="flex flex-col md:flex-row h-[90vh] md:h-[75vh] bg-white md:rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-2xl font-sans m-2 md:m-0">
+    <div className="flex flex-col md:flex-row h-[100dvh] md:h-[85vh] bg-white md:rounded-[2rem] overflow-hidden border border-slate-200 shadow-2xl font-sans m-0 md:m-4 ring-1 ring-black/5 transition-all">
 
       {/* SIDEBAR */}
-      <div className={`${isMobileListVisible ? "flex" : "hidden"} md:flex w-full md:w-1/3 border-r border-slate-100 bg-slate-50 flex-col`}>
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-white">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Smile Panel
-            </span>
-            <button onClick={() => setSoundEnabled(!soundEnabled)}>
-              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+      <div className={`${isMobileListVisible ? "flex" : "hidden"} md:flex w-full md:w-[360px] border-r border-slate-100 bg-slate-50/50 flex-col h-full shrink-0`}>
+        <div className="p-6 space-y-5 bg-white border-b border-slate-100 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+
+              <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-800">
+                Smile management message support chat
+              </span>
+            </div>
+            <button onClick={() => setSoundEnabled(!soundEnabled)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              {soundEnabled ? <Volume2 size={18} className="text-slate-600" /> : <VolumeX size={18} className="text-slate-400" />}
             </button>
           </div>
-          <Zap size={16} className="text-yellow-500 fill-yellow-500" />
+
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500" size={14} />
+            <input 
+              type="text" 
+              placeholder="Search conversations..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-100 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-sm focus:bg-white focus:ring-4 ring-indigo-500/10 focus:border-indigo-200 transition-all outline-none"
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {conversations.map((c) => (
-            <div
-              key={c.id}
-              onClick={() => selectConversation(c)}
-              className={`p-5 cursor-pointer border-b ${
-                selectedConv?.id === c.id
-                  ? "bg-white shadow-sm"
-                  : "hover:bg-slate-200/50"
-              }`}
-            >
-              <div className="flex justify-between items-center mb-1">
-                <p className="font-black text-[11px] uppercase truncate">
-                  {c.user_email?.split("@")[0]}
-                </p>
-
-                <div className="flex items-center gap-2">
-                  {unread[c.id] > 0 && (
-                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                      {unread[c.id]}
-                    </span>
-                  )}
-
-                  <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                    <Clock size={10} />
-                    {formatTime(c.updated_at)}
-                  </span>
+        <div className="flex-1 overflow-y-auto pt-2 px-3 pb-safe">
+          <AnimatePresence initial={false}>
+            {filteredConversations.map((c) => (
+              <motion.div
+                layout
+                key={c.id}
+                onClick={() => selectConversation(c)}
+                className={`p-4 mb-2 cursor-pointer rounded-2xl transition-all border ${
+                  selectedConv?.id === c.id
+                    ? "bg-white border-indigo-100 shadow-sm ring-1 ring-indigo-500/10"
+                    : "hover:bg-white/80 border-transparent"
+                }`}
+              >
+                <div className="flex justify-between items-start mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${selectedConv?.id === c.id ? "bg-indigo-50 border-indigo-100 text-indigo-600" : "bg-slate-200 border-slate-300 text-slate-500"}`}>
+                        <User size={14} />
+                    </div>
+                    <p className={`font-bold text-[13px] truncate ${selectedConv?.id === c.id ? "text-indigo-600" : "text-slate-700"}`}>
+                      {c.user_email?.split("@")[0]}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className="text-[10px] text-slate-400 font-semibold">{formatTime(c.updated_at)}</span>
+                    {unread[c.id] > 0 && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow-md shadow-indigo-200">
+                        {unread[c.id]}
+                      </motion.span>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              <p className="text-[11px] text-slate-500 truncate">
-                {c.last_message_preview}
-              </p>
-            </div>
-          ))}
+                <p className="text-[12px] text-slate-500 truncate pl-10 opacity-80">{c.last_message || "Active customer session..."}</p>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
 
       {/* CHAT AREA */}
-      <div className={`${!isMobileListVisible ? "flex" : "hidden"} md:flex flex-1 flex-col`}>
+      <div className={`${!isMobileListVisible ? "flex" : "hidden"} md:flex flex-1 flex-col h-full bg-white relative overflow-hidden`}>
         {selectedConv ? (
           <>
-            <div className="p-4 md:p-6 border-b flex justify-between bg-white">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setIsMobileListVisible(true)} className="md:hidden">
-                  <ChevronLeft size={20} />
+            <header className="shrink-0 h-[72px] border-b border-slate-100 flex items-center justify-between px-6 bg-white/90 backdrop-blur-md z-10">
+              <div className="flex items-center gap-4 min-w-0">
+                <button onClick={() => setIsMobileListVisible(true)} className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full">
+                  <ChevronLeft size={24} />
                 </button>
-                <div className="w-10 h-10 rounded-2xl bg-yellow-400 flex items-center justify-center font-black">
-                  {selectedConv.user_email?.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-xs font-black">{selectedConv.user_email}</p>
-                  <span className="text-[10px] text-green-600 font-bold">LIVE</span>
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-xl">
-                <ShieldCheck size={12} className="text-yellow-400" />
-                <span className="text-[9px] text-white font-black">Agent</span>
-              </div>
-            </div>
-
-            {/* 🔥 DARKER CHAT BG */}
-            <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-200">
-              {messages.map((m) => (
-                <motion.div
-                  key={m.id}
-                  className={`flex ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}
-                >
-                  <div className="flex flex-col max-w-[70%]">
-                    <div
-                      className={`px-5 py-3 rounded-3xl text-sm ${
-                        m.sender_type === "agent"
-                          ? "bg-yellow-400 text-black rounded-tr-none"
-                          : "bg-white border rounded-tl-none"
-                      }`}
-                    >
-                      {m.text}
-                    </div>
-
-                    {/* 🕒 TIME */}
-                    <span className="text-[10px] mt-1 text-slate-600 px-2">
-                      {formatTime(m.created_at)}
-                    </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 uppercase">
+                    {selectedConv.user_email?.charAt(0)}
                   </div>
-                </motion.div>
-              ))}
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-800 text-[14px] truncate leading-tight">{selectedConv.user_email}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active now</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <MoreHorizontal className="text-slate-300 cursor-not-allowed" size={20} />
+            </header>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-slate-50/20">
+              <AnimatePresence initial={false}>
+                {messages.map((m) => (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className={`max-w-[85%] md:max-w-[65%] group`}>
+                      <div className={`px-4 py-3 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
+                        m.sender_type === "agent" ? "bg-slate-900 text-white rounded-tr-none shadow-indigo-100" : "bg-white border border-slate-200 text-slate-700 rounded-tl-none"
+                      }`}>
+                        {m.text}
+                      </div>
+                      <p className={`text-[10px] mt-1.5 text-slate-400 font-medium px-1 flex items-center gap-1 ${m.sender_type === "agent" ? "justify-end" : "justify-start"}`}>
+                        <Clock size={10} /> {formatTime(m.created_at)}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
-            <div className="p-4 bg-white border-t">
-              <div className="flex gap-2 bg-slate-100 rounded-2xl p-2">
+            <footer className="shrink-0 p-4 md:p-6 border-t border-slate-100 bg-white pb-safe">
+              <div className="max-w-4xl mx-auto flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-1.5 focus-within:ring-4 ring-indigo-500/5 transition-all">
                 <input
+                  autoFocus
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  className="flex-1 bg-transparent px-3 outline-none"
                   placeholder="Type your message..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-[16px] px-3 py-2 text-slate-700"
                 />
-                <button onClick={handleSend} className="p-3 bg-yellow-400 rounded-xl">
+                <button
+                  onClick={handleSend}
+                  className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all shrink-0"
+                >
                   <Send size={18} />
                 </button>
               </div>
-            </div>
+              <p className="text-center text-[10px] text-slate-300 mt-3 font-medium uppercase tracking-tight">
+                <ShieldCheck size={10} className="inline mr-1" /> Secure Support Channel
+              </p>
+            </footer>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-300">
-            <MessageCircle size={48} />
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center opacity-40">
+            <MessageCircle size={48} className="text-slate-200 mb-4" />
+            <h2 className="text-lg font-bold text-slate-800">Select a Conversation</h2>
+            <p className="text-sm mt-2">Choose a customer inquiry to begin responding.</p>
           </div>
         )}
       </div>

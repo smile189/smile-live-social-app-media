@@ -226,8 +226,8 @@ export default function ChatWidget({ user }: { user: any }) {
                   <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
                     <CheckCircle2 size={44} className="text-yellow-400" />
                     <div className="space-y-2">
-                      <p className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">Privacy Secured</p>
-                      <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">Accept terms to initiate your secure support line.</p>
+                      <p className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">Privacy Secured and GDPR</p>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">Accept terms and conditions to initiate your secure support line at smile live app</p>
                     </div>
                     <button onClick={() => setStep("identity")} className="w-full bg-yellow-400 text-black font-black text-[10px] uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">Accept & Continue</button>
                   </div>
@@ -296,11 +296,15 @@ export default function ChatWidget({ user }: { user: any }) {
                   </button>
                 </div>
               )}
-              <div className="pb-3 pt-1 text-center">
-                <p className="text-[8px] text-zinc-600  tracking-[0.25em] font-black">
-                  © {new Date().getFullYear()}chat designed by smile team
-                </p>
-              </div>
+            <div className="pb-6 pt-4 text-center border-t border-zinc-100 mx-10">
+              <p className="text-[10px] text-zinc-500 tracking-wider font-semibold uppercase">
+                © {new Date().getFullYear()} Smile Team Design
+              </p>
+              <p className="text-[9px] text-zinc-400 tracking-normal mt-1 italic font-medium">
+                Powered by <span className="text-zinc-600 not-italic font-bold">Smile Live Technology</span>
+              </p>
+            </div>
+
             </div>
           </motion.div>
         )}

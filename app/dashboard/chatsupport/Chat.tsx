@@ -1,3 +1,10 @@
+/**
+ * chat support dashboard for agents to reply to clients in real time
+ * - list of conversations with unread counters
+ * - real time messages with auto scroll
+ * - design inspired by BM
+ */
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";

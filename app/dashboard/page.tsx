@@ -20,6 +20,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from "recharts";
 import Chat from "./chatsupport/Chat";
+import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab component
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -181,7 +182,8 @@ export default function SuperAdminDashboard() {
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "users" && <UsersTab />}
             {activeTab === "content" && <BlankTab name="Posts & Video" />}
-            {activeTab === "finances" && <BlankTab name="Finances & Coins" />}
+            {activeTab === "finances" && <FinancesTab />}
+
             {activeTab === "gifts" && <BlankTab name="Gifts Config" />}
             {activeTab === "moderation" && <BlankTab name="Moderation" />}
             {activeTab === "chat" && <Chat />}
@@ -262,7 +264,7 @@ function OverviewTab() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 60000); // every 60 sec
+    const interval = setInterval(fetchStats, 6000); // every 60 sec
     return () => clearInterval(interval);
   }, []);
 

@@ -354,9 +354,7 @@ export default function Chat() {
                   <Send size={18} />
                 </button>
               </div>
-              <p className="text-center text-[10px] text-slate-300 mt-3 font-medium uppercase tracking-tight">
-                <ShieldCheck size={10} className="inline mr-1" /> Secure Support Channel
-              </p>
+
             </footer>
           </>
         ) : (

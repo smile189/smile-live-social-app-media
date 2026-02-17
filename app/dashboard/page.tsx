@@ -239,7 +239,7 @@ function OverviewTab() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // 1. Total Users - Folosim head:true pentru a lua doar cifra (performanță maximă)
+      // 1. Total Users
       const { count: usersCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true });
@@ -262,7 +262,7 @@ function OverviewTab() {
       setActiveLives(liveCount ?? 0);
       setActiveLivesData(livePosts?.map(p => ({ date: p.created_at?.slice(5,10), active: 1 })) ?? []);
 
-      // 4. Coins Supply - Din noua tabelă WALLETS
+      // 4. Coins Supply - REPARAT PENTRU TYPESCRIPT BUILD
       const { data: wallets } = await supabase
         .from("wallets")
         .select(`coins_balance, profiles(username)`)
@@ -272,16 +272,21 @@ function OverviewTab() {
         const total = wallets.reduce((a, b) => a + (b.coins_balance ?? 0), 0);
         setCoinsSupply(total);
         
-        // Luăm primii 5 deținători pentru grafic, restul ar arăta urât în Pie Chart
-        setCoinsData(wallets.slice(0, 5).map(w => ({ 
-          name: w.profiles?.username || "User", 
-          value: w.coins_balance 
-        })));
+        // REPARAT: Folosim casting (as any) pentru a preveni eroarea "Property username does not exist on type...[]"
+        const formattedCoinsData = wallets.slice(0, 5).map(w => {
+          const profile = w.profiles as any; // Trick pentru Vercel build
+          return { 
+            name: profile?.username || "User", 
+            value: w.coins_balance 
+          };
+        });
+        
+        setCoinsData(formattedCoinsData);
       }
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 60000); // 60 secunde e suficient pentru stats
+    const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
 

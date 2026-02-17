@@ -356,139 +356,198 @@ function OverviewTab() {
  * fetching data from Supabase and auto-refreshing every 30 seconds for real-time updates.
  * @returns 
  */
-function UsersTab() {
+
+export function UsersTab() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
-  const itemsPerPage = 15;
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
+  const [tempValue, setTempValue] = useState("");
+  const [userToDelete, setUserToDelete] = useState<any>(null); // Pentru Reconfirmare Ștergere
+  const itemsPerPage = 10;
 
-  // fetchUsers primește isSilent ca să nu arate loading-ul la auto-refresh
-  const fetchUsers = async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    
-    const from = page * itemsPerPage;
-    const to = from + itemsPerPage - 1;
-
-    let query = supabase
+  const fetchUsers = async (silent = false) => {
+    if (!silent) setLoading(true);
+    const { data } = await supabase
       .from("profiles")
-      .select("id, username, full_name, role, updated_at");
-
-    // Căutare în DB pe coloanele sigure
-    if (searchTerm) {
-      query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
-    }
-
-    const { data, error } = await query
+      .select("id, username, full_name, role, updated_at, avatar_url, bio")
+      .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
       .order("updated_at", { ascending: false })
-      .range(from, to);
+      .range(page * itemsPerPage, (page + 1) * itemsPerPage - 1);
 
-    if (error) {
-      console.error("Supabase Error:", error.message);
-    } else {
-      setUsers(data ?? []);
-    }
+    if (data) setUsers(data);
     setLoading(false);
   };
 
+  const handleSave = async (userId: string, field: string) => {
+    const { error } = await supabase.from("profiles").update({ [field]: tempValue }).eq("id", userId);
+    if (!error) setUsers(users.map(u => u.id === userId ? { ...u, [field]: tempValue } : u));
+    setEditingCell(null);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    const { error } = await supabase.from("profiles").delete().eq("id", userToDelete.id);
+    if (!error) {
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+      setUserToDelete(null);
+    }
+  };
+
   useEffect(() => {
-    // 1. Fetch inițial la schimbarea paginii sau search-ului
-    fetchUsers();
-
-    // 2. Refresh automat la 30 secunde (30000ms)
-    const interval = setInterval(() => {
-      fetchUsers(true); // isSilent = true
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [page, searchTerm]); 
+    const t = setTimeout(() => fetchUsers(), 300);
+    return () => clearTimeout(t);
+  }, [page, searchTerm]);
 
   return (
-    <div className="space-y-6">
-      {/* Header cu Bara de Căutare - Responsive */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-2">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-black text-yellow-400 uppercase tracking-tighter">User Database</h2>
-          {loading && <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>}
+    <div className="max-w-[1300px] mx-auto space-y-6 animate-in fade-in duration-700">
+      
+      {/* --- Header --- */}
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center px-4 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-zinc-900 dark:text-white tracking-tight">Users management </h2>
+         
+          </div>
         </div>
         
-        <input
-          type="text"
-          placeholder="Search name or username..."
-          value={searchTerm}
-          onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-          className="w-full md:w-80 px-4 py-2 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-yellow-400 transition shadow-inner"
-        />
+        <div className="relative group">
+          <input
+            type="text"
+            placeholder="Search credentials..."
+            className="w-full md:w-80 pl-10 pr-4 py-2.5 bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-[11px] font-medium outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all shadow-inner"
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg className="absolute left-3.5 top-3 text-zinc-500" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
       </div>
 
-      {loading && users.length === 0 ? (
-        <p className="text-gray-500 italic text-center p-20 animate-pulse bg-zinc-900/10 rounded-2xl">
-          Syncing users...
-        </p>
-      ) : (
-        <div className="overflow-x-auto border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl bg-white dark:bg-zinc-950">
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead className="bg-slate-50 dark:bg-zinc-900">
-              <tr>
-                <th className="p-4 text-[10px] font-black uppercase border-b border-slate-200 dark:border-zinc-800 text-zinc-500">ID</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Username</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Full Name</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800">Role</th>
-                <th className="p-4 text-xs font-black uppercase border-b border-slate-200 dark:border-zinc-800 text-right">Updated</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-zinc-900">
-              {users.map((user) => (
-                <motion.tr
-                  key={user.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  whileHover={{ backgroundColor: "rgba(254, 243, 199, 0.2)" }}
-                  className="transition-colors group"
-                >
-                  <td className="p-4 font-mono text-[9px] text-zinc-500 tracking-tighter uppercase">
-                    {user.id.slice(0, 8)}...
-                  </td>
-                  <td className="p-4 font-bold text-yellow-600 dark:text-yellow-500">
-                    @{user.username}
-                  </td>
-                  <td className="p-4 text-sm text-zinc-700 dark:text-zinc-300">
-                    {user.full_name ?? <span className="opacity-30">—</span>}
-                  </td>
-                  <td className="p-4">
-                    <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-[10px] font-black rounded border border-zinc-200 dark:border-zinc-700 uppercase">
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="p-4 text-[10px] font-mono text-zinc-500 text-right">
-                    {new Date(user.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* --- Data Table --- */}
+      <div className="bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] overflow-hidden shadow-2xl shadow-indigo-500/5">
+        <table className="w-full text-left border-separate border-spacing-0">
+          <thead className="bg-zinc-50/50 dark:bg-zinc-900/40">
+            <tr className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <th className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/50">Identity & Bio</th>
+              <th className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/50">Full Name</th>
+              <th className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/50 text-center">Clearance</th>
+              <th className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800/50 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900/50">
+            {users.map((user) => (
+              <tr key={user.id} className="group hover:bg-indigo-500/[0.01] dark:hover:bg-indigo-500/[0.02] transition-colors">
+                
+                {/* --- Avatar & Identity --- */}
+                <td className="px-6 py-5 align-top">
+                  <div className="flex gap-4">
+                    <div className="shrink-0">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="avatar" className="w-10 h-10 rounded-xl object-cover ring-2 ring-zinc-100 dark:ring-zinc-800 shadow-lg" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-xs font-black text-indigo-500 border border-indigo-500/20 uppercase shadow-inner">
+                          {user.username?.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-1 min-w-[200px]">
+                      {editingCell?.id === user.id && editingCell?.field === "username" ? (
+                        <input autoFocus className="bg-transparent border-b border-indigo-500 text-xs font-bold text-zinc-900 dark:text-zinc-100 outline-none w-full" defaultValue={user.username} onBlur={() => setEditingCell(null)} onKeyDown={(e) => e.key === "Enter" && handleSave(user.id, "username")} onChange={(e) => setTempValue(e.target.value)} />
+                      ) : (
+                        <span onClick={() => { setEditingCell({ id: user.id, field: "username" }); setTempValue(user.username); }} className="text-xs font-bold text-zinc-900 dark:text-zinc-100 cursor-pointer group-hover:text-indigo-500 transition-colors tracking-tight">@{user.username}</span>
+                      )}
+                      
+                      {editingCell?.id === user.id && editingCell?.field === "bio" ? (
+                        <textarea autoFocus className="bg-zinc-100 dark:bg-zinc-900/50 p-2 rounded-lg text-[10px] text-zinc-500 outline-none w-full resize-none border border-indigo-500/30" defaultValue={user.bio} rows={2} onBlur={() => setEditingCell(null)} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSave(user.id, "bio")} onChange={(e) => setTempValue(e.target.value)} />
+                      ) : (
+                        <p onClick={() => { setEditingCell({ id: user.id, field: "bio" }); setTempValue(user.bio || ""); }} className="text-[10px] text-zinc-500 dark:text-zinc-500 leading-relaxed cursor-pointer hover:text-zinc-300 transition-colors max-w-[250px] line-clamp-2">
+                          {user.bio || <span className="italic opacity-30 tracking-tighter">No bio data recorded...</span>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </td>
 
-      {/* Control Paginare */}
-      <div className="flex justify-between items-center px-4 py-2">
-        <button 
-          disabled={page === 0} 
-          onClick={() => setPage(p => p - 1)}
-          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl text-[10px] font-black border border-zinc-200 dark:border-zinc-800 disabled:opacity-20 hover:border-yellow-400 transition"
-        >
-          PREVIOUS
-        </button>
-        <span className="text-[10px] font-black text-zinc-400 tracking-widest uppercase">
-          Page {page + 1}
-        </span>
-        <button 
-          disabled={users.length < itemsPerPage} 
-          onClick={() => setPage(p => p + 1)}
-          className="px-4 py-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-xl text-[10px] font-black border border-zinc-200 dark:border-zinc-800 disabled:opacity-20 hover:border-yellow-400 transition"
-        >
-          NEXT
-        </button>
+                <td className="px-6 py-5 align-top font-medium">
+                   {editingCell?.id === user.id && editingCell?.field === "full_name" ? (
+                    <input autoFocus className="bg-transparent border-b border-purple-500 text-xs text-zinc-800 dark:text-zinc-200 outline-none w-full" defaultValue={user.full_name} onBlur={() => setEditingCell(null)} onKeyDown={(e) => e.key === "Enter" && handleSave(user.id, "full_name")} onChange={(e) => setTempValue(e.target.value)} />
+                  ) : (
+                    <span onClick={() => { setEditingCell({ id: user.id, field: "full_name" }); setTempValue(user.full_name || ""); }} className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-purple-500 transition-colors">
+                      {user.full_name || <span className="opacity-10 tracking-[0.2em] font-black uppercase text-[8px]">Unassigned</span>}
+                    </span>
+                  )}
+                </td>
+
+                <td className="px-6 py-5 align-top text-center">
+                  <select 
+                    value={user.role}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      await supabase.from("profiles").update({ role: val }).eq("id", user.id);
+                      setUsers(users.map(u => u.id === user.id ? { ...u, role: val } : u));
+                    }}
+                    className={`text-[9px] font-black tracking-widest px-3 py-1 rounded-lg border appearance-none cursor-pointer outline-none transition-all uppercase ${
+                      user.role === 'admin' 
+                      ? 'border-indigo-500/40 text-indigo-500 bg-indigo-500/5' 
+                      : 'border-zinc-200 dark:border-zinc-800 text-zinc-500'
+                    } hover:ring-1 hover:ring-indigo-500`}
+                  >
+                    <option value="user">User</option>
+                    <option value="moderator">Mod</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </td>
+
+                {/* --- Actions & Delete --- */}
+                <td className="px-6 py-5 align-top text-right">
+                  <div className="flex flex-col items-end gap-3 group-hover:translate-x-[-4px] transition-transform">
+                    <span className="text-[10px] font-bold font-mono text-zinc-500 tracking-tighter opacity-40">
+                      {new Date(user.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                    </span>
+                    <button 
+                      onClick={() => setUserToDelete(user)}
+                      className="p-2 bg-rose-500/5 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/20 opacity-0 group-hover:opacity-100"
+                    >
+                      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* --- Delete Confirmation Modal --- */}
+      <AnimatePresence>
+        {userToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-950 border border-rose-500/30 p-8 rounded-[2.5rem] w-full max-w-sm shadow-[0_0_50px_rgba(244,63,94,0.1)] text-center">
+              <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500">
+                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <h3 className="text-xl font-black text-white mb-2 tracking-tight uppercase">Destroy Identity?</h3>
+              <p className="text-xs text-zinc-500 mb-8 leading-relaxed italic">Are you sure you want to wipe <span className="text-rose-500 font-bold">@{userToDelete.username}</span> from the core database? This action is irreversible.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setUserToDelete(null)} className="flex-1 py-3 text-[10px] font-black uppercase text-zinc-400 hover:text-white transition">Abort</button>
+                <button onClick={handleDeleteUser} className="flex-1 py-3 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-500/20 active:scale-95 transition-all">Confirm Wipe</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Pagination --- */}
+      <div className="flex items-center justify-between px-2">
+
+        <div className="flex gap-2">
+          <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 disabled:opacity-10 transition-all"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+          <button disabled={users.length < itemsPerPage} onClick={() => setPage(p => p + 1)} className="p-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl hover:shadow-indigo-500/20 disabled:opacity-10 transition-all"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
       </div>
     </div>
   );

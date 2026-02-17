@@ -227,8 +227,6 @@ function StatCard({ label, value, icon }: any) {
     </motion.div>
   );
 }
-
-// --- OverviewTab Real-Time ---
 function OverviewTab() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [liveRevenue, setLiveRevenue] = useState<number>(0);
@@ -241,85 +239,104 @@ function OverviewTab() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Total Users
-      const { count } = await supabase.from("profiles").select("*", { count: "exact" });
-      setTotalUsers(count ?? 0);
+      // 1. Total Users - Folosim head:true pentru a lua doar cifra (performanță maximă)
+      const { count: usersCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+      setTotalUsers(usersCount ?? 0);
 
-      // Live Revenue
-      const { data: rev } = await supabase.from("gift_transactions").select("coins_amount, created_at");
+      // 2. Live Revenue
+      const { data: rev } = await supabase
+        .from("gift_transactions")
+        .select("coins_amount, created_at")
+        .order('created_at', { ascending: true });
+      
       const revenueSum = rev?.reduce((a, b) => a + (b.coins_amount ?? 0), 0) ?? 0;
       setLiveRevenue(revenueSum);
-      setRevenueData(rev?.map(r => ({ date: r.created_at?.slice(0,10), revenue: r.coins_amount })) ?? []);
+      setRevenueData(rev?.map(r => ({ date: r.created_at?.slice(5,10), revenue: r.coins_amount })) ?? []);
 
-      // Active Lives
-      const { count: liveCount, data: livePosts } = await supabase.from("posts").select("id, created_at", { count: "exact" });
+      // 3. Active Lives
+      const { count: liveCount, data: livePosts } = await supabase
+        .from("posts")
+        .select("id, created_at", { count: "exact" });
       setActiveLives(liveCount ?? 0);
-      setActiveLivesData(livePosts?.map(p => ({ date: p.created_at?.slice(0,10), active: 1 })) ?? []);
+      setActiveLivesData(livePosts?.map(p => ({ date: p.created_at?.slice(5,10), active: 1 })) ?? []);
 
-      // Coins Supply
-      const { data: coins } = await supabase.from("profiles").select("coins");
-      const totalCoins = coins?.reduce((a,b) => a + (b.coins ?? 0),0) ?? 0;
-      setCoinsSupply(totalCoins);
-      setCoinsData(coins?.map((c,i) => ({ name: `User ${i+1}`, value: c.coins })) ?? []);
+      // 4. Coins Supply - Din noua tabelă WALLETS
+      const { data: wallets } = await supabase
+        .from("wallets")
+        .select(`coins_balance, profiles(username)`)
+        .order('coins_balance', { ascending: false });
+
+      if (wallets) {
+        const total = wallets.reduce((a, b) => a + (b.coins_balance ?? 0), 0);
+        setCoinsSupply(total);
+        
+        // Luăm primii 5 deținători pentru grafic, restul ar arăta urât în Pie Chart
+        setCoinsData(wallets.slice(0, 5).map(w => ({ 
+          name: w.profiles?.username || "User", 
+          value: w.coins_balance 
+        })));
+      }
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 6000); // every 60 sec
+    const interval = setInterval(fetchStats, 60000); // 60 secunde e suficient pentru stats
     return () => clearInterval(interval);
   }, []);
 
-  const COLORS = ["#FFD700", "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1"];
+  const COLORS = ["#FFD700", "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9"];
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCard label="Total Users" value={totalUsers} icon="👥" />
-        <StatCard label="Live Revenue" value={liveRevenue} icon="💵" />
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Total Users" value={totalUsers.toLocaleString()} icon="👥" />
+        <StatCard label="Live Revenue" value={liveRevenue.toLocaleString()} icon="💰" />
         <StatCard label="Active Lives" value={activeLives} icon="🔴" />
-        <StatCard label="Coins Supply" value={coinsSupply} icon="🪙" />
+        <StatCard label="Coins Supply" value={coinsSupply.toLocaleString()} icon="🪙" />
       </div>
 
-      {/* Charts */}
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Revenue Line Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
-          <h3 className="font-black text-yellow-400 mb-4 text-center">Live Revenue</h3>
+        {/* Revenue Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
+          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Revenue Flow</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="revenue" stroke="#FFD700" strokeWidth={3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
+              <XAxis dataKey="date" hide />
+              <YAxis stroke="#444" fontSize={10} />
+              <Tooltip contentStyle={{ borderRadius: '15px', backgroundColor: '#111', border: 'none' }} />
+              <Line type="monotone" dataKey="revenue" stroke="#FFD700" strokeWidth={4} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Active Lives Bar Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
-          <h3 className="font-black text-yellow-400 mb-4 text-center">Active Lives</h3>
+        {/* Active Lives Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
+          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Stream Activity</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={activeLivesData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="active" fill="#FF6F61" />
+              <XAxis dataKey="date" hide />
+              <Tooltip cursor={{fill: '#222'}} contentStyle={{ borderRadius: '15px', backgroundColor: '#111', border: 'none' }} />
+              <Bar dataKey="active" fill="#FF6F61" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Coins Pie Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-lg">
-          <h3 className="font-black text-yellow-400 mb-4 text-center">Coins Supply</h3>
+        {/* Coins Distribution Chart */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
+          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Top Balances</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
-              <Pie data={coinsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}>
-                {coinsData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Pie data={coinsData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5}>
+                {coinsData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                 ))}
               </Pie>
-              <Legend />
+              <Tooltip />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -327,6 +344,7 @@ function OverviewTab() {
     </div>
   );
 }
+
 
 /**
  * user tab -display a paginated list of users with search functionality, 

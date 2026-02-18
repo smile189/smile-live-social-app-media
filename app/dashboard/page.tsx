@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react'; 
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
@@ -299,7 +299,6 @@ export function OverviewTab() {
   const [isExporting, setIsExporting] = useState(false);
   const [notifications, setNotifications] = useState<{id: number, msg: string, type: 'info' | 'success'}[]>([]);
 
-  // Sistem intern de push pentru notificări
   const addNotify = (msg: string, type: 'info' | 'success' = 'info') => {
     const id = Date.now();
     setNotifications(prev => [{id, msg, type}, ...prev].slice(0, 3));
@@ -307,30 +306,30 @@ export function OverviewTab() {
   };
 
   const fetchStats = async () => {
-    const [uCount, lCount] = await Promise.all([
+    const [uCount, lCount, transData, walletsData] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("posts").select("id", { count: "exact", head: true })
+      supabase.from("posts").select("id", { count: "exact", head: true }),
+      supabase.from("gift_transactions")
+        .select("id, coins_amount, created_at, sender_id, profiles!gift_transactions_sender_id_fkey(username)")
+        .order('created_at', { ascending: false })
+        .limit(25),
+      supabase.from("wallets")
+        .select(`coins_balance, profiles(username)`)
+        .gt('coins_balance', 0)
+        .order('coins_balance', { ascending: false })
     ]);
-
-    const { data: trans } = await supabase
-      .from("gift_transactions")
-      .select("id, coins_amount, created_at, profiles!gift_transactions_sender_id_fkey(username)")
-      .order('created_at', { ascending: false });
-
-    const { data: wallets } = await supabase
-      .from("wallets")
-      .select(`coins_balance, profiles(username)`)
-      .gt('coins_balance', 0)
-      .order('coins_balance', { ascending: false });
 
     setTotalUsers(uCount.count ?? 0);
     setActiveLives(lCount.count ?? 0);
-    setLiveRevenue(trans?.reduce((a, b) => a + (b.coins_amount ?? 0), 0) ?? 0);
-    setRecentTrans(trans?.slice(0, 25) ?? []);
     
-    if (wallets) {
-      setCoinsSupply(wallets.reduce((a, b) => a + (b.coins_balance ?? 0), 0));
-      setTopHolders(wallets.map(w => ({
+    if (transData.data) {
+      setRecentTrans(transData.data);
+      setLiveRevenue(transData.data.reduce((a, b) => a + (b.coins_amount ?? 0), 0));
+    }
+    
+    if (walletsData.data) {
+      setCoinsSupply(walletsData.data.reduce((a, b) => a + (b.coins_balance ?? 0), 0));
+      setTopHolders(walletsData.data.map(w => ({
         name: (w.profiles as any)?.username || "User",
         value: w.coins_balance
       })));
@@ -339,23 +338,51 @@ export function OverviewTab() {
 
   useEffect(() => {
     fetchStats();
+
     const channel = supabase
-      .channel('live_ops')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gift_transactions' }, (payload) => {
-        fetchStats();
-        // Notificare live la tranzacție mare (>500 coins)
-        if (payload.new.coins_amount > 500) {
-          addNotify(`High Volume: +${payload.new.coins_amount} coins detected`, 'info');
+      .channel('admin_realtime_v2')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gift_transactions' },
+        async (payload) => {
+          // Fetch rapid pentru username deoarece Realtime nu trimite relații (joins)
+          const { data: user } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', payload.new.sender_id)
+            .single();
+
+          const enriched = {
+            ...payload.new,
+            profiles: { username: user?.username || 'User' }
+          };
+
+          setRecentTrans(prev => [enriched, ...prev].slice(0, 25));
+          setLiveRevenue(prev => prev + (payload.new.coins_amount || 0));
+          
+          if (payload.new.coins_amount > 500) {
+            addNotify(`High Volume: +${payload.new.coins_amount} 🪙 de la @${user?.username}`, 'info');
+          }
         }
-      })
-      .subscribe();
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wallets' },
+        () => {
+          // Update top holders instant când se schimbă balanțele
+          fetchStats();
+        }
+      )
+      .subscribe((status) => {
+        console.log("Realtime status:", status);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const metrics = useMemo(() => {
     const last24h = recentTrans.filter(t => new Date(t.created_at) > new Date(Date.now() - 86400000));
-    const vol24h = last24h.reduce((a, b) => a + b.coins_amount, 0);
+    const vol24h = last24h.reduce((a, b) => a + (b.coins_amount || 0), 0);
     return {
       vol24h,
       velocity: coinsSupply > 0 ? ((vol24h / coinsSupply) * 100).toFixed(2) : "0.00"
@@ -364,36 +391,28 @@ export function OverviewTab() {
 
   const exportCSV = () => {
     setIsExporting(true);
-    addNotify("Generating analytics report...", "info");
-    
     const csv = ["Username,Balance", ...topHolders.map(h => `@${h.name},${h.value}`)].join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    link.download = `smile_analytics_2026.csv`;
+    link.download = `smile_analytics.csv`;
     link.click();
-    
-    setTimeout(() => {
-      setIsExporting(false);
-      addNotify("Report exported successfully", "success");
-    }, 1200);
+    setIsExporting(false);
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 py-6 px-4 relative animate-in fade-in duration-1000">
-      
-      {/* 0. Floating Notifications System */}
+    <div className="max-w-[1600px] mx-auto space-y-6 py-6 px-4 relative animate-in fade-in duration-700">
+      {/* NOTIFICATIONS */}
       <div className="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none">
         {notifications.map(n => (
-          <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl animate-in slide-in-from-right-10 duration-500 flex items-center gap-3 min-w-[280px] ${
-            n.type === 'success' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-zinc-900 border-zinc-800 text-indigo-400'
+          <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl animate-in slide-in-from-right-10 duration-500 flex items-center gap-3 ${
+            n.type === 'success' ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-zinc-950 border-zinc-800 text-indigo-400'
           }`}>
             <div className={`w-2 h-2 rounded-full ${n.type === 'success' ? 'bg-white' : 'bg-indigo-500 animate-pulse'}`} />
-            <span className="text-xs font-bold uppercase tracking-tight">{n.msg}</span>
+            <span className="text-[10px] font-black uppercase tracking-tight">{n.msg}</span>
           </div>
         ))}
       </div>
 
-      {/* 1. Primary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPIBox label="Total Identities" value={totalUsers.toLocaleString()} />
         <KPIBox label="Net Revenue" value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
@@ -402,17 +421,16 @@ export function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* 2. Live Gift Stream */}
         <div className="lg:col-span-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col h-[600px] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
-            <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
               <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Live Gift Transfer</h3>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
             {recentTrans.map((t) => (
-              <div key={t.id} className="flex justify-between items-center p-4 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800 hover:border-indigo-500/40 transition-all animate-in slide-in-from-top-2">
+              <div key={t.id} className="flex justify-between items-center p-4 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800 animate-in slide-in-from-top-1">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-mono text-zinc-400">{new Date(t.created_at).toLocaleTimeString()}</span>
                   <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100 italic">@{t.profiles?.username || 'User'}</span>
@@ -423,118 +441,35 @@ export function OverviewTab() {
           </div>
         </div>
 
-        {/* 3. Asset Concentration Table */}
-        <div className="lg:col-span-5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl h-[600px] flex flex-col shadow-sm overflow-hidden">
+        <div className="lg:col-span-8 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl h-[600px] flex flex-col shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
             <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Asset Concentration</h3>
-            <button 
-              onClick={exportCSV} 
-              disabled={isExporting}
-              className={`text-[10px] font-bold uppercase tracking-tighter px-3 py-1 rounded-lg border transition-all ${
-                isExporting ? 'bg-zinc-100 text-zinc-400' : 'text-indigo-600 border-indigo-100 hover:bg-indigo-50'
-              }`}
-            >
-              {isExporting ? 'Processing...' : 'Export CSV'}
-            </button>
+            <button onClick={exportCSV} className="text-[10px] font-bold uppercase border px-3 py-1.5 rounded-lg hover:bg-zinc-50">Export CSV</button>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[11px]">
-            <table className="w-full text-left border-separate border-spacing-0">
+          <div className="flex-1 overflow-y-auto">
+            <table className="w-full text-left font-mono text-[11px]">
               <tbody className="divide-y divide-zinc-50 dark:divide-zinc-900/50">
                 {topHolders.map((holder, i) => (
-                  <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
-                    <td className="px-6 py-4 text-zinc-400 italic">#{(i+1).toString().padStart(2, '0')}</td>
-                    <td className="px-6 py-4 font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-tighter">@{holder.name}</td>
-                    <td className="px-6 py-4 text-right font-black text-zinc-900 dark:text-white underline decoration-zinc-200 underline-offset-4">
-                      {holder.value.toLocaleString()}
-                    </td>
+                  <tr key={i} className="hover:bg-zinc-50/50">
+                    <td className="px-6 py-4 text-zinc-400">#{(i+1).toString().padStart(2, '0')}</td>
+                    <td className="px-6 py-4 font-bold uppercase italic">@{holder.name}</td>
+                    <td className="px-6 py-4 text-right font-black text-indigo-600">{holder.value.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-
-        {/* 4. Operational Gauges & Health Logs */}
-        <div className="lg:col-span-3 flex flex-col gap-6 h-[600px]">
-          <div className="bg-zinc-900 dark:bg-zinc-950 border border-zinc-800 rounded-2xl p-8 flex flex-col gap-10 flex-1 text-white shadow-2xl">
-            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Health Indices</h3>
-            
-            <div className="space-y-10">
-              <div className="space-y-4">
-                <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest italic">24h Vol</p>
-                  <p className="text-xl font-mono font-black text-indigo-400">{metrics.vol24h.toLocaleString()} 🪙</p>
-                </div>
-                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: '70%' }} />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest italic">Net Velocity</p>
-                  <p className="text-xl font-mono font-black text-emerald-400">{metrics.velocity}%</p>
-                </div>
-                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(parseFloat(metrics.velocity) * 10, 100)}%` }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto space-y-4">
-               <div className="flex justify-between items-center py-2 border-t border-zinc-800">
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase">System Status</span>
-                  <span className="text-[9px] font-mono text-emerald-500 font-bold">OPERATIONAL</span>
-               </div>
-            </div>
-          </div>
-
-          {/* New: Diagnostic Notifications Console */}
-          <div className="h-40 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 overflow-hidden">
-            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">Diagnostic Feed</h4>
-            <div className="space-y-2">
-               <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Postgres Triggers: Verified</span>
-               </div>
-               <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  <span>Realtime Channel: Active</span>
-               </div>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f130; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-      `}</style>
     </div>
   );
 }
 
-interface KPIBoxProps {
-  label: string;
-  value: string | number;
-  highlight?: boolean;
-  color?: string; // Am adăugat și color dacă îl folosim mai sus
-}
-
-function KPIBox({ label, value, highlight = false, color = "text-zinc-900 dark:text-zinc-100" }: KPIBoxProps) {
+function KPIBox({ label, value, highlight = false }: { label: string, value: any, highlight?: boolean }) {
   return (
-    <div className={`p-6 rounded-2xl border transition-all ${
-      highlight 
-        ? 'bg-white dark:bg-zinc-950 border-indigo-200 dark:border-indigo-900/50 shadow-xl' 
-        : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'
-    }`}>
-      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4 italic">
-        {label}
-      </p>
-      <p className={`text-2xl font-black font-mono ${highlight ? 'text-indigo-500' : color}`}>
-        {value}
-      </p>
+    <div className={`p-6 rounded-2xl border ${highlight ? 'bg-amber-500 border-amber-400 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800'}`}>
+      <p className={`text-[10px] font-black uppercase tracking-widest ${highlight ? 'text-amber-950' : 'text-zinc-400'}`}>{label}</p>
+      <p className={`text-2xl font-black mt-1 ${highlight ? 'text-white' : 'text-zinc-900 dark:text-white'}`}>{value}</p>
     </div>
   );
 }

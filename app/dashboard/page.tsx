@@ -218,7 +218,8 @@ export default function SuperAdminDashboard() {
                 className="w-full"
               >
                 {activeTab === "overview" && <OverviewTab />}
-                {activeTab === "money" && <Money />}
+                {activeTab === "money" && <Money supabase={supabase} />}
+
                 {activeTab === "users" && <UsersTab />}
                 {activeTab === "content" && <BlankTab name="Posts & Video Content" />}
                 {activeTab === "finances" && <FinancesTab />}

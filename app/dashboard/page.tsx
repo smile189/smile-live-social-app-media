@@ -510,14 +510,30 @@ export function OverviewTab() {
   );
 }
 
-function KPIBox({ label, value, highlight = false }) {
+interface KPIBoxProps {
+  label: string;
+  value: string | number;
+  highlight?: boolean;
+  color?: string; // Am adăugat și color dacă îl folosim mai sus
+}
+
+function KPIBox({ label, value, highlight = false, color = "text-zinc-900 dark:text-zinc-100" }: KPIBoxProps) {
   return (
-    <div className={`p-6 rounded-2xl border transition-all ${highlight ? 'bg-white dark:bg-zinc-950 border-indigo-200 dark:border-indigo-900/50 shadow-xl' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'}`}>
-      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4 italic">{label}</p>
-      <h3 className={`text-4xl font-mono font-bold tracking-tighter ${highlight ? 'text-indigo-600' : 'text-zinc-900 dark:text-white'}`}>{value}</h3>
+    <div className={`p-6 rounded-2xl border transition-all ${
+      highlight 
+        ? 'bg-white dark:bg-zinc-950 border-indigo-200 dark:border-indigo-900/50 shadow-xl' 
+        : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'
+    }`}>
+      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4 italic">
+        {label}
+      </p>
+      <p className={`text-2xl font-black font-mono ${highlight ? 'text-indigo-500' : color}`}>
+        {value}
+      </p>
     </div>
   );
 }
+
 
 /**
  * user tab -display a paginated list of users with search functionality, 

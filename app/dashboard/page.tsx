@@ -21,7 +21,7 @@ import {
 } from "recharts";
 import Chat from "./chatsupport/Chat";
 import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab component
-
+import GiftsTab from "./gifts/Gifts"; // Import real GiftsTab component
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -185,8 +185,9 @@ export default function SuperAdminDashboard() {
             {activeTab === "users" && <UsersTab />}
             {activeTab === "content" && <BlankTab name="Posts & Video" />}
             {activeTab === "finances" && <FinancesTab />}
+            {activeTab === "gifts" && <GiftsTab />}
 
-            {activeTab === "gifts" && <BlankTab name="Gifts Config" />}
+             
               {activeTab === "moderation" && <BlankTab name="Moderation" />}
             {activeTab === "chat" && <Chat />}
           </motion.div>

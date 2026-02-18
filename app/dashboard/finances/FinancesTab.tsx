@@ -214,32 +214,32 @@ export default function FinancesTab() {
                 <div className="space-y-8">
                   <div className="flex justify-between items-start">
                <div className="space-y-1">
-  <div className="flex items-center gap-4">
-    {/* BANUL DE AUR - REALISTIC LOOK */}
-    <div className="relative group flex-shrink-0">
-      {/* Glow-ul din spatele banului */}
-      <div className="absolute inset-0 bg-amber-400 blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
-      
-      {/* Corpul monedei */}
-      <div className="relative h-12 w-12 rounded-full border-2 border-amber-200 bg-gradient-to-b from-yellow-300 via-amber-500 to-amber-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.6),0_4px_8px_rgba(0,0,0,0.2)] flex items-center justify-center overflow-hidden">
-        {/* Reflexia metalică (Gloss) */}
-        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/30 to-transparent rotate-45 pointer-events-none" />
-        
-        {/* Iconița de monedă în relief */}
-        <Coins size={24} className="text-amber-900/80 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]" />
-      </div>
-    </div>
+                            <div className="flex items-center gap-4">
+                              {/* BANUL DE AUR - REALISTIC LOOK */}
+                              <div className="relative group flex-shrink-0">
+                                {/* Glow-ul din spatele banului */}
+                                <div className="absolute inset-0 bg-amber-400 blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
+                                
+                                {/* Corpul monedei */}
+                                <div className="relative h-12 w-12 rounded-full border-2 border-amber-200 bg-gradient-to-b from-yellow-300 via-amber-500 to-amber-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.6),0_4px_8px_rgba(0,0,0,0.2)] flex items-center justify-center overflow-hidden">
+                                  {/* Reflexia metalică (Gloss) */}
+                                  <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/30 to-transparent rotate-45 pointer-events-none" />
+                                  
+                                  {/* Iconița de monedă în relief */}
+                                  <Coins size={24} className="text-amber-900/80 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]" />
+                                </div>
+                              </div>
 
-    <div className="flex flex-col">
-      <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-        Golden Coins <span className="text-amber-600">Update</span>
-      </h2>
-      <p className="text-sm font-medium text-slate-400 underline decoration-amber-400/30 decoration-2 underline-offset-4">
-        @{selectedUser?.username}
-      </p>
-    </div>
-  </div>
-</div>
+                              <div className="flex flex-col">
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                                  Golden Coins <span className="text-amber-600">Update</span>
+                                </h2>
+                                <p className="text-sm font-medium text-slate-400 underline decoration-amber-400/30 decoration-2 underline-offset-4">
+                                  @{selectedUser?.username}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
 
 
                     <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">

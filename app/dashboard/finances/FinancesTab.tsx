@@ -4,18 +4,9 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { 
-  Search, 
-  Coins, 
-  ArrowRight, 
-  UserCircle, 
-  ChevronLeft, 
-  ChevronRight,
-  Activity,
-  ArrowUpRight,
-  X,
-  Wallet,
-  Loader2,
-  Sparkles
+  Search, Coins, UserCircle, ChevronLeft, ChevronRight,
+  Activity, Wallet, Loader2, Sparkles, Edit2, ArrowUpDown,
+  ShieldCheck, ExternalLink, MoreHorizontal
 } from "lucide-react";
 
 const supabase = createBrowserClient(
@@ -23,7 +14,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 10;
 
 export default function FinancesTab() {
   const [data, setData] = useState<any[]>([]);
@@ -37,7 +28,6 @@ export default function FinancesTab() {
   const [newBalance, setNewBalance] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- CALCUL TOTAL COINS (LIVE PE PAGINA CURENTĂ) ---
   const pageTotalCoins = useMemo(() => {
     return data.reduce((acc, curr) => acc + (curr.coins || 0), 0);
   }, [data]);
@@ -67,9 +57,7 @@ export default function FinancesTab() {
     }
   }, [page]);
 
-  useEffect(() => {
-    fetchFinances();
-  }, [fetchFinances]);
+  useEffect(() => { fetchFinances(); }, [fetchFinances]);
 
   const confirmUpdate = async () => {
     if (!selectedUser || isUpdating) return;
@@ -93,117 +81,114 @@ export default function FinancesTab() {
   );
 
   return (
-    <div className="min-h-screen bg-[#020203] text-zinc-400 font-sans selection:bg-indigo-500/30 overflow-hidden relative">
+    <div className="min-h-screen bg-[#F9FAFB] text-slate-600 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-emerald-600/5 blur-[100px] rounded-full pointer-events-none" />
+      {/* Indigo Accent Lines (Decorative) */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-indigo-600 z-50" />
+      <div className="absolute top-0 right-0 w-1/3 h-px bg-gradient-to-l from-indigo-500/20 to-transparent" />
 
-      <div className="relative max-w-[1200px] mx-auto p-6 space-y-8 z-10">
+      <div className="relative max-w-[1200px] mx-auto p-6 md:p-12 space-y-10">
         
-        {/* TOP NAV - UPDATED WITH TOTAL COINS */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-zinc-800/50 pb-8">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <div className="flex items-center gap-2 text-indigo-400 mb-1">
-              <Sparkles size={14} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em]">System Core</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              Economy <span className="text-zinc-600 font-light">Control</span>
-            </h1>
-          </motion.div>
+        {/* HEADER */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+
           
-          <div className="flex items-center gap-2 bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 p-1.5 rounded-2xl">
-            {/* Stat: Users */}
-            <div className="px-4 py-2 bg-zinc-800/30 rounded-xl border border-zinc-700/30 text-center min-w-[100px]">
-              <p className="text-[9px] uppercase font-black text-zinc-500 tracking-wider mb-0.5">Users</p>
-              <p className="text-lg font-mono text-white leading-none">{totalCount}</p>
+          <div className="flex gap-4 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+            <div className="px-6 py-3 border-r border-slate-100">
+              <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">Total Users</p>
+              <p className="text-2xl font-bold text-slate-900 leading-none">{totalCount}</p>
             </div>
-
-            {/* Stat: Total Coins (NEW) */}
-            <div className="px-4 py-2 bg-amber-500/5 rounded-xl border border-amber-500/10 text-center min-w-[140px]">
-              <p className="text-[9px] uppercase font-black text-amber-600/70 tracking-wider mb-0.5">Total Coins</p>
-              <div className="flex items-center justify-center gap-1.5">
-                <Coins size={12} className="text-amber-500" />
-                <p className="text-lg font-mono text-amber-500 leading-none font-bold">
-                  {pageTotalCoins.toLocaleString()}
-                </p>
+            <div className="px-6 py-3">
+              <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">Page Balance</p>
+              <div className="flex items-center gap-2 text-indigo-600">
+                <Coins size={18} />
+                <p className="text-2xl font-bold leading-none">{pageTotalCoins.toLocaleString()}</p>
               </div>
-            </div>
-
-            <div className="h-8 w-px bg-zinc-800 mx-1" />
-
-            <div className="pr-4 pl-2 flex items-center gap-2">
-               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Live</span>
             </div>
           </div>
         </header>
 
-        {/* SEARCH */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="relative max-w-md group"
-        >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
-          <input 
-            type="text"
-            placeholder="Search terminal..."
-            className="w-full bg-zinc-900/20 border border-zinc-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all backdrop-blur-sm"
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </motion.div>
+        {/* CONTROLS */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="relative w-full max-w-md group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+            <input 
+              type="text"
+              placeholder="Filter by name or username..."
+              className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-sm"
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-        {/* DATA GRID */}
-        <LayoutGroup>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <AnimatePresence mode="popLayout">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-indigo-600 disabled:opacity-30 rounded-lg transition-all">
+              <ChevronLeft size={20} />
+            </button>
+            <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-x border-slate-100">
+              Page {page + 1}
+            </div>
+            <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-indigo-600 disabled:opacity-30 rounded-lg transition-all">
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* LIST TABLE */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+          <div className="grid grid-cols-12 px-8 py-5 border-b border-slate-100 bg-slate-50/50 text-[11px] uppercase font-bold tracking-widest text-slate-400">
+            <div className="col-span-5 flex items-center gap-2">User Profile <ArrowUpDown size={12} /></div>
+            <div className="col-span-3 text-center">Wallet Balance</div>
+            <div className="col-span-2 text-center">Verification</div>
+            <div className="col-span-2 text-right">Actions</div>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            <AnimatePresence mode="wait">
               {loading ? (
-                [...Array(8)].map((_, i) => (
-                  <div key={i} className="h-40 bg-zinc-900/10 animate-pulse rounded-3xl border border-zinc-800/30" />
+                [...Array(5)].map((_, i) => (
+                  <div key={i} className="h-20 animate-pulse px-8 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-100 rounded-full" />
+                    <div className="h-4 w-48 bg-slate-100 rounded" />
+                  </div>
                 ))
               ) : (
-                filteredData.map((user) => (
+                filteredData.map((user, idx) => (
                   <motion.div 
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    whileHover={{ y: -5 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.03 }}
                     key={user.id}
-                    className="relative bg-zinc-900/20 border border-zinc-800/50 rounded-[2rem] p-6 hover:bg-zinc-900/40 hover:border-zinc-700/50 transition-all group overflow-hidden"
+                    className="grid grid-cols-12 px-8 py-5 items-center hover:bg-indigo-50/30 group transition-all"
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
-                      <Wallet size={40} className="text-indigo-500" />
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-6 relative z-10">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700 flex items-center justify-center shadow-inner group-hover:border-indigo-500/50 transition-colors">
-                        <UserCircle size={20} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                    <div className="col-span-5 flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-indigo-600 group-hover:border-indigo-200 transition-all duration-300">
+                        <UserCircle size={22} />
                       </div>
-                      <div className="overflow-hidden">
-                        <h3 className="text-sm font-bold text-zinc-100 truncate">{user.full_name || "Guest"}</h3>
-                        <p className="text-[10px] text-zinc-500 font-mono truncate">@{user.username}</p>
+                      <div className="truncate">
+                        <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-900 transition-colors truncate">{user.full_name || "New Entity"}</p>
+                        <p className="text-xs font-medium text-slate-400 truncate">@{user.username}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-end justify-between border-t border-zinc-800/50 pt-4 relative z-10">
-                      <div>
-                        <p className="text-[9px] uppercase text-zinc-600 font-black tracking-widest mb-1">Balance</p>
-                        <div className="flex items-center gap-1.5">
-                          <Coins size={14} className="text-amber-500" />
-                          <span className="text-lg font-mono font-bold text-white tracking-tighter">
-                            {user.coins.toLocaleString()}
-                          </span>
-                        </div>
+                    <div className="col-span-3 flex justify-center">
+                      <div className="flex items-center gap-2 bg-indigo-50/50 px-4 py-1.5 rounded-full border border-indigo-100 group-hover:scale-105 transition-transform duration-300">
+                        <Coins size={14} className="text-indigo-600" />
+                        <span className="text-sm font-bold text-indigo-900">{user.coins?.toLocaleString()}</span>
                       </div>
+                    </div>
+
+                    <div className="col-span-2 flex justify-center">
+                      <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-tighter border border-emerald-100">
+                        Verified
+                      </span>
+                    </div>
+
+                    <div className="col-span-2 text-right">
                       <button 
                         onClick={() => { setSelectedUser(user); setNewBalance(user.coins.toString()); setIsModalOpen(true); }}
-                        className="bg-white hover:bg-indigo-400 text-black p-2.5 rounded-xl transition-all active:scale-90 shadow-lg shadow-indigo-500/5"
+                        className="p-2.5 hover:bg-indigo-600 text-slate-400 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-indigo-200 active:scale-95"
                       >
-                        <ArrowUpRight size={16} />
+                        <Edit2 size={16} />
                       </button>
                     </div>
                   </motion.div>
@@ -211,54 +196,86 @@ export default function FinancesTab() {
               )}
             </AnimatePresence>
           </div>
-        </LayoutGroup>
+        </div>
 
-        {/* FOOTER */}
-        <footer className="flex items-center justify-center gap-4 pt-6">
-          <button 
-            disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
-            className="p-3 rounded-2xl border border-zinc-800 hover:border-indigo-500/50 disabled:opacity-10 bg-zinc-900/40 transition-all"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="text-[10px] font-black font-mono text-zinc-500 uppercase tracking-widest bg-zinc-900/80 px-4 py-2 rounded-full border border-zinc-800">
-            Page {page + 1}
-          </span>
-          <button 
-            disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount}
-            onClick={() => setPage(p => p + 1)}
-            className="p-3 rounded-2xl border border-zinc-800 hover:border-indigo-500/50 disabled:opacity-10 bg-zinc-900/40 transition-all"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </footer>
+        {/* MODAL */}
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-10 shadow-2xl overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-indigo-600" />
+                
+                <div className="space-y-8">
+                  <div className="flex justify-between items-start">
+               <div className="space-y-1">
+  <div className="flex items-center gap-4">
+    {/* BANUL DE AUR - REALISTIC LOOK */}
+    <div className="relative group flex-shrink-0">
+      {/* Glow-ul din spatele banului */}
+      <div className="absolute inset-0 bg-amber-400 blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
+      
+      {/* Corpul monedei */}
+      <div className="relative h-12 w-12 rounded-full border-2 border-amber-200 bg-gradient-to-b from-yellow-300 via-amber-500 to-amber-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.6),0_4px_8px_rgba(0,0,0,0.2)] flex items-center justify-center overflow-hidden">
+        {/* Reflexia metalică (Gloss) */}
+        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-tr from-transparent via-white/30 to-transparent rotate-45 pointer-events-none" />
+        
+        {/* Iconița de monedă în relief */}
+        <Coins size={24} className="text-amber-900/80 drop-shadow-[0_1px_1px_rgba(255,255,255,0.4)]" />
       </div>
+    </div>
 
-      {/* MODAL */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-amber-500" />
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white">Adjust Wallet</h2>
-                <X className="cursor-pointer text-zinc-500 hover:text-white transition-colors" onClick={() => setIsModalOpen(false)} />
-              </div>
-              <div className="space-y-6">
-                <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
-                  <p className="text-[10px] uppercase font-black text-zinc-600 mb-2">New Balance</p>
-                  <input type="number" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} className="w-full bg-transparent text-2xl font-mono text-white outline-none" autoFocus />
+    <div className="flex flex-col">
+      <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+        Golden Coins <span className="text-amber-600">Update</span>
+      </h2>
+      <p className="text-sm font-medium text-slate-400 underline decoration-amber-400/30 decoration-2 underline-offset-4">
+        @{selectedUser?.username}
+      </p>
+    </div>
+  </div>
+</div>
+
+                    <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
+                      <Wallet size={24} />
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                       <Coins className="text-indigo-200 group-focus-within:text-indigo-600 transition-colors" size={24} />
+                    </div>
+                    <input 
+                      autoFocus
+                      type="number"
+                      value={newBalance}
+                      onChange={(e) => setNewBalance(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-6 pl-16 pr-6 text-3xl font-extrabold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all text-sm font-bold text-slate-400 uppercase tracking-widest active:scale-95">Cancel</button>
+                    <button 
+                      onClick={confirmUpdate}
+                      disabled={isUpdating}
+                      className="flex-[1.5] py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 disabled:opacity-50 active:scale-95"
+                    >
+                      {isUpdating ? <Loader2 size={20} className="animate-spin" /> : "Authorize Change"}
+                    </button>
+                  </div>
                 </div>
-                <button onClick={confirmUpdate} disabled={isUpdating} className="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-indigo-400 transition-all flex items-center justify-center gap-2">
-                  {isUpdating ? <Loader2 className="animate-spin" /> : "Apply Changes"}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+      </div>
     </div>
   );
 }

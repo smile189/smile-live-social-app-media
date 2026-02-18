@@ -21,6 +21,8 @@ import {
 } from "recharts";
 import Chat from "./chatsupport/Chat";
 import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab component
+
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -185,7 +187,7 @@ export default function SuperAdminDashboard() {
             {activeTab === "finances" && <FinancesTab />}
 
             {activeTab === "gifts" && <BlankTab name="Gifts Config" />}
-            {activeTab === "moderation" && <BlankTab name="Moderation" />}
+              {activeTab === "moderation" && <BlankTab name="Moderation" />}
             {activeTab === "chat" && <Chat />}
           </motion.div>
         </AnimatePresence>

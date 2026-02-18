@@ -88,13 +88,18 @@ export default function SuperAdminDashboard() {
       `}>
         <div className="p-6 border-b border-slate-100 dark:border-zinc-900/50">
           <div className="flex items-center gap-3 group">
-            <motion.div 
-              animate={{ rotateY: [0, 360] }} 
-              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-              className="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black font-black italic shadow-lg shadow-amber-500/20"
-            >
-              S
-            </motion.div>
+<motion.div 
+  animate={{ rotateY: [0, 360] }} 
+  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+  className="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20"
+>
+  <img 
+    src="logosmile.jpeg" 
+    alt="Logo" 
+    className="w-full h-full object-cover"
+  />
+</motion.div>
+
             <div className="flex flex-col">
               <h2 className="font-black text-xs tracking-[0.2em] uppercase dark:text-white leading-none">
                 SMILE<span className="text-amber-500 italic">LIVEAPP.com</span>
@@ -160,8 +165,8 @@ export default function SuperAdminDashboard() {
         {/* MOBILE HEADER - Apare doar sub lg */}
         <div className="lg:hidden p-4 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl z-[90] border-b border-slate-200 dark:border-zinc-800">
            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-2xl">☰</button>
-           <h2 className="text-xs font-black uppercase tracking-widest italic">Smile<span className="text-amber-500">Live</span></h2>
-           <div className="w-8 h-8 rounded-full bg-amber-500" />
+           <h2 className="text-xs font-black uppercase tracking-widest italic">DASHBOARD <span className="text-amber-500">Smile</span></h2>
+           
         </div>
 
         <div className="p-6 lg:p-12">

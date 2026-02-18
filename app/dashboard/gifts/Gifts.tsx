@@ -1,3 +1,13 @@
+/**
+ * gifts.tsx
+ * 
+ * This component provides a comprehensive interface for managing gift assets in the Smile Live dashboard.
+ * author: BM brainmap dream coder
+ * date: 2026-18
+ */
+
+
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -12,6 +22,11 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+/**
+ * 
+ * gift function 
+ */
 
 export default function GiftsTab() {
   const [gifts, setGifts] = useState<any[]>([]);
@@ -127,7 +142,7 @@ export default function GiftsTab() {
                   onClick={() => { setActiveGift({ name: "", coin_price: 0, image_url: "", description: "" }); setIsCreating(true); setIsEditing(true); }}
                   className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all active:scale-95"
               >
-                  <Plus size={16} className="inline mr-2" strokeWidth={3} /> Add Asset
+                  <Plus size={16} className="inline mr-2" strokeWidth={3} /> Add Gift Asset
               </button>
             </div>
         </header>
@@ -195,7 +210,7 @@ export default function GiftsTab() {
                     <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center border border-amber-200 shadow-lg shadow-amber-500/20">
                       <Coins size={20} className="text-amber-900" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Golden Asset</h3>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Gift add</h3>
                  </div>
                  <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full text-slate-400"><X size={28}/></button>
               </div>
@@ -203,7 +218,7 @@ export default function GiftsTab() {
               <div className="flex-1 space-y-8 overflow-y-auto pr-2 custom-scrollbar">
                 {/* UPLOAD SECTION */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Asset Visual (PNG/SVG)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Asset Visual (PNG/SVG/jpg)</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className="relative group aspect-video rounded-3xl border-2 border-dashed border-slate-200 dark:border-zinc-800 hover:border-indigo-500 bg-slate-50 dark:bg-zinc-900/50 flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden"
@@ -266,7 +281,7 @@ export default function GiftsTab() {
               <div className="flex gap-4 pt-10 mt-auto border-t border-zinc-800">
                 <button onClick={() => setIsEditing(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Discard</button>
                 <button onClick={handleSave} disabled={isSaving || isUploading} className="flex-[1.8] py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
-                  {isSaving ? "Finalizing Ledger..." : "Commit Asset"}
+                  {isSaving ? "Finalizing ..." : "Save gift"}
                 </button>
               </div>
             </motion.div>

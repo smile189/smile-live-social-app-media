@@ -80,11 +80,24 @@ export default function SuperAdminDashboard() {
     <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-zinc-100 transition-colors duration-500 font-sans flex">
       {/* SIDEBAR */}
       <aside className="fixed top-0 left-0 h-full w-20 lg:w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 z-50 flex flex-col transition-all shadow-2xl">
-        <div className="p-8 flex flex-col items-start gap-2">
-          <span className="hidden lg:block font-black text-xl tracking-tighter italic uppercase">
-            DASHBOARD <span className="text-yellow-400">SMILELIVE</span>
-          </span>
-        </div>
+<div className="p-4 lg:p-6 flex lg:flex-col items-center justify-between lg:items-start border-b border-slate-100 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
+  <div className="flex items-center gap-3">
+
+    
+    {/* Textul care se adaptează */}
+    <div className="flex flex-col justify-center leading-none">
+      <h2 className="font-black text-sm lg:text-lg tracking-tighter uppercase text-slate-900 dark:text-white italic">
+        DASH<span className="text-yellow-500 underline decoration-yellow-500">BOARD</span>
+      </h2>
+      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+       smileliveapp.com <span className="text-indigo-400">v{version}</span>
+      </span>
+    </div>
+  </div>
+
+
+</div>
+
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
           {[
@@ -129,7 +142,7 @@ export default function SuperAdminDashboard() {
               {activeTab} <span className="text-yellow-400 font-light">Console</span>
             </h1>
             <p className="text-slate-500 dark:text-zinc-500 text-sm mt-4 font-medium tracking-wide">
-              Smile Live -business administration <strong>Version {version}  </strong> 
+              Smile Live -business administration panel 
             </p>
           </motion.div>
 

@@ -40,28 +40,29 @@ type NavItemType =
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<NavItemType>("overview");
-  const [darkMode, setDarkMode] = useState(true); // default true
+  const [darkMode, setDarkMode] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const version = "1.13.130226"; // Dashboard version for reference..0.13..13..
+  const version = "1.13.180226";
 
-  // --- Load dark mode preference from localStorage on client ---
+  // --- Load dark mode preference ---
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("darkMode") === "true";
+      const saved = localStorage.getItem("darkMode") !== "false";
       setDarkMode(saved);
     }
   }, []);
 
-  // --- Apply dark mode class and save preference ---
+  // --- Apply dark mode ---
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
 
-  // --- fetch current admin user ---
+  // --- Fetch current admin ---
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -77,135 +78,162 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-zinc-100 transition-colors duration-500 font-sans flex">
-      {/* SIDEBAR */}
-      <aside className="fixed top-0 left-0 h-full w-20 lg:w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 z-50 flex flex-col transition-all shadow-2xl">
-<div className="p-4 lg:p-6 flex lg:flex-col items-center justify-between lg:items-start border-b border-slate-100 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
-  <div className="flex items-center gap-3">
-
-    
-    {/* Textul care se adaptează */}
-    <div className="flex flex-col justify-center leading-none">
-      <h2 className="font-black text-sm lg:text-lg tracking-tighter uppercase text-slate-900 dark:text-white italic">
-        DASH<span className="text-yellow-500 underline decoration-yellow-500">BOARD</span>
-      </h2>
-      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-       smileliveapp.com <span className="text-indigo-400">v{version}</span>
-      </span>
-    </div>
-  </div>
-
-
-</div>
-
-
-        <nav className="flex-1 px-4 space-y-2 mt-4">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#030303] text-slate-900 dark:text-zinc-300 flex font-sans perspective-[2000px] overflow-hidden">
+      
+      {/* SIDEBAR RESPONSIVE & WOW */}
+      <aside className={`
+        fixed top-0 left-0 h-full z-[100] transition-all duration-500 ease-out
+        ${isMobileMenuOpen ? "w-72 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-64"}
+        bg-white/80 dark:bg-zinc-950/50 backdrop-blur-2xl border-r border-slate-200 dark:border-zinc-800/50 flex flex-col shadow-2xl
+      `}>
+        <div className="p-6 border-b border-slate-100 dark:border-zinc-900/50">
+          <div className="flex items-center gap-3 group">
+            <motion.div 
+              animate={{ rotateY: [0, 360] }} 
+              transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+              className="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black font-black italic shadow-lg shadow-amber-500/20"
+            >
+              S
+            </motion.div>
+            <div className="flex flex-col">
+              <h2 className="font-black text-xs tracking-[0.2em] uppercase dark:text-white leading-none">
+                SMILE<span className="text-amber-500 italic">LIVEAPP.com</span>
+              </h2>
+              <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter italic">
+                DASHBOARD v{version}
+              </span>
+            </div>
+          </div>
+        </div>
+ 
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {[
             { icon: "📊", label: "Overview", key: "overview" },
-            { icon: "👥", label: "Users", key: "users" },
-            { icon: "🎬", label: "Posts & Video", key: "content" },
-            { icon: "💰", label: "Finances & Coins", key: "finances" },
-            { icon: "🎁", label: "Gifts Config", key: "gifts" },
+            { icon: "👥", label: "Users List", key: "users" },
+            { icon: "🎬", label: "Content Hub", key: "content" },
+            { icon: "💰", label: "Financials", key: "finances" },
+            { icon: "🎁", label: "Gifts System", key: "gifts" },
             { icon: "🚩", label: "Moderation", key: "moderation" },
-            { icon: "💬", label: "Chat Support", key: "chat" }, 
-
+            { icon: "💬", label: "Live Support", key: "chat" }, 
           ].map((item) => (
-            <MenuBtn
+            <button
               key={item.key}
-              icon={item.icon}
-              label={item.label}
-              active={activeTab === item.key}
-              onClick={() => setActiveTab(item.key as NavItemType)}
-            />
+              onClick={() => { setActiveTab(item.key as NavItemType); setIsMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all relative ${
+                activeTab === item.key 
+                ? "bg-amber-500/10 text-amber-500" 
+                : "text-slate-500 dark:text-zinc-500 hover:bg-slate-100 dark:hover:bg-zinc-900/40"
+              }`}
+            >
+              {activeTab === item.key && (
+                <motion.div layoutId="nav_active" className="absolute inset-0 border border-amber-500/20 bg-amber-500/5 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.05)]" />
+              )}
+              <span className="text-xl z-10">{item.icon}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.1em] z-10">{item.label}</span>
+            </button>
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-200 dark:border-zinc-800">
+        {/* SIDEBAR BOTTOM */}
+        <div className="p-4 bg-slate-50/50 dark:bg-black/20 border-t border-slate-100 dark:border-zinc-900 space-y-2">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl bg-slate-100 dark:bg-zinc-900 hover:bg-yellow-400 hover:text-black transition-all group shadow-inner"
+            className="w-full flex items-center gap-4 px-4 py-2.5 rounded-xl text-slate-400 hover:text-amber-500 transition-colors"
           >
-            <span className="text-xl">{darkMode ? "☀️" : "🌙"}</span>
-            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </span>
+            <span className="text-sm">{darkMode ? "☀️" : "🌙"}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">Theme Mode</span>
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 group"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse group-hover:scale-150 transition-transform" />
+            <span className="text-[9px] font-black uppercase tracking-widest">LOG OUT</span>
           </button>
         </div>
       </aside>
 
-      {/* MAIN */}
-      <main className="flex-1 ml-20 lg:ml-64 p-6 lg:p-12 w-full">
-        {/* TOP BAR */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <h1 className="text-3xl lg:text-5xl font-black capitalize tracking-tighter underline decoration-yellow-400 decoration-4 underline-offset-8">
-              {activeTab} <span className="text-yellow-400 font-light">Console</span>
-            </h1>
-            <p className="text-slate-500 dark:text-zinc-500 text-sm mt-4 font-medium tracking-wide">
-              Smile Live -business administration panel 
-            </p>
-          </motion.div>
+      {/* MAIN PANEL */}
+      <main className="flex-1 lg:ml-64 relative h-screen overflow-y-auto scroll-smooth">
+        
+        {/* MOBILE HEADER - Apare doar sub lg */}
+        <div className="lg:hidden p-4 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl z-[90] border-b border-slate-200 dark:border-zinc-800">
+           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-2xl">☰</button>
+           <h2 className="text-xs font-black uppercase tracking-widest italic">Smile<span className="text-amber-500">Live</span></h2>
+           <div className="w-8 h-8 rounded-full bg-amber-500" />
+        </div>
 
-          {/* PROFILE / LOGOUT */}
-          <div className="relative">
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-3 bg-yellow-400 text-black px-4 py-2 rounded-3xl font-black shadow-lg hover:scale-105 transition-transform relative overflow-hidden"
+        <div className="p-6 lg:p-12">
+          {/* TOP BAR WOW */}
+          <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
+            <motion.div 
+              initial={{ rotateX: 20, opacity: 0 }} 
+              animate={{ rotateX: 0, opacity: 1 }}
+              className="space-y-2"
             >
-              <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-yellow-400 text-lg font-extrabold shadow-inner">
-                👑
-              </span>
-              <span className="truncate max-w-[120px]">{userEmail ?? "Admin"}</span>
-              <motion.span animate={{ rotate: showProfileMenu ? 180 : 0 }} className="ml-auto text-sm font-black">
-                ▼
-              </motion.span>
-            </button>
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-[1px] bg-amber-500/40" />
+              
+              </div>
+              <h1 className="text-4xl lg:text-7xl font-black tracking-tighter uppercase italic leading-none text-slate-900 dark:text-white underline decoration-amber-500 decoration-[10px] underline-offset-[2px]">
+                {activeTab} <span className="font-thin not-italic opacity-20">/</span>
+              </h1>
+            </motion.div>
 
-            <AnimatePresence>
-              {showProfileMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: -15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="absolute right-0 mt-3 w-44 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50"
-                >
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left p-4 hover:bg-yellow-400 hover:text-black transition font-black text-sm rounded-t-xl"
-                  >
-                    Logout
-                  </button>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 px-4 py-2 italic">
-                    Signed in as {userEmail}
-                  </p>
-                </motion.div>
-              )}
+            {/* PROFILE BOX - 3D LIFT */}
+            <motion.div 
+              whileHover={{ rotateY: -10, rotateX: 10, scale: 1.02 }}
+              className="flex items-center gap-4 bg-white dark:bg-zinc-900/40 backdrop-blur-xl border border-slate-200 dark:border-zinc-800/80 p-2 pr-6 rounded-2xl shadow-2xl shadow-black/5"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <span className="text-black font-black text-sm">{userEmail?.charAt(0).toUpperCase() || "A"}</span>
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="text-[10px] font-black dark:text-white uppercase tracking-tight">{userEmail?.split('@')[0] || "Admin"}</span>
+                <span className="text-[8px] font-bold text-green-500 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+                 
+                </span>
+              </div>
+            </motion.div>
+          </header>
+
+          {/* CONTENT ENGINE - 3D TRANSITION */}
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, rotateY: 15, translateZ: -100 }}
+                animate={{ opacity: 1, rotateY: 0, translateZ: 0 }}
+                exit={{ opacity: 0, rotateY: -15, translateZ: -100 }}
+                transition={{ duration: 0.4, type: "spring", stiffness: 120, damping: 20 }}
+                className="w-full"
+              >
+                {activeTab === "overview" && <OverviewTab />}
+                {activeTab === "users" && <UsersTab />}
+                {activeTab === "content" && <BlankTab name="Posts & Video Content" />}
+                {activeTab === "finances" && <FinancesTab />}
+                {activeTab === "gifts" && <GiftsTab />}
+                {activeTab === "moderation" && <BlankTab name="Security Moderation" />}
+                {activeTab === "chat" && <Chat />}
+              </motion.div>
             </AnimatePresence>
           </div>
-        </header>
-
-        {/* TABS */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            {activeTab === "overview" && <OverviewTab />}
-            {activeTab === "users" && <UsersTab />}
-            {activeTab === "content" && <BlankTab name="Posts & Video" />}
-            {activeTab === "finances" && <FinancesTab />}
-            {activeTab === "gifts" && <GiftsTab />}
-
-             
-              {activeTab === "moderation" && <BlankTab name="Moderation" />}
-            {activeTab === "chat" && <Chat />}
-          </motion.div>
-        </AnimatePresence>
+        </div>
       </main>
+
+      {/* MOBILE OVERLAY */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[95] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

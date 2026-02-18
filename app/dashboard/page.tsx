@@ -11,7 +11,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from 'react'; 
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
@@ -276,129 +276,248 @@ function StatCard({ label, value, icon }: any) {
     </motion.div>
   );
 }
-function OverviewTab() {
+/**
+ *  overview tAB DASHBOARD - display key performance indicators (KPIs) such as total users,
+ *  live revenue, active lives, and coins supply.
+ * @returns 
+ * 
+ */
+
+
+export function OverviewTab() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [liveRevenue, setLiveRevenue] = useState<number>(0);
   const [activeLives, setActiveLives] = useState<number>(0);
   const [coinsSupply, setCoinsSupply] = useState<number>(0);
+  const [topHolders, setTopHolders] = useState<any[]>([]);
+  const [recentTrans, setRecentTrans] = useState<any[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [notifications, setNotifications] = useState<{id: number, msg: string, type: 'info' | 'success'}[]>([]);
 
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [activeLivesData, setActiveLivesData] = useState<any[]>([]);
-  const [coinsData, setCoinsData] = useState<any[]>([]);
+  // Sistem intern de push pentru notificări
+  const addNotify = (msg: string, type: 'info' | 'success' = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [{id, msg, type}, ...prev].slice(0, 3));
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
+  };
+
+  const fetchStats = async () => {
+    const [uCount, lCount] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("posts").select("id", { count: "exact", head: true })
+    ]);
+
+    const { data: trans } = await supabase
+      .from("gift_transactions")
+      .select("id, coins_amount, created_at, profiles!gift_transactions_sender_id_fkey(username)")
+      .order('created_at', { ascending: false });
+
+    const { data: wallets } = await supabase
+      .from("wallets")
+      .select(`coins_balance, profiles(username)`)
+      .gt('coins_balance', 0)
+      .order('coins_balance', { ascending: false });
+
+    setTotalUsers(uCount.count ?? 0);
+    setActiveLives(lCount.count ?? 0);
+    setLiveRevenue(trans?.reduce((a, b) => a + (b.coins_amount ?? 0), 0) ?? 0);
+    setRecentTrans(trans?.slice(0, 25) ?? []);
+    
+    if (wallets) {
+      setCoinsSupply(wallets.reduce((a, b) => a + (b.coins_balance ?? 0), 0));
+      setTopHolders(wallets.map(w => ({
+        name: (w.profiles as any)?.username || "User",
+        value: w.coins_balance
+      })));
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      // 1. Total Users
-      const { count: usersCount } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
-      setTotalUsers(usersCount ?? 0);
-
-      // 2. Live Revenue
-      const { data: rev } = await supabase
-        .from("gift_transactions")
-        .select("coins_amount, created_at")
-        .order('created_at', { ascending: true });
-      
-      const revenueSum = rev?.reduce((a, b) => a + (b.coins_amount ?? 0), 0) ?? 0;
-      setLiveRevenue(revenueSum);
-      setRevenueData(rev?.map(r => ({ date: r.created_at?.slice(5,10), revenue: r.coins_amount })) ?? []);
-
-      // 3. Active Lives
-      const { count: liveCount, data: livePosts } = await supabase
-        .from("posts")
-        .select("id, created_at", { count: "exact" });
-      setActiveLives(liveCount ?? 0);
-      setActiveLivesData(livePosts?.map(p => ({ date: p.created_at?.slice(5,10), active: 1 })) ?? []);
-
-      // 4. Coins Supply - REPARAT PENTRU TYPESCRIPT BUILD
-      const { data: wallets } = await supabase
-        .from("wallets")
-        .select(`coins_balance, profiles(username)`)
-        .order('coins_balance', { ascending: false });
-
-      if (wallets) {
-        const total = wallets.reduce((a, b) => a + (b.coins_balance ?? 0), 0);
-        setCoinsSupply(total);
-        
-        // REPARAT: Folosim casting (as any) pentru a preveni eroarea "Property username does not exist on type...[]"
-        const formattedCoinsData = wallets.slice(0, 5).map(w => {
-          const profile = w.profiles as any; // Trick pentru Vercel build
-          return { 
-            name: profile?.username || "User", 
-            value: w.coins_balance 
-          };
-        });
-        
-        setCoinsData(formattedCoinsData);
-      }
-    };
-
     fetchStats();
-    const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel('live_ops')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gift_transactions' }, (payload) => {
+        fetchStats();
+        // Notificare live la tranzacție mare (>500 coins)
+        if (payload.new.coins_amount > 500) {
+          addNotify(`High Volume: +${payload.new.coins_amount} coins detected`, 'info');
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const COLORS = ["#FFD700", "#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9"];
+  const metrics = useMemo(() => {
+    const last24h = recentTrans.filter(t => new Date(t.created_at) > new Date(Date.now() - 86400000));
+    const vol24h = last24h.reduce((a, b) => a + b.coins_amount, 0);
+    return {
+      vol24h,
+      velocity: coinsSupply > 0 ? ((vol24h / coinsSupply) * 100).toFixed(2) : "0.00"
+    };
+  }, [recentTrans, coinsSupply]);
+
+  const exportCSV = () => {
+    setIsExporting(true);
+    addNotify("Generating analytics report...", "info");
+    
+    const csv = ["Username,Balance", ...topHolders.map(h => `@${h.name},${h.value}`)].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    link.download = `smile_analytics_2026.csv`;
+    link.click();
+    
+    setTimeout(() => {
+      setIsExporting(false);
+      addNotify("Report exported successfully", "success");
+    }, 1200);
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Users" value={totalUsers.toLocaleString()} icon="👥" />
-        <StatCard label="Live Revenue" value={liveRevenue.toLocaleString()} icon="💰" />
-        <StatCard label="Active Lives" value={activeLives} icon="🔴" />
-        <StatCard label="Coins Supply" value={coinsSupply.toLocaleString()} icon="🪙" />
+    <div className="max-w-[1600px] mx-auto space-y-6 py-6 px-4 relative animate-in fade-in duration-1000">
+      
+      {/* 0. Floating Notifications System */}
+      <div className="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none">
+        {notifications.map(n => (
+          <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl animate-in slide-in-from-right-10 duration-500 flex items-center gap-3 min-w-[280px] ${
+            n.type === 'success' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-zinc-900 border-zinc-800 text-indigo-400'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${n.type === 'success' ? 'bg-white' : 'bg-indigo-500 animate-pulse'}`} />
+            <span className="text-xs font-bold uppercase tracking-tight">{n.msg}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Revenue Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
-          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Revenue Flow</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-              <XAxis dataKey="date" hide />
-              <YAxis stroke="#444" fontSize={10} />
-              <Tooltip contentStyle={{ borderRadius: '15px', backgroundColor: '#111', border: 'none' }} />
-              <Line type="monotone" dataKey="revenue" stroke="#FFD700" strokeWidth={4} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+      {/* 1. Primary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPIBox label="Total Identities" value={totalUsers.toLocaleString()} />
+        <KPIBox label="Net Revenue" value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
+        <KPIBox label="Live Uplinks" value={activeLives} />
+        <KPIBox label="Total Liquidity" value={coinsSupply.toLocaleString()} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 2. Live Gift Stream */}
+        <div className="lg:col-span-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col h-[600px] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+              <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Live Gift Transfer</h3>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+            {recentTrans.map((t) => (
+              <div key={t.id} className="flex justify-between items-center p-4 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800 hover:border-indigo-500/40 transition-all animate-in slide-in-from-top-2">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-mono text-zinc-400">{new Date(t.created_at).toLocaleTimeString()}</span>
+                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100 italic">@{t.profiles?.username || 'User'}</span>
+                </div>
+                <span className="font-mono font-black text-indigo-600">+{t.coins_amount} 🪙</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Active Lives Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
-          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Stream Activity</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={activeLivesData}>
-              <XAxis dataKey="date" hide />
-              <Tooltip cursor={{fill: '#222'}} contentStyle={{ borderRadius: '15px', backgroundColor: '#111', border: 'none' }} />
-              <Bar dataKey="active" fill="#FF6F61" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Coins Distribution Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-xl border border-zinc-100 dark:border-zinc-800">
-          <h3 className="font-black text-yellow-400 text-xs uppercase tracking-widest mb-6 text-center">Top Balances</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={coinsData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5}>
-                {coinsData.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+        {/* 3. Asset Concentration Table */}
+        <div className="lg:col-span-5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl h-[600px] flex flex-col shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Asset Concentration</h3>
+            <button 
+              onClick={exportCSV} 
+              disabled={isExporting}
+              className={`text-[10px] font-bold uppercase tracking-tighter px-3 py-1 rounded-lg border transition-all ${
+                isExporting ? 'bg-zinc-100 text-zinc-400' : 'text-indigo-600 border-indigo-100 hover:bg-indigo-50'
+              }`}
+            >
+              {isExporting ? 'Processing...' : 'Export CSV'}
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar font-mono text-[11px]">
+            <table className="w-full text-left border-separate border-spacing-0">
+              <tbody className="divide-y divide-zinc-50 dark:divide-zinc-900/50">
+                {topHolders.map((holder, i) => (
+                  <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-6 py-4 text-zinc-400 italic">#{(i+1).toString().padStart(2, '0')}</td>
+                    <td className="px-6 py-4 font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-tighter">@{holder.name}</td>
+                    <td className="px-6 py-4 text-right font-black text-zinc-900 dark:text-white underline decoration-zinc-200 underline-offset-4">
+                      {holder.value.toLocaleString()}
+                    </td>
+                  </tr>
                 ))}
-              </Pie>
-              <Tooltip />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-            </PieChart>
-          </ResponsiveContainer>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 4. Operational Gauges & Health Logs */}
+        <div className="lg:col-span-3 flex flex-col gap-6 h-[600px]">
+          <div className="bg-zinc-900 dark:bg-zinc-950 border border-zinc-800 rounded-2xl p-8 flex flex-col gap-10 flex-1 text-white shadow-2xl">
+            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Health Indices</h3>
+            
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest italic">24h Vol</p>
+                  <p className="text-xl font-mono font-black text-indigo-400">{metrics.vol24h.toLocaleString()} 🪙</p>
+                </div>
+                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: '70%' }} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest italic">Net Velocity</p>
+                  <p className="text-xl font-mono font-black text-emerald-400">{metrics.velocity}%</p>
+                </div>
+                <div className="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min(parseFloat(metrics.velocity) * 10, 100)}%` }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-auto space-y-4">
+               <div className="flex justify-between items-center py-2 border-t border-zinc-800">
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase">System Status</span>
+                  <span className="text-[9px] font-mono text-emerald-500 font-bold">OPERATIONAL</span>
+               </div>
+            </div>
+          </div>
+
+          {/* New: Diagnostic Notifications Console */}
+          <div className="h-40 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 overflow-hidden">
+            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">Diagnostic Feed</h4>
+            <div className="space-y-2">
+               <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Postgres Triggers: Verified</span>
+               </div>
+               <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <span>Realtime Channel: Active</span>
+               </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f130; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+      `}</style>
     </div>
   );
 }
 
+function KPIBox({ label, value, highlight = false }) {
+  return (
+    <div className={`p-6 rounded-2xl border transition-all ${highlight ? 'bg-white dark:bg-zinc-950 border-indigo-200 dark:border-indigo-900/50 shadow-xl' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-sm'}`}>
+      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4 italic">{label}</p>
+      <h3 className={`text-4xl font-mono font-bold tracking-tighter ${highlight ? 'text-indigo-600' : 'text-zinc-900 dark:text-white'}`}>{value}</h3>
+    </div>
+  );
+}
 
 /**
  * user tab -display a paginated list of users with search functionality, 

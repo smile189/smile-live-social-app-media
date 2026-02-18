@@ -22,6 +22,7 @@ import {
 import Chat from "./chatsupport/Chat";
 import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab component
 import GiftsTab from "./gifts/Gifts"; // Import real GiftsTab component
+import Money from "./money/Money"; // Import real Money component
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +31,7 @@ const supabase = createBrowserClient(
 
 type NavItemType =
   | "overview"
+  | "money"
   | "users"
   | "content"
   | "finances"
@@ -114,6 +116,7 @@ export default function SuperAdminDashboard() {
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {[
             { icon: "📊", label: "Overview", key: "overview" },
+            { icon: "📈", label: "Money", key: "money" },
             { icon: "👥", label: "Users List", key: "users" },
             { icon: "🎬", label: "Content Hub", key: "content" },
             { icon: "💰", label: "Financials", key: "finances" },
@@ -215,6 +218,7 @@ export default function SuperAdminDashboard() {
                 className="w-full"
               >
                 {activeTab === "overview" && <OverviewTab />}
+                {activeTab === "money" && <Money />}
                 {activeTab === "users" && <UsersTab />}
                 {activeTab === "content" && <BlankTab name="Posts & Video Content" />}
                 {activeTab === "finances" && <FinancesTab />}

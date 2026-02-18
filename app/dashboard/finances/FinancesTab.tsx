@@ -241,6 +241,7 @@ export default function FinancesTab() {
   </div>
 </div>
 
+
                     <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
                       <Wallet size={24} />
                     </div>

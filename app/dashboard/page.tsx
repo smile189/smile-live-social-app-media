@@ -415,10 +415,11 @@ export function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPIBox label="Total Identities" value={totalUsers.toLocaleString()} />
-        <KPIBox label="Net Revenue" value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
-        <KPIBox label="Live Uplinks" value={activeLives} />
-        <KPIBox label="Total Liquidity" value={coinsSupply.toLocaleString()} />
+         <KPIBox 
+    label="Total Users platform"  value={`${totalUsers.toLocaleString()} 👤`} />
+        <KPIBox label="Net Revenue " value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
+         <KPIBox    label="Live Creators"   value={`${activeLives} 🎥`}  />
+          <KPIBox  label="Total Golden Coins supply" value={`${coinsSupply.toLocaleString()} 🪙`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

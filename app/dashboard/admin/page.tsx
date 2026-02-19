@@ -163,7 +163,7 @@ export default function AdminLogin() {
           </div>
 
           <footer className="mt-20 pt-8 border-t border-white/5 lg:border-slate-50 flex justify-between items-center opacity-40">
-             <span className="text-[9px] font-black tracking-widest text-white lg:text-slate-400 uppercase italic">smileliveapp.com</span>
+             <span className="text-[9px] font-black tracking-widest text-white lg:text-slate-400  italic">smileliveapp.com</span>
              <div className="flex gap-1">
                 <div className="w-1 h-1 rounded-full bg-yellow-400" />
                 <div className="w-1 h-1 rounded-full bg-slate-300" />
@@ -178,7 +178,7 @@ export default function AdminLogin() {
               <div className="w-12 h-1 bg-white/10 relative overflow-hidden mb-4 rounded-full">
                 <motion.div initial={{ left: "-100%" }} animate={{ left: "100%" }} transition={{ repeat: Infinity, duration: 1 }} className="absolute inset-0 bg-yellow-400" />
               </div>
-              <p className="text-[9px] font-black tracking-[0.5em] uppercase text-yellow-400">Loading System</p>
+              <p className="text-[9px] font-black tracking-[0.5em] uppercase text-yellow-400">Loading dashboard </p>
             </motion.div>
           )}
         </AnimatePresence>

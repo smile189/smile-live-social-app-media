@@ -24,6 +24,7 @@ import Chat from "./chatsupport/Chat";
 import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab component
 import GiftsTab from "./gifts/Gifts"; // Import real GiftsTab component
 import Money from "./money/Money"; // Import real Money component
+import ModerateSmile from './moderate/ModerateSmile'; 
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -225,7 +226,7 @@ export default function SuperAdminDashboard() {
                 {activeTab === "content" && <BlankTab name="Posts & Video Content" />}
                 {activeTab === "finances" && <FinancesTab />}
                 {activeTab === "gifts" && <GiftsTab />}
-                {activeTab === "moderation" && <BlankTab name="Security Moderation" />}
+                {activeTab === "moderation" && <ModerateSmile />}
                 {activeTab === "chat" && <Chat />}
               </motion.div>
             </AnimatePresence>

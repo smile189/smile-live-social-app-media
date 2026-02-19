@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, ArrowRight, Fingerprint } from "lucide-react";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,139 +13,175 @@ const supabase = createBrowserClient(
 
 export default function AdminLogin() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   const handleLogin = async () => {
+    if (!isVerified) return;
     setError("");
     setLoading(true);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("Invalid admin credentials");
+      setError("INVALID_CREDENTIALS");
       setLoading(false);
+      setIsVerified(false);
       return;
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user?.id)
-      .single();
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id).single();
 
     if (profile?.role !== "admin" && profile?.role !== "super_admin") {
       await supabase.auth.signOut();
-      setError("Not authorized");
+      setError("ACCESS_DENIED");
       setLoading(false);
+      setIsVerified(false);
       return;
     }
 
-    router.push("/dashboard");
+    setTimeout(() => router.push("/dashboard"), 1000);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] font-sans antialiased overflow-hidden">
+    <div className="min-h-screen w-full flex bg-white font-sans antialiased overflow-hidden">
       
-      {/* Background Decor subtil */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-yellow-400/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-slate-200/50 rounded-full blur-[100px]" />
+      {/* LEFT PANEL - PC ONLY (Optimized Framing) */}
+      <div className="hidden lg:block w-[45%] bg-slate-950 relative overflow-hidden">
+        <motion.img 
+          initial={{ scale: 1.1, opacity: 0.4 }}
+          animate={{ scale: 1, opacity: 0.3 }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
+          src="/smilelive.jpg" 
+          className="absolute inset-0 w-full h-full object-cover"
+          alt="Dashboard Visual"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-0 p-16 w-full">
+          <div className="h-1 w-12 bg-yellow-400 mb-8" />
+          <h2 className="text-5xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
+            SMILE LIVE <br />
+            <span className="text-yellow-400 not-italic font-light">DASHBOARD</span>
+          </h2>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
-        className="relative z-10 w-full max-w-[440px] px-6"
-      >
-        <div className="bg-white rounded-[2.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] border border-slate-100 p-10 md:p-14">
-          
-          {/* Brand/Logo Section */}
-          <div className="flex flex-col items-center mb-12">
-            <motion.div 
-              whileHover={{ rotate: 15 }}
-              className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-yellow-400 text-2xl font-black shadow-2xl mb-6"
-            >
-              S
-            </motion.div>
-            <h1 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic">
-              Smile live <span className="text-yellow-400 font-light">app</span>
+      {/* RIGHT PANEL - Adaptive Container */}
+      <div className="flex-1 relative flex items-center justify-center bg-white lg:bg-transparent">
+        
+        {/* Mobile-Only Background Wrapper */}
+        <div className="lg:hidden absolute inset-0 z-0">
+          <img src="/smilelive.jpg" className="w-full h-full object-cover opacity-50 blur-[2px]" alt="bg" />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 to-slate-950" />
+        </div>
+
+        {/* Form Content */}
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-[360px] md:max-w-[400px] px-6 relative z-10"
+        >
+          <header className="mb-14 text-center lg:text-left">
+            <h1 className="text-4xl font-black text-white lg:text-slate-900 tracking-tighter uppercase italic">
+              Login
             </h1>
-            <p className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase mt-2">
-              Administration business 
+            <p className="text-slate-400 text-[10px] font-bold tracking-[0.3em] mt-3 uppercase">
+              Superadmin business access smile live 
             </p>
-          </div>
+          </header>
 
-          {/* Form Section */}
-          <div className="space-y-5">
-            <div className="relative group">
-              <input
-                type="email"
-                className="w-full px-6 py-5 bg-slate-50 border border-transparent rounded-2xl text-slate-900 text-sm focus:bg-white focus:ring-4 focus:ring-yellow-400/10 focus:border-yellow-400 transition-all duration-300 outline-none placeholder:text-slate-400"
-                placeholder="Corporate Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+          <div className="space-y-10">
+            {/* Input Sections */}
+            <div className={`space-y-8 transition-all duration-500 ${isVerified ? 'opacity-20 blur-sm pointer-events-none' : ''}`}>
+              
+              <div className="group border-b border-white/20 lg:border-slate-100 focus-within:border-yellow-400 transition-all duration-300">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">user or email</label>
+                <div className="flex items-center">
+                  <Mail className="text-slate-400 group-focus-within:text-yellow-400 transition-colors" size={16} />
+                  <input
+                    type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-4 py-3 bg-transparent text-white lg:text-slate-900 text-base font-bold outline-none placeholder:text-slate-700"
+                    placeholder=""
+                  />
+                </div>
+              </div>
+
+              <div className="group border-b border-white/20 lg:border-slate-100 focus-within:border-yellow-400 transition-all duration-300">
+                <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-1">pass</label>
+                <div className="flex items-center">
+                  <Lock className="text-slate-400 group-focus-within:text-yellow-400 transition-colors" size={16} />
+                  <input
+                    type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-transparent text-white lg:text-slate-900 text-base font-bold outline-none placeholder:text-slate-700"
+                    placeholder=""
+                  />
+                  <button onClick={() => setShowPassword(!showPassword)} className="absolute right-0 text-slate-500 hover:text-yellow-400">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="relative group">
-              <input
-                type="password"
-                className="w-full px-6 py-5 bg-slate-50 border border-transparent rounded-2xl text-slate-900 text-sm focus:bg-white focus:ring-4 focus:ring-yellow-400/10 focus:border-yellow-400 transition-all duration-300 outline-none placeholder:text-slate-400"
-                placeholder="Access Token"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+            {/* Security Verification */}
+            <div className="pt-2">
+              <button
+                disabled={email.length < 5 || password.length < 4}
+                onClick={() => setIsVerified(!isVerified)}
+                className={`w-full py-5 px-6 rounded-2xl border transition-all duration-500 flex items-center justify-between
+                  ${isVerified ? 'bg-yellow-400 border-yellow-400 shadow-lg' : 'bg-white/5 lg:bg-slate-50 border-white/10 lg:border-slate-100'}`}
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <div className={`p-2 rounded-xl transition-all duration-500 ${isVerified ? 'bg-slate-950 text-yellow-400' : 'bg-slate-900 text-slate-500'}`}>
+                    <Fingerprint size={24} className={isVerified ? 'animate-pulse' : ''} />
+                  </div>
+                  <div>
+                    <p className={`text-[10px] font-black uppercase tracking-widest leading-none mb-1 ${isVerified ? 'text-slate-950' : 'text-white lg:text-slate-900'}`}>
+                      {isVerified ? 'Verified' : ''}
+                    </p>
+                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">secure</p>
+                  </div>
+                </div>
+            
+              </button>
             </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl text-center tracking-wide border border-red-100"
-                >
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
+            {/* Login Button */}
             <motion.button
-              whileHover={{ scale: 1.01, translateY: -2 }}
-              whileTap={{ scale: 0.99 }}
+              disabled={loading || !isVerified}
               onClick={handleLogin}
-              disabled={loading}
-              className="w-full bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl shadow-[0_20px_40px_-10px_rgba(15,23,42,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(15,23,42,0.4)] transition-all duration-300 disabled:opacity-50 relative overflow-hidden group"
+              className={`w-full py-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.4em] flex items-center justify-center gap-3 transition-all duration-700
+                ${isVerified ? 'bg-white lg:bg-slate-950 text-slate-950 lg:text-white shadow-2xl' : 'bg-white/5 text-white/20 opacity-30 cursor-not-allowed'}`}
             >
-              <span className="relative z-10">
-                {loading ? "Authenticating..." : "Establish Connection"}
-              </span>
-              <div className="absolute inset-0 bg-yellow-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="absolute inset-0 z-20 flex items-center justify-center text-slate-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                 Verify & Enter
-              </span>
+              Access Dashboard
+              <ArrowRight size={18} className={isVerified ? 'text-yellow-400' : 'text-transparent'} />
             </motion.button>
           </div>
 
+          <footer className="mt-20 pt-8 border-t border-white/5 lg:border-slate-50 flex justify-between items-center opacity-40">
+             <span className="text-[9px] font-black tracking-widest text-white lg:text-slate-400 uppercase italic">smileliveapp.com</span>
+             <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-yellow-400" />
+                <div className="w-1 h-1 rounded-full bg-slate-300" />
+             </div>
+          </footer>
+        </motion.div>
 
-        </div>
-      </motion.div>
-
-      {/* Decorative floating dots */}
-      <div className="absolute top-10 right-10 flex gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+        {/* Loading Overlay */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center text-white">
+              <div className="w-12 h-1 bg-white/10 relative overflow-hidden mb-4 rounded-full">
+                <motion.div initial={{ left: "-100%" }} animate={{ left: "100%" }} transition={{ repeat: Infinity, duration: 1 }} className="absolute inset-0 bg-yellow-400" />
+              </div>
+              <p className="text-[9px] font-black tracking-[0.5em] uppercase text-yellow-400">Loading System</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

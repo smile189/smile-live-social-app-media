@@ -12,6 +12,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";

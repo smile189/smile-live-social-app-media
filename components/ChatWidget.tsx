@@ -218,7 +218,7 @@ export default function ChatWidget({ user }: { user: any }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-           transition={{ duration: 0.53, ease: "easeOut" }}
+           transition={{ duration: 0.01, ease: "easeOut" }}
             className="relative w-full h-full sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border-none sm:border sm:border-white/10"
           >
             {/* IMAGINE FUNDAL FIXĂ */}

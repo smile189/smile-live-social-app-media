@@ -211,23 +211,24 @@ export default function ChatWidget({ user }: { user: any }) {
   </button>
 )}
 
-<AnimatePresence>
+
+  <AnimatePresence>
   {isOpen && (
     <motion.div
       key="chat-widget"
-      initial={{ opacity: 0, y: "100%", scale: 0.95 }}
+      initial={{ opacity: 0, y: "100%", scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: "100%", scale: 0.95 }}
+      exit={{ opacity: 0, y: "120%", scale: 0.96 }}
       transition={{
-        type: "spring",
-        stiffness: 260,
-        damping: 30,
+        type: "tween",
+        duration: 0.18,
+        ease: [0.4, 0, 0.2, 1], // ease-out rapid și lin
       }}
-      className="fixed bottom-0 right-0 w-full h-full sm:relative sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border-none sm:border sm:border-white/10 z-50"
+      className="relative w-full h-full sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border-none sm:border sm:border-white/10"
     >
       {/* IMAGINE FUNDAL FIXĂ */}
-      <div 
-        className="absolute inset-0 opacity-[0.12] pointer-events-none grayscale z-0" 
+      <div
+        className="absolute inset-0 opacity-[0.12] pointer-events-none grayscale z-0"
         style={{ backgroundImage: "url('/chat.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
       />
 
@@ -237,7 +238,11 @@ export default function ChatWidget({ user }: { user: any }) {
           {/* AVATAR HEADER */}
           <div className="relative w-12 h-12 sm:w-14 sm:h-14 p-[2px] bg-black/5 rounded-2xl shadow-sm border border-black/10">
             <div className="w-full h-full bg-white rounded-[13px] overflow-hidden flex items-center justify-center relative">
-              <img src="/chat2.png" alt="Agent Avatar" className="w-full h-full object-contain p-1.5" />
+              <img
+                src="/chat2.png"
+                alt="Agent Avatar"
+                className="w-full h-full object-contain p-1.5"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
             </div>
             <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-yellow-400 shadow-sm">
@@ -293,7 +298,7 @@ export default function ChatWidget({ user }: { user: any }) {
             <div className="flex-1 flex flex-col space-y-6">
               <AnimatePresence initial={false}>
                 {messages.map((m) => (
-                  <motion.div 
+                  <motion.div
                     key={m.id}
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -303,8 +308,11 @@ export default function ChatWidget({ user }: { user: any }) {
                     <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold shadow-md ${m.sender_type === "client" ? "bg-zinc-800 text-yellow-400 border border-white/10" : "bg-yellow-400 text-black"}`}>
                       {m.sender_type === "client" ? <User size={14} /> : <span className="font-serif italic">S</span>}
                     </div>
+
                     <div className={`max-w-[75%] p-3 rounded-2xl text-xs flex flex-col shadow-sm ${m.sender_type === "client" ? "bg-yellow-400 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none border border-white/5"}`}>
-                      <span className="opacity-40 text-[8px] mb-1 uppercase font-black tracking-tighter">{m.sender_type === "client" ? clientName : "Support Team"}</span>
+                      <span className="opacity-40 text-[8px] mb-1 uppercase font-black tracking-tighter">
+                        {m.sender_type === "client" ? clientName : "Support Team"}
+                      </span>
                       {m.text}
                     </div>
                   </motion.div>

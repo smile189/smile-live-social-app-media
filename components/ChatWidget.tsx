@@ -340,7 +340,7 @@ export default function ChatWidget({ user }: { user: any }) {
               )}
             <div className="pb-6 pt-4 text-center border-t border-zinc-100 mx-10">
               <p className="text-[10px] text-zinc-500 tracking-wider font-semibold uppercase">
-                © {new Date().getFullYear()} 
+                © {new Date().getFullYear()} smileliveapp.com
               </p>
               <p className="text-[9px] text-zinc-400 tracking-normal mt-1 italic font-medium">
                 Powered by <span className="text-zinc-600 not-italic font-bold">Smile Live Technology</span>

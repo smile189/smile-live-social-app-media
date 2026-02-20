@@ -175,14 +175,41 @@ export default function ChatWidget({ user }: { user: any }) {
   return (
     <div className={`fixed z-[9999] font-sans transition-all duration-300 ${isOpen ? 'inset-0 sm:inset-auto sm:bottom-6 sm:right-6' : 'bottom-6 right-6'}`}>
       {/* WIDGET ICON - DREPTUNGHIULAR / PĂTRĂȚOS ROTUNJIT */}
-      {!isOpen && (
-        <button 
-          onClick={() => setIsOpen(true)} 
-          className="bg-yellow-400 p-4 rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-black/5"
-        >
-          <MessageSquare className="text-black" size={32} />
-        </button>
-      )}
+{!isOpen && (
+  <button 
+    onClick={() => setIsOpen(true)} 
+    className="fixed bottom-8 right-8 group flex items-center transition-all duration-500 hover:-translate-y-2 active:scale-90 z-50"
+  >
+    {/* TEXTUL CARE APARE DOAR LA HOVER */}
+    <div className="absolute right-20 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none translate-x-2 group-hover:translate-x-0">
+      <div className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-xl shadow-2xl border border-white/10 whitespace-nowrap">
+        Chat with us
+      </div>
+    </div>
+
+    {/* CONTAINER CU LINIE GALBENĂ FINĂ */}
+    <div className="relative w-16 h-16 bg-yellow-400 p-[2px] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.15)] group-hover:shadow-yellow-400/30 transition-all">
+      <div className="w-full h-full bg-white/90 backdrop-blur-md rounded-[14px] flex items-center justify-center overflow-hidden border border-black/5">
+        
+        {/* IMAGINEA PNG INTEGRATĂ */}
+        <div className="w-10 h-10 overflow-hidden rounded-xl transition-transform duration-500 group-hover:scale-110">
+          <img 
+            src="/chat2.png" 
+            alt="Support"
+            className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-700"
+          />
+        </div>
+
+      </div>
+
+      {/* INDICATOR ONLINE "BREATH" */}
+      <span className="absolute -top-1 -right-1 flex h-4 w-4">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-30"></span>
+        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white shadow-sm"></span>
+      </span>
+    </div>
+  </button>
+)}
 
       <AnimatePresence>
         {isOpen && (
@@ -202,10 +229,25 @@ export default function ChatWidget({ user }: { user: any }) {
             {/* HEADER */}
             <div className="relative z-10 p-5 sm:p-6 bg-yellow-400 flex items-center justify-between border-b-2 border-yellow-500/20">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-black flex items-center justify-center relative shadow-lg">
-                  <span className="text-yellow-400 font-black text-lg sm:text-xl italic font-serif">S</span>
-                  <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-yellow-400" />
-                </div>
+{/* AVATAR HEADER - CORPORATE WOW */}
+<div className="relative w-12 h-12 sm:w-14 sm:h-14 p-[2px] bg-black/5 rounded-2xl shadow-sm border border-black/10">
+  <div className="w-full h-full bg-white rounded-[13px] overflow-hidden flex items-center justify-center relative">
+    <img 
+      src="/chat2.png" 
+      alt="Agent Avatar"
+      className="w-full h-full object-contain p-1.5" 
+    />
+    
+    {/* Gradient subtil peste poza ca sa para integrata */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+  </div>
+
+  {/* INDICATOR ONLINE INTEGRAT FIX PE RAMĂ */}
+  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-yellow-400 shadow-sm">
+    <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-40"></span>
+  </div>
+</div>
+
                 <div>
                   <h4 className="text-[10px] sm:text-xs font-black uppercase text-black tracking-widest leading-none mb-1">Smile chat Support</h4>
                   <div className="flex items-center gap-1.5">
@@ -298,7 +340,7 @@ export default function ChatWidget({ user }: { user: any }) {
               )}
             <div className="pb-6 pt-4 text-center border-t border-zinc-100 mx-10">
               <p className="text-[10px] text-zinc-500 tracking-wider font-semibold uppercase">
-                © {new Date().getFullYear()} Smile Team Design
+                © {new Date().getFullYear()} 
               </p>
               <p className="text-[9px] text-zinc-400 tracking-normal mt-1 italic font-medium">
                 Powered by <span className="text-zinc-600 not-italic font-bold">Smile Live Technology</span>

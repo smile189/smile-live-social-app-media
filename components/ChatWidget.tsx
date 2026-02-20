@@ -212,146 +212,146 @@ export default function ChatWidget({ user }: { user: any }) {
 )}
 
 
-  <AnimatePresence>
-  {isOpen && (
-    <motion.div
-      key="chat-widget"
-      initial={{ opacity: 0, y: "100%", scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: "120%", scale: 0.96 }}
-      transition={{
-        type: "tween",
-        duration: 0.18,
-        ease: [0.4, 0, 0.2, 1], // ease-out rapid și lin
-      }}
-      className="relative w-full h-full sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border-none sm:border sm:border-white/10"
-    >
-      {/* IMAGINE FUNDAL FIXĂ */}
-      <div
-        className="absolute inset-0 opacity-[0.12] pointer-events-none grayscale z-0"
-        style={{ backgroundImage: "url('/chat.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-      />
-
-      {/* HEADER */}
-      <div className="relative z-10 p-5 sm:p-6 bg-yellow-400 flex items-center justify-between border-b-2 border-yellow-500/20">
-        <div className="flex items-center gap-4">
-          {/* AVATAR HEADER */}
-          <div className="relative w-12 h-12 sm:w-14 sm:h-14 p-[2px] bg-black/5 rounded-2xl shadow-sm border border-black/10">
-            <div className="w-full h-full bg-white rounded-[13px] overflow-hidden flex items-center justify-center relative">
-              <img
-                src="/chat2.png"
-                alt="Agent Avatar"
-                className="w-full h-full object-contain p-1.5"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
-            </div>
-            <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-yellow-400 shadow-sm">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-40"></span>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-[10px] sm:text-xs font-black uppercase text-black tracking-widest leading-none mb-1">Smile chat Support</h4>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-700 animate-pulse" />
-              <span className="text-[9px] sm:text-[10px] text-black/60 font-bold uppercase tracking-widest">Christina LIVE</span>
-            </div>
-          </div>
-        </div>
-        <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-black/10 rounded-lg text-black transition-colors">
-          <X size={24} strokeWidth={2.5} />
-        </button>
-      </div>
-
-      {/* CONTENT AREA */}
-      <div className="relative z-10 flex-1 overflow-y-auto p-6 sm:p-8 flex flex-col">
-        <div className="flex-1 flex flex-col">
-          {step === "gdpr" && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
-              <CheckCircle2 size={44} className="text-yellow-400" />
-              <div className="space-y-2">
-                <p className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">Privacy Secured and GDPR</p>
-                <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">Accept terms and conditions to initiate your secure support line at smile live app</p>
-              </div>
-              <button onClick={() => setStep("identity")} className="w-full bg-yellow-400 text-black font-black text-[10px] uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">Accept & Continue</button>
-            </div>
-          )}
-
-          {step === "identity" && (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-              <UserCircle size={52} className="text-zinc-700" />
-              <div className="w-full space-y-2 text-center">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Identify Yourself</p>
-                <input
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && startNewConversation()}
-                  placeholder="Type your name..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-sm text-white text-center outline-none focus:border-yellow-400/50 transition-all"
-                />
-              </div>
-              <button onClick={startNewConversation} className="w-full bg-yellow-400 text-black font-black text-[10px] uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">Start Chat</button>
-            </div>
-          )}
-
-          {step === "chat" && (
-            <div className="flex-1 flex flex-col space-y-6">
-              <AnimatePresence initial={false}>
-                {messages.map((m) => (
-                  <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={`flex items-end gap-2 ${m.sender_type === "client" ? "flex-row-reverse" : "flex-row"}`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold shadow-md ${m.sender_type === "client" ? "bg-zinc-800 text-yellow-400 border border-white/10" : "bg-yellow-400 text-black"}`}>
-                      {m.sender_type === "client" ? <User size={14} /> : <span className="font-serif italic">S</span>}
-                    </div>
-
-                    <div className={`max-w-[75%] p-3 rounded-2xl text-xs flex flex-col shadow-sm ${m.sender_type === "client" ? "bg-yellow-400 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none border border-white/5"}`}>
-                      <span className="opacity-40 text-[8px] mb-1 uppercase font-black tracking-tighter">
-                        {m.sender_type === "client" ? clientName : "Support Team"}
-                      </span>
-                      {m.text}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* INPUT AREA + FOOTER */}
-      <div className="relative z-10 bg-[#0c0c1d] border-t border-white/10">
-        {step === "chat" && (
-          <div className="p-4 flex items-center gap-2">
-            <input 
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Type message..."
-              className="flex-1 bg-transparent border-none text-white text-sm outline-none px-2"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.15 }}
+            className="relative w-full h-full sm:w-[400px] sm:h-[650px] bg-[#0c0c1d] sm:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border-none sm:border sm:border-white/10"
+          >
+            {/* IMAGINE FUNDAL FIXĂ */}
+            <div 
+              className="absolute inset-0 opacity-[0.12] pointer-events-none grayscale z-0" 
+              style={{ backgroundImage: "url('/chat.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
             />
-            <button onClick={handleSend} className="p-2.5 bg-yellow-400 rounded-xl text-black shadow-lg">
-              <Send size={18} />
-            </button>
-          </div>
+
+            {/* HEADER */}
+            <div className="relative z-10 p-5 sm:p-6 bg-yellow-400 flex items-center justify-between border-b-2 border-yellow-500/20">
+              <div className="flex items-center gap-4">
+{/* AVATAR HEADER - CORPORATE WOW */}
+<div className="relative w-12 h-12 sm:w-14 sm:h-14 p-[2px] bg-black/5 rounded-2xl shadow-sm border border-black/10">
+  <div className="w-full h-full bg-white rounded-[13px] overflow-hidden flex items-center justify-center relative">
+    <img 
+      src="/chat2.png" 
+      alt="Agent Avatar"
+      className="w-full h-full object-contain p-1.5" 
+    />
+    
+    {/* Gradient subtil peste poza ca sa para integrata */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+  </div>
+
+  {/* INDICATOR ONLINE INTEGRAT FIX PE RAMĂ */}
+  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-yellow-400 shadow-sm">
+    <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-40"></span>
+  </div>
+</div>
+
+                <div>
+                  <h4 className="text-[10px] sm:text-xs font-black uppercase text-black tracking-widest leading-none mb-1">Smile chat Support</h4>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-700 animate-pulse" />
+                    <span className="text-[9px] sm:text-[10px] text-black/60 font-bold uppercase tracking-widest">Christina LIVE</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-black/10 rounded-lg text-black transition-colors">
+                <X size={24} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* CONTENT AREA */}
+            <div className="relative z-10 flex-1 overflow-y-auto p-6 sm:p-8 flex flex-col">
+              <div className="flex-1 flex flex-col">
+                {step === "gdpr" && (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                    <CheckCircle2 size={44} className="text-yellow-400" />
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-zinc-400 uppercase tracking-widest font-black">Privacy Secured and GDPR</p>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[200px]">Accept terms and conditions to initiate your secure support line at smile live app</p>
+                    </div>
+                    <button onClick={() => setStep("identity")} className="w-full bg-yellow-400 text-black font-black text-[10px] uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">Accept & Continue</button>
+                  </div>
+                )}
+
+                {step === "identity" && (
+                  <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+                    <UserCircle size={52} className="text-zinc-700" />
+                    <div className="w-full space-y-2 text-center">
+                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Identify Yourself</p>
+                      <input
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && startNewConversation()}
+                        placeholder="Type your name..."
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-sm text-white text-center outline-none focus:border-yellow-400/50 transition-all"
+                      />
+                    </div>
+                    <button onClick={startNewConversation} className="w-full bg-yellow-400 text-black font-black text-[10px] uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">Start Chat</button>
+                  </div>
+                )}
+
+                {step === "chat" && (
+                  <div className="flex-1 flex flex-col space-y-6">
+                    <AnimatePresence initial={false}>
+                      {messages.map((m) => (
+                        <motion.div 
+                          key={m.id}
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ duration: 0.2 }}
+                          className={`flex items-end gap-2 ${m.sender_type === "client" ? "flex-row-reverse" : "flex-row"}`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold shadow-md ${m.sender_type === "client" ? "bg-zinc-800 text-yellow-400 border border-white/10" : "bg-yellow-400 text-black"}`}>
+                            {m.sender_type === "client" ? <User size={14} /> : <span className="font-serif italic">S</span>}
+                          </div>
+
+                          <div className={`max-w-[75%] p-3 rounded-2xl text-xs flex flex-col shadow-sm ${m.sender_type === "client" ? "bg-yellow-400 text-black rounded-br-none" : "bg-white/10 text-white rounded-bl-none border border-white/5"}`}>
+                            <span className="opacity-40 text-[8px] mb-1 uppercase font-black tracking-tighter">
+                              {m.sender_type === "client" ? clientName : "Support Team"}
+                            </span>
+                            {m.text}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* INPUT AREA + FOOTER */}
+            <div className="relative z-10 bg-[#0c0c1d] border-t border-white/10">
+              {step === "chat" && (
+                <div className="p-4 flex items-center gap-2">
+                  <input 
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder="Type message..."
+                    className="flex-1 bg-transparent border-none text-white text-sm outline-none px-2"
+                  />
+                  <button onClick={handleSend} className="p-2.5 bg-yellow-400 rounded-xl text-black shadow-lg">
+                    <Send size={18} />
+                  </button>
+                </div>
+              )}
+            <div className="pb-6 pt-4 text-center border-t border-zinc-100 mx-10">
+              <p className="text-[10px] text-zinc-500 tracking-wider font-semibold uppercase">
+                © {new Date().getFullYear()} smileliveapp.com
+              </p>
+              <p className="text-[9px] text-zinc-400 tracking-normal mt-1 italic font-medium">
+                Powered by <span className="text-zinc-600 not-italic font-bold">Smile Live Technology</span>
+              </p>
+            </div>
+
+            </div>
+          </motion.div>
         )}
-        <div className="pb-6 pt-4 text-center border-t border-zinc-100 mx-10">
-          <p className="text-[10px] text-zinc-500 tracking-wider font-semibold uppercase">
-            © {new Date().getFullYear()} smileliveapp.com
-          </p>
-          <p className="text-[9px] text-zinc-400 tracking-normal mt-1 italic font-medium">
-            Powered by <span className="text-zinc-600 not-italic font-bold">Smile Live Technology</span>
-          </p>
-        </div>
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
+      </AnimatePresence>
     </div>
   );
 }

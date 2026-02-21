@@ -47,7 +47,7 @@ export default function CyberIndustrialNav() {
             </div>
             <div className="flex flex-col">
               <span className="font-black text-white text-base md:text-lg tracking-tighter ercase italic leading-none">
-                smile<span className="text-rose-600 font-light">live</span>app.com
+                smile <span className="text-rose-600 font-light">live</span>
               </span>
               
             </div>

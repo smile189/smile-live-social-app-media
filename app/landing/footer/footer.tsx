@@ -52,10 +52,10 @@ export default function Footer() {
               <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Explore</h4>
               <ul className="flex flex-col gap-4">
                 {[
-                  { name: "Platform", href: "/app" },
-                  { name: "Ecosystem", href: "/" },
-                  { name: "Network", href: "/" },
-                  { name: "Nodes", href: "/" },
+                  { name: "Platform app", href: "/app" },
+                  { name: "LIVE creator", href: "/app/live" },
+                  { name: "Advertise", href: "/" },
+               
                 ].map((item) => (
                   <li key={item.name}>
                     <Link 
@@ -77,10 +77,10 @@ export default function Footer() {
               <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Studio</h4>
 <ul className="flex flex-col gap-4">
   {[
-    { name: "Manifesto", href: "/" },
-    { name: "Careers", href: "/" },
-    { name: "Privacy", href: "/landing/policy" }, // Ruta unde ai salvat fișierul anterior
-    { name: "Security", href: "/" },
+
+    { name: "Develope with us", href: "/" },
+    { name: "Privacy and policy", href: "/landing/policy" }, // Ruta unde ai salvat fișierul anterior
+    { name: "Security ", href: "/" },
   ].map((item) => (
     <li key={item.name}>
       <Link 
@@ -102,22 +102,7 @@ export default function Footer() {
 
           {/* SOCIAL & INFO - Full width pe mobil */}
           <div className="lg:col-span-3 flex flex-col justify-between items-start lg:items-end gap-10">
-            <div className="flex gap-4">
-              {[
-                { icon: <Instagram size={18} />, label: "IG" },
-                { icon: <Twitter size={18} />, label: "X" },
-                { icon: <Linkedin size={18} />, label: "LI" }
-              ].map((soc) => (
-                <Link 
-                  key={soc.label} 
-                  href="#" 
-                  className="w-14 h-14 flex flex-col items-center justify-center border border-white/10 rounded-2xl hover:bg-white hover:text-black hover:border-white transition-all duration-500 group"
-                >
-                  {soc.icon}
-                  <span className="text-[8px] font-black mt-1 opacity-0 group-hover:opacity-100 transition-opacity">{soc.label}</span>
-                </Link>
-              ))}
-            </div>
+
             
             <div className="text-left lg:text-right">
               <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest leading-loose">

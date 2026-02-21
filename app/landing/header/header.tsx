@@ -62,7 +62,7 @@ export default function CyberIndustrialNav() {
 
           {/* ACTIONS */}
           <div className="flex items-center gap-2 md:gap-3">
-            <Link href="/login" className="hidden md:flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white">
+            <Link href="app/login" className="hidden md:flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white">
               <LogIn size={14} /> Login 
             </Link>
 

@@ -286,7 +286,7 @@ export default function LandingPage() {
               priority
             />
             {/* Mască Radială pentru integrare perfectă în negru */}
-            <div className="absolute inset-0 bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_10%,#000_85%)]" />
+            <div className="absolute inset-0 bg- [mask-image:radial-gradient(ellipse_at_center,transparent_10%,#000_85%)]" />
             
             {/* Textură Grainy */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-10 mix-blend-soft-light" />

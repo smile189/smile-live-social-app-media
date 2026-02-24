@@ -1,133 +1,144 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Instagram, Twitter, Linkedin, ArrowUpRight, Send } from "lucide-react";
+import {
+  Instagram,
+  Twitter,
+  Linkedin,
+  Globe,
+  ArrowUpRight,
+  MapPin,
+} from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [region, setRegion] = useState("Locating...");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setRegion("Bucharest, Romania"), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+  };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 },
+  };
 
   return (
-    <footer className="relative bg-[#020202] border-t border-white/5 pt-20 pb-10 overflow-hidden">
-      {/* Glow de fundal pentru adâncime */}
-      <div className="absolute top-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
-      
-      <div className="max-w-[1400px] mx-auto px-6">
-        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-16 lg:gap-8">
-          
-          {/* BRAND COLUMN - Ocupă 5 coloane pe desktop */}
-          <div className="lg:col-span-5 space-y-10">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              className="space-y-4"
-            >
-              <h2 className="text-5xl sm:text-4xl font-black italic tracking-[ -0.08em] uppercase text-white leading-none">
-                SMILE <span className="text-red-600 group-hover:text-yellow-400 transition-colors duration-500">LIVE.</span>
-              </h2>
-              <p className="text-zinc-500 text-[10px] sm:text-xs font-black uppercase tracking-[0.5em]">
-                Next-Gen Social Media Infrastructure
-              </p>
-            </motion.div>
+    <footer className="relative bg-[#F4F4F6] text-[#0A0A0A] pt-28 pb-16 px-6 border-t border-zinc-200 overflow-hidden">
+      <div className="max-w-7xl mx-auto relative z-10">
 
-            {/* Newsletter - Adaptat pentru mobil (full width) */}
-            <div className="relative max-w-sm">
-              <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-4">Join the ecosystem</p>
-              <div className="group flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 focus-within:border-red-600 transition-all duration-500">
-                <input 
-                  type="email" 
-                  placeholder="EMAIL ADDRESS" 
-                  className="bg-transparent border-none text-[10px] font-black tracking-widest px-4 py-3 outline-none w-full text-white placeholder:text-zinc-700"
-                />
-                <button className="bg-white text-black p-3 rounded-xl group-hover:bg-red-600 group-hover:text-white transition-all duration-300">
-                  <Send size={16} />
-                </button>
-              </div>
+        {/* TOP SECTION */}
+        <div className="flex flex-col lg:flex-row justify-between gap-16 mb-24">
+
+          {/* BRAND */}
+          <motion.div
+            initial={{ x: -40, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+          >
+            <h2 className="text-6xl md:text-5xl font-black tracking-tight leading-none">
+              SMILE LIVE<span className="text-zinc-400">™</span>
+            </h2>
+
+            <p className="mt-6 text-zinc-500 max-w-md leading-relaxed">
+              The next generation social platform where creators,
+              brands and communities build meaningful digital presence.
+            </p>
+
+
+          </motion.div>
+
+          {/* REGION BADGE */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            className="flex items-start lg:items-end"
+          >
+            <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-full border border-zinc-200 shadow-sm text-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <MapPin size={16} className="text-zinc-400" />
+              <span className="text-zinc-600">{region}</span>
             </div>
-          </div>
-
-          {/* NAV LINKS - Grid de 2 coloane pe mobil, flex pe desktop */}
-          <div className="lg:col-span-4 grid grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Explore</h4>
-              <ul className="flex flex-col gap-4">
-                {[
-                  { name: "Platform app", href: "/app" },
-                  { name: "LIVE creator", href: "/app/live" },
-                  { name: "Advertise", href: "/" },
-               
-                ].map((item) => (
-                  <li key={item.name}>
-                    <Link 
-                      href={item.href} 
-                      className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors"
-                    >
-                      {item.name} 
-                      <ArrowUpRight 
-                        size={12} 
-                        className="opacity-0 group-hover:opacity-100 transition-all -translate-y-0.5 group-hover:translate-x-0.5" 
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-
-            </div>
-            <div className="space-y-6">
-              <h4 className="text-white text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Studio</h4>
-<ul className="flex flex-col gap-4">
-  {[
-
-    { name: "Develope with us", href: "/" },
-    { name: "Privacy and policy", href: "/landing/policy" }, // Ruta unde ai salvat fișierul anterior
-    { name: "Security ", href: "/" },
-  ].map((item) => (
-    <li key={item.name}>
-      <Link 
-        href={item.href} 
-        className="group flex items-center gap-1 text-zinc-400 hover:text-white text-sm font-bold transition-colors"
-      >
-        {item.name} 
-        <ArrowUpRight 
-          size={12} 
-          className="opacity-0 group-hover:opacity-100 transition-all -translate-y-0.5 group-hover:translate-x-0.5" 
-        />
-      </Link>
-    </li>
-  ))}
-</ul>
-
-            </div>
-          </div>
-
-          {/* SOCIAL & INFO - Full width pe mobil */}
-          <div className="lg:col-span-3 flex flex-col justify-between items-start lg:items-end gap-10">
-
-            
-            <div className="text-left lg:text-right">
-              <p className="text-zinc-600 text-[10px] font-black uppercase tracking-widest leading-loose">
-                Smile Live Global  <br />
-                <span className="text-zinc-400">Bucharest • London • Tokyo</span>
-              </p>
-            </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* BOTTOM SECTION - Ultra Clean */}
-        <div className="mt-24 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-4">
-            <span className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.4em]">© {currentYear} Smile Live Technologies </span>
-            <div className="h-px w-8 bg-zinc-800" />
-            <span className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.4em]">All Rights Reserved</span>
-          </div>
-          
+        {/* LINK GRID */}
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          className="grid grid-cols-2 md:grid-cols-4 gap-16 py-20 border-y border-zinc-200"
+        >
+          {[
+            {
+              title: "Creators",
+              links: ["Go LIVE", "Monetization", "Creator Tools", "Analytics"],
+            },
+            {
+              title: "Brands",
+              links: ["Advertise", "Partnerships", "Campaign Manager"],
+            },
+            {
+              title: "Platform",
+              links: ["About Us", "Careers", "Press", "Developers"],
+            },
+            {
+              title: "Legal",
+              links: ["Privacy Policy", "Terms of Service", "Security"],
+            },
+          ].map((section, i) => (
+            <motion.div key={i} variants={item} className="space-y-8">
+              <h4 className="text-[11px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
+                {section.title}
+              </h4>
 
+              <nav className="flex flex-col gap-5">
+                {section.links.map((link) => (
+                  <Link
+                    key={link}
+                    href="/"
+                    className="group flex items-center gap-2 text-lg font-medium text-zinc-700 hover:text-black transition-all duration-300"
+                  >
+                    <span className="relative">
+                      {link}
+                      <span className="absolute left-0 -bottom-1 w-0 h-[1px] bg-black transition-all duration-300 group-hover:w-full"></span>
+                    </span>
+
+                    <ArrowUpRight
+                      size={16}
+                      className="opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+                    />
+                  </Link>
+                ))}
+              </nav>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* BOTTOM */}
+        <div className="flex flex-col md:flex-row justify-between items-center mt-12 gap-6 text-[11px] uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center gap-6">
+            <span>© {currentYear} Smile Live</span>
+            <span className="hidden md:block w-8 h-[1px] bg-zinc-300"></span>
+            <span>All Rights Reserved</span>
+          </div>
+
+          <div className="text-zinc-400">
+            Building the future of social interaction.
+          </div>
         </div>
       </div>
 
-      {/* Marquee effect în fundal (Opțional, pentru extra vibe) */}
-      <div className="absolute -bottom-10 left-0 w-full overflow-hidden whitespace-nowrap opacity-[0.02] pointer-events-none select-none">
-        <span className="text-[15rem] font-black italic tracking-tighter">SMILE LIVE SMILE LIVE SMILE LIVE</span>
+      {/* SUBTLE BACKGROUND TEXT */}
+      <div className="absolute -bottom-16 -left-10 text-[18vw] font-black text-black opacity-[0.02] pointer-events-none select-none">
+        LIVE
       </div>
     </footer>
   );

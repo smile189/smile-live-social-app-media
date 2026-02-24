@@ -1,3 +1,10 @@
+/**
+ * Header component for the landing page, featuring a responsive navigation bar
+ *  with scroll-based visibility and a mobile menu.
+ * Utilizes Framer Motion for smooth animations and Next.js Link for navigation.
+ * author: BM
+ */
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,12 +24,12 @@ export default function CyberIndustrialNav() {
   const [openMenu, setOpenMenu] = useState<"hub" | "mobile" | null>(null);
   const { scrollY } = useScroll();
 
-  // Logica pentru ascundere la scroll down și afișare la scroll up
+  // 
   useMotionValueEvent(scrollY, "change", (latest) => {
     if (latest > lastScrollY && latest > 150) {
-      setIsVisible(false); // Ascunde când dai scroll în jos
+      setIsVisible(false); // 
     } else {
-      setIsVisible(true); // Afișează când dai scroll în sus
+      setIsVisible(true); // display the header when scrolling up
     }
     setLastScrollY(latest);
     setIsScrolled(latest > 50);
@@ -45,7 +52,7 @@ export default function CyberIndustrialNav() {
       </AnimatePresence>
 
       <motion.header 
-        /* Animația de ascundere/afișare */
+        /* animation of header visibility */
         initial={{ y: 0 }}
         animate={{ y: isVisible ? 0 : -120 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -55,8 +62,8 @@ export default function CyberIndustrialNav() {
           relative flex items-center justify-between w-full max-w-7xl px-4 py-2
           transition-all duration-500 rounded-2xl border shadow-2xl
           ${isScrolled 
-            ? "bg-white/10 dark:bg-black/30 backdrop-blur-xl border-white/20 md:max-w-4xl" // Stilul GLASS la scroll
-            : "bg-zinc-950/90 border-white/10 md:max-w-7xl" // Stilul SOLID sus
+            ? "bg-white/10 dark:bg-black/30 backdrop-blur-xl border-white/20 md:max-w-4xl" // 
+            : "bg-zinc-950/90 border-white/10 md:max-w-7xl" // 
           }
         `}>
           

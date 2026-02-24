@@ -74,7 +74,7 @@ export default function CyberIndustrialNav() {
             </div>
             <div className="flex flex-col">
               <span className="font-black text-white text-xl md:text-3xl tracking-[-0.05em] uppercase italic leading-none transition-all">
-                smile <span className="text-red-500 font-light drop-shadow-[0_0_15px_rgba(239,68,68,0.3)]">live</span>
+               <span className="text-red-500 font-light drop-shadow-[0_0_15px_rgba(239,68,68,0.3)]">live</span>
               </span>
             </div>
           </Link>

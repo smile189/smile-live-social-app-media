@@ -70,57 +70,74 @@ export default function Footer() {
         </div>
 
         {/* LINK GRID */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          className="grid grid-cols-2 md:grid-cols-4 gap-16 py-20 border-y border-zinc-200"
-        >
-          {[
-            {
-              title: "Creators",
-              links: ["Go LIVE", "Monetization", "Creator Tools", "Analytics"],
-            },
-            {
-              title: "Brands",
-              links: ["Advertise", "Partnerships", "Campaign Manager"],
-            },
-            {
-              title: "Platform",
-              links: ["About Us", "Careers", "Press", "Developers"],
-            },
-            {
-              title: "Legal",
-              links: ["Privacy Policy", "Terms of Service", "Security"],
-            },
-          ].map((section, i) => (
-            <motion.div key={i} variants={item} className="space-y-8">
-              <h4 className="text-[11px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
-                {section.title}
-              </h4>
+       <motion.div
+  variants={container}
+  initial="hidden"
+  whileInView="show"
+  className="grid grid-cols-2 md:grid-cols-4 gap-16 py-20 border-y border-zinc-200"
+>
+  {[
+    {
+      title: "Creators",
+      links: [
+        { label: "Go LIVE", url: "/app/live" },
+        { label: "Monetization", url: "/app/monetization/" },
+        { label: "Creator Tools", url: "/app/" },
 
-              <nav className="flex flex-col gap-5">
-                {section.links.map((link) => (
-                  <Link
-                    key={link}
-                    href="/"
-                    className="group flex items-center gap-2 text-lg font-medium text-zinc-700 hover:text-black transition-all duration-300"
-                  >
-                    <span className="relative">
-                      {link}
-                      <span className="absolute left-0 -bottom-1 w-0 h-[1px] bg-black transition-all duration-300 group-hover:w-full"></span>
-                    </span>
+      ],
+    },
+    {
+      title: "Brands",
+      links: [
+        { label: "Advertise", url: "/ads" },
+        { label: "Partnerships", url: "landing/resource/sponsor" },
+        { label: "Campaign Manager", url: "/campaigns" },
+      ],
+    },
+    {
+      title: "Platform",
+      links: [
+        { label: "About Us", url: "/" },
+         { label: "web app", url: "/app" },
+        { label: "Developers", url: "/" },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { label: "Privacy Policy", url: "landing/resource/policy/" },
+        { label: "Terms of Service", url: "landing/resource/policy/" },
+        { label: "Security", url: "/security" },
+      ],
+    },
+  ].map((section, i) => (
+    <motion.div key={i} variants={item} className="space-y-8">
+      <h4 className="text-[11px] uppercase tracking-[0.4em] text-zinc-400 font-bold">
+        {section.title}
+      </h4>
 
-                    <ArrowUpRight
-                      size={16}
-                      className="opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
-                    />
-                  </Link>
-                ))}
-              </nav>
-            </motion.div>
-          ))}
-        </motion.div>
+      <nav className="flex flex-col gap-5">
+        {section.links.map((link) => (
+          <Link
+            key={link.label}
+            href={link.url} // Aici se face magia, trage URL-ul din obiect
+            className="group flex items-center gap-2 text-lg font-medium text-zinc-700 hover:text-black transition-all duration-300"
+          >
+            <span className="relative">
+              {link.label}
+              <span className="absolute left-0 -bottom-1 w-0 h-[1px] bg-black transition-all duration-300 group-hover:w-full"></span>
+            </span>
+
+            <ArrowUpRight
+              size={16}
+              className="opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+            />
+          </Link>
+        ))}
+      </nav>
+    </motion.div>
+  ))}
+</motion.div>
 
         {/* BOTTOM */}
         <div className="flex flex-col md:flex-row justify-between items-center mt-12 gap-6 text-[11px] uppercase tracking-widest text-zinc-400">

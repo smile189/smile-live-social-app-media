@@ -105,8 +105,8 @@ export default function Footer() {
     {
       title: "Legal",
       links: [
-        { label: "Privacy Policy", url: "landing/resource/policy/" },
-        { label: "Terms of Service", url: "landing/resource/policy/" },
+        { label: "Privacy Policy", url: "landing/policy/" },
+        { label: "Terms of Service", url: "landing/policy/" },
         { label: "Security", url: "/security" },
       ],
     },

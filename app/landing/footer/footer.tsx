@@ -107,7 +107,7 @@ export default function Footer() {
       links: [
         { label: "Privacy Policy", url: "landing/policy/" },
         { label: "Terms of Service", url: "landing/policy/" },
-        { label: "Security", url: "/security" },
+        { label: "Security", url: "/landing/404" },
       ],
     },
   ].map((section, i) => (

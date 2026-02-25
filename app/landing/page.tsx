@@ -124,7 +124,8 @@ useEffect(() => {
       <main className="relative z-10">
         
   {/* ================= HERO CAROUSEL ================= */}
-<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+{/* ================= HERO CAROUSEL RESPONSIVE ================= */}
+<section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-black">
 
   {/* BACKGROUND SLIDES */}
   <div className="absolute inset-0 z-0">
@@ -134,7 +135,7 @@ useEffect(() => {
           <motion.div
             key={index}
             initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 0.8, scale: 1 }} // Opacitate 0.8 pentru poze proeminente
+            animate={{ opacity: 0.8, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 1.2 }}
             className="absolute inset-0"
@@ -144,19 +145,17 @@ useEffect(() => {
               alt="Hero Background"
               fill
               priority
-              className="object-cover brightness-[0.7] contrast-[1.3]" // Brightness ridicat pentru culori vii
+              className="object-cover brightness-[0.7] contrast-[1.3]"
             />
           </motion.div>
         )
       ))}
     </AnimatePresence>
-
-    {/* Gradient overlay mai discret (ca să se vadă pozele clar) */}
     <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80 pointer-events-none" />
   </div>
 
   {/* CONTENT */}
-  <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
+  <div className="relative z-10 text-center px-4 sm:px-6 max-w-6xl mx-auto pt-10">
     <AnimatePresence mode="wait">
       <motion.div
         key={current}
@@ -165,71 +164,69 @@ useEffect(() => {
         exit={{ opacity: 0, y: -40 }}
         transition={{ duration: 0.8 }}
       >
-        <h1 className="text-5xl md:text-8xl lg:text-[10rem] font-black tracking-[-0.05em] leading-[0.85] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+        {/* RESPONSIVE TEXT: text-4xl pe mobil, text-8xl pe tableta, 10rem+ pe desktop */}
+        <h1 className="text-4xl sm:text-7xl md:text-8xl lg:text-[10rem] font-black tracking-[-0.05em] leading-[0.9] sm:leading-[0.85] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
           {SLIDES[current].titlePrimary}{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">
             {SLIDES[current].titleSecondary}
           </span>
         </h1>
 
-        <p className="mt-8 text-white/90 text-lg md:text-2xl max-w-3xl mx-auto font-bold drop-shadow-md">
+        <p className="mt-6 sm:mt-8 text-white/90 text-base sm:text-xl md:text-2xl max-w-3xl mx-auto font-bold drop-shadow-md px-4">
           {SLIDES[current].description}
         </p>
       </motion.div>
     </AnimatePresence>
 
-    {/* CTA */}
+    {/* CTA: flex-col pe mobil (unul sub altul), flex-row pe desktop */}
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="mt-12 flex justify-center gap-6"
+      className="mt-10 sm:mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6"
     >
       <Link
         href="/app"
-        className="px-12 py-6 bg-yellow-400 text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
+        className="w-full sm:w-auto px-10 py-5 sm:px-12 sm:py-6 bg-yellow-400 text-black font-black uppercase text-[10px] sm:text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl text-center"
       >
         acces Platform
       </Link>
 
-<Link 
-  href="/app/live" 
-  className="group relative px-12 py-6 border border-red-600/50 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl transition-all hover:bg-red-600 hover:shadow-[0_0_40px_rgba(220,38,38,0.5)] backdrop-blur-sm flex items-center gap-3"
->
-
-  
-  <span className="relative z-10">Go LIVE</span>
-</Link>
-
+      <Link 
+        href="/app/live" 
+        className="w-full sm:w-auto group relative px-10 py-5 sm:px-12 sm:py-6 border border-red-600/50 text-white font-black uppercase text-[10px] sm:text-xs tracking-[0.2em] rounded-2xl transition-all hover:bg-red-600 hover:shadow-[0_0_40px_rgba(220,38,38,0.5)] backdrop-blur-sm flex items-center justify-center gap-3"
+      >
+        <span className="relative z-10">Go LIVE</span>
+      </Link>
     </motion.div>
 
     {/* DOT INDICATORS */}
-    <div className="flex justify-center gap-3 mt-16">
+    <div className="flex justify-center gap-3 mt-12 sm:mt-16">
       {SLIDES.map((_, index) => (
         <button
           key={index}
           onClick={() => setCurrent(index)}
-          className={`h-2 transition-all duration-500 rounded-full ${
+          className={`h-1.5 sm:h-2 transition-all duration-500 rounded-full ${
             current === index
-              ? "w-10 bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)]"
-              : "w-4 bg-white/30 hover:bg-white/60"
+              ? "w-8 sm:w-10 bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)]"
+              : "w-3 sm:w-4 bg-white/30 hover:bg-white/60"
           }`}
         />
       ))}
     </div>
   </div>
 
-  {/* LEFT / RIGHT NAV */}
+  {/* NAV - HIDDEN ON MOBILE */}
   <button
     onClick={() => setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length)}
-    className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
+    className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
   >
     ‹
   </button>
 
   <button
     onClick={() => setCurrent((prev) => (prev + 1) % SLIDES.length)}
-    className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
+    className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
   >
     ›
   </button>

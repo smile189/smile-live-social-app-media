@@ -82,7 +82,7 @@ export default function CyberIndustrialNav() {
           {/* DESKTOP LINKS */}
           <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl">
             <NavButton label="Agency" onClick={() => toggleMenu("hub")} active={openMenu === "hub"} isScrolled={isScrolled} />
-            <NavButton label="AI Engine" href="/landing/resource/neuromusic" isScrolled={isScrolled} />
+            <NavButton label="AI Engine" href="/landing/404" isScrolled={isScrolled} />
             <NavButton label="Investors" href="/landing/resource/sponsor/" isScrolled={isScrolled} />
           </div>
 
@@ -131,8 +131,8 @@ export default function CyberIndustrialNav() {
                   <button onClick={() => setOpenMenu(null)} className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10"><X size={24} /></button>
                 </div>
                 <div className="flex flex-col gap-4 flex-1">
-                  <MobileLink href="landing/resource/agency" label="Begin Agency Creator" num="01" icon={<Briefcase size={20} />} />
-                  <MobileLink href="/landing/resource/neuromusic" label="AI Music creator" num="02" icon={<Wand2 size={20} />} />
+                  <MobileLink href="landing/404" label="Begin Agency Creator" num="01" icon={<Briefcase size={20} />} />
+                  <MobileLink href="/landing/404" label="AI Music creator" num="02" icon={<Wand2 size={20} />} />
                   <MobileLink href="/landing/resource/sponsor/" label="Investor Relations" num="03" icon={<Users2 size={20} />} />
                 </div>
                 <div className="space-y-3 mt-auto">

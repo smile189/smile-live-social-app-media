@@ -9,7 +9,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useMotionValue, useSpring, useTransform, useInView } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, useInView, AnimatePresence } from "framer-motion";
+
 import { ArrowRight, Zap, Globe, Shield, Radio, Users, Sparkles, Cpu, Smartphone, BarChart3, Play } from "lucide-react";
 import Header from "./header/header";
 import Footer from "./footer/footer";
@@ -52,7 +53,32 @@ const handleStripePayment = async () => {
 };
 
 
-
+const SLIDES = [
+  {
+    image: "/social1.jpg",
+    titlePrimary: "SMILE",
+    titleSecondary: "LIVE.",
+    description: "Social infrastructure built for insane performance. Experience 4K without the lag."
+  },
+  {
+    image: "/social2.jpg",
+    titlePrimary: "ULTRA",
+    titleSecondary: "FAST.",
+    description: "Built for the next generation of creators. Pure speed, no compromises."
+  },
+  {
+    image: "/social3.jpg", // 
+    titlePrimary: "BEYOND",
+    titleSecondary: "LIMITS.",
+    description: "Pushing the boundaries of real-time interaction. Global scale, local speed."
+  },
+  {
+    image: "/social4.jpg", // 
+    titlePrimary: "PURE",
+    titleSecondary: "FLOW.",
+    description: "Uninterrupted connectivity for a seamless digital experience. Feel the rhythm."
+  }
+];
 
 export default function LandingPage() {
   const mouseX = useMotionValue(0);
@@ -74,6 +100,19 @@ export default function LandingPage() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
 
+
+
+
+const [current, setCurrent] = useState(0);
+
+useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrent((prev) => (prev + 1) % SLIDES.length);
+  }, 6000);
+  return () => clearInterval(timer);
+}, []);
+
+  
   return (
     <div className="relative min-h-screen bg-[#000] text-white font-sans overflow-x-hidden selection:bg-red-600">
       <Header />
@@ -84,66 +123,118 @@ export default function LandingPage() {
 
       <main className="relative z-10">
         
-            {/* HERO SECTION CU LOGO-UL REVENIT ȘI POZĂ SCUFUNDATĂ */}
-        <section className="relative flex flex-col items-center justify-center px-6 pt-40 pb-20 min-h-screen text-center overflow-hidden">
-          
-          {/* POZĂ SCUFUNDATĂ ÎN FUNDAL (SUBMERGED IMAGE) */}
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <Image 
-              src="/herosmile.webp" // 
-              alt="Submerged Background"
+  {/* ================= HERO CAROUSEL ================= */}
+<section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+
+  {/* BACKGROUND SLIDES */}
+  <div className="absolute inset-0 z-0">
+    <AnimatePresence mode="wait">
+      {SLIDES.map((slide, index) => (
+        current === index && (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 0.8, scale: 1 }} // Opacitate 0.8 pentru poze proeminente
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 1.2 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={slide.image}
+              alt="Hero Background"
               fill
               priority
-              className="object-cover grayscale opacity-20 brightness-[0.4] contrast-[1.2]"
+              className="object-cover brightness-[0.7] contrast-[1.3]" // Brightness ridicat pentru culori vii
             />
-            {/* Mască radială pentru topire în fundalul negru */}
-            <div className="absolute inset-0 bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_10%,#000_80%)]" />
-            
-            {/* Textura Grainy pentru integrare fină */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app')] opacity-10 mix-blend-overlay" />
-          </div>
-
-
-
-          {/* LOGO DYNAMIC - THE PIECE DE RESISTANCE */}
-          <motion.div 
-            style={{ rotateX: logoRotationX, rotateY: logoRotationY, perspective: 1000 }}
-            className="relative z-10 mb-16 group cursor-none"
-          >
-            <div className="absolute -inset-16 bg-red-600/30 blur-[120px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
-            <motion.div 
-              whileHover={{ scale: 1.1 }}
-              className="relative p-2 rounded-[50px] bg-gradient-to-br from-white/30 via-transparent to-white/5 backdrop-blur-3xl border border-white/20 shadow-[0_50px_100px_-20px_rgba(255,0,0,0.3)]"
-            >
-              <div className="relative w-40 h-40 sm:w-60 sm:h-60 overflow-hidden rounded-[44px]">
-                <Image 
-                  src="/logosmile.jpeg" 
-                  alt="Smile Logo" 
-                  fill 
-                  priority
-                  unoptimized
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </div>
-            </motion.div>
           </motion.div>
+        )
+      ))}
+    </AnimatePresence>
 
-         <h1 className="relative z-10 text-3xl md:text-9xl lg:text-[12rem] xl:text-[15rem] font-black tracking-[-0.08em] leading-[0.8] sm:leading-[0.7] italic mb-10 select-none">
-            SMILE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">LIVE.</span>
-         </h1>
+    {/* Gradient overlay mai discret (ca să se vadă pozele clar) */}
+    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80 pointer-events-none" />
+  </div>
 
-          <p className="relative z-10 max-w-3xl mx-auto text-zinc-400 text-lg sm:text-2xl font-medium leading-relaxed mb-16">
-            Social infrastructure built for <span className="text-white italic underline decoration-yellow-400 decoration-4 underline-offset-8">insane performance</span>. 
-            Experience 4K without the lag.
-          </p>
+  {/* CONTENT */}
+  <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={current}
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -40 }}
+        transition={{ duration: 0.8 }}
+      >
+        <h1 className="text-5xl md:text-8xl lg:text-[10rem] font-black tracking-[-0.05em] leading-[0.85] italic drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+          {SLIDES[current].titlePrimary}{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-400 to-zinc-900">
+            {SLIDES[current].titleSecondary}
+          </span>
+        </h1>
 
-          <div className="relative z-10 flex flex-col sm:flex-row gap-6">
-            <Link href="/app" className="group relative px-16 py-8 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]">
-               <div className="absolute inset-0 bg-yellow-400 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-               <span className="relative z-10 flex items-center gap-4">Go to app <ArrowRight size={20} /></span>
-            </Link>
-          </div>
-        </section>
+        <p className="mt-8 text-white/90 text-lg md:text-2xl max-w-3xl mx-auto font-bold drop-shadow-md">
+          {SLIDES[current].description}
+        </p>
+      </motion.div>
+    </AnimatePresence>
+
+    {/* CTA */}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="mt-12 flex justify-center gap-6"
+    >
+      <Link
+        href="/app"
+        className="px-12 py-6 bg-yellow-400 text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl"
+      >
+        acces Platform
+      </Link>
+
+<Link 
+  href="/app/live" 
+  className="group relative px-12 py-6 border border-red-600/50 text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl transition-all hover:bg-red-600 hover:shadow-[0_0_40px_rgba(220,38,38,0.5)] backdrop-blur-sm flex items-center gap-3"
+>
+
+  
+  <span className="relative z-10">Go LIVE</span>
+</Link>
+
+    </motion.div>
+
+    {/* DOT INDICATORS */}
+    <div className="flex justify-center gap-3 mt-16">
+      {SLIDES.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrent(index)}
+          className={`h-2 transition-all duration-500 rounded-full ${
+            current === index
+              ? "w-10 bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)]"
+              : "w-4 bg-white/30 hover:bg-white/60"
+          }`}
+        />
+      ))}
+    </div>
+  </div>
+
+  {/* LEFT / RIGHT NAV */}
+  <button
+    onClick={() => setCurrent((prev) => (prev - 1 + SLIDES.length) % SLIDES.length)}
+    className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
+  >
+    ‹
+  </button>
+
+  <button
+    onClick={() => setCurrent((prev) => (prev + 1) % SLIDES.length)}
+    className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-white hover:text-black transition-all z-20"
+  >
+    ›
+  </button>
+</section>
+
 
 
 

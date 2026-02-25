@@ -89,17 +89,17 @@ export default function Footer() {
     {
       title: "Brands",
       links: [
-        { label: "Advertise", url: "/ads" },
+        { label: "Advertise", url: "/landing/404" },
         { label: "Partnerships", url: "landing/resource/sponsor" },
-        { label: "Campaign Manager", url: "/campaigns" },
+        { label: "Campaign Manager", url: "/landing/404" },
       ],
     },
     {
       title: "Platform",
       links: [
-        { label: "About Us", url: "/" },
+        { label: "About Us", url: "/landing/404" },
          { label: "web app", url: "/app" },
-        { label: "Developers", url: "/" },
+        { label: "Developers", url: "/landing/404" },
       ],
     },
     {

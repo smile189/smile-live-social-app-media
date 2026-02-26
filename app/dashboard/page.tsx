@@ -40,7 +40,7 @@ type NavItemType =
   | "finances"
   | "moderation"
   | "gifts"
-  |  "AI Music"
+  |  "ai_music"
   | "chat";
 
 export default function SuperAdminDashboard() {

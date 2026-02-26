@@ -239,7 +239,7 @@ export default function SunoServicePage() {
         )}
 
 
-<Link href="/app">
+<Link href="/landing">
   <motion.div 
     whileHover={{ x: -5 }}
     className="fixed top-8 left-8 z-50 flex items-center gap-3 px-5 py-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl hover:bg-orange-500 hover:text-black transition-all group cursor-pointer shadow-2xl"

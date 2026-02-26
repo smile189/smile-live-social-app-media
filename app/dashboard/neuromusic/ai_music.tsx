@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,351 +8,441 @@ import {
   Music,
   X,
   AlertTriangle,
-  Link as LinkIcon,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Link as LinkIcon,
+  Sparkles,
+  Trash2,
+  ExternalLink,
+  Mail,
+  Euro
 } from "lucide-react";
 
+// Initializare Supabase
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const formatDate = (d?: string) =>
-  d ? new Date(d).toLocaleString("ro-RO") : "—";
+const ITEMS_PER_PAGE = 10;
 
 export default function MusicRequestsDashboard() {
+  // --- STATE-URI ---
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [active, setActive] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [newCount, setNewCount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetch = useCallback(async () => {
+  // --- FUNCTIE FETCH DATE ---
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("cereri_muzica")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    setRequests(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("cereri_muzica")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setRequests(data || []);
+    } catch (err: any) {
+      console.error("Fetch error:", err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // --- REAL-TIME NOTIFICATIONS & UPDATES ---
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    // Luăm datele la început
+    fetchRequests();
 
-  const filtered = requests.filter((r) =>
-    r.nume_piesa?.toLowerCase().includes(search.toLowerCase())
+    const channel = supabase
+      .channel('music-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cereri_muzica' },
+        (payload) => {
+          console.log("🔔 Date primite live:", payload);
+          if (payload.eventType === 'INSERT') {
+            setRequests((prev) => [payload.new, ...prev]);
+            setNewCount((c) => c + 1);
+          }
+          if (payload.eventType === 'UPDATE') {
+            setRequests((prev) =>
+              prev.map((item) => (item.id === payload.new.id ? payload.new : item))
+            );
+          }
+          if (payload.eventType === 'DELETE') {
+            setRequests((prev) => prev.filter((item) => item.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 Status Realtime:", status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // <--- OBLIGATORIU GOL ca să nu mai dea eroarea de "size"
+
+
+  // --- LOGICA FILTRARE SI PAGINARE ---
+  const filtered = useMemo(() => {
+    return requests.filter((r) =>
+      r.nume_piesa?.toLowerCase().includes(search.toLowerCase()) ||
+      r.email_client?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [requests, search]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedData = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
-  const save = async () => {
-    if (!active) return;
+  // --- FUNCTIE SALVARE (FIX PENTRU CHECK CONSTRAINT) ---
+  const handleSave = async () => {
+    if (!active || saving) return;
     setSaving(true);
 
-    await supabase
-      .from("cereri_muzica")
-      .update({
-        status: active.status,
-        link_rezultat: active.link_rezultat,
-        genre: active.genre,
-        mood: active.mood,
-        vocal_gender: active.vocal_gender,
-        continut_text: active.continut_text,
-        pret_total: active.pret_total,
-        ultima_actualizare: new Date().toISOString(),
-      })
-      .eq("id", active.id);
+    try {
+      const { error } = await supabase
+        .from("cereri_muzica")
+        .update({
+          status: active.status, // Valoarea trebuie sa fie permisa in SQL Constraint
+          link_rezultat: active.link_rezultat || "",
+          genre: active.genre || "",
+          mood: active.mood || "",
+          vocal_gender: active.vocal_gender || "",
+          continut_text: active.continut_text || "",
+          pret_total: parseFloat(active.pret_total) || 0,
+          ultima_actualizare: new Date().toISOString()
+        })
+        .eq("id", active.id);
 
-    setSaving(false);
-    setIsEditing(false);
-    fetch();
+      if (error) {
+        alert(`Eroare SQL: ${error.message}\nVerifica daca statusul "${active.status}" este permis.`);
+        throw error;
+      }
+
+      setIsEditing(false);
+      setNewCount(0);
+    } catch (err) {
+      console.error("Save failed:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const remove = async (id: string) => {
-    await supabase.from("cereri_muzica").delete().eq("id", id);
-    setRequests((p) => p.filter((r) => r.id !== id));
-    setDeleteId(null);
+  // --- FUNCTIE STERGERE ---
+  const handleRemove = async () => {
+    if (!active || saving) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("cereri_muzica")
+        .delete()
+        .eq("id", active.id);
+      
+      if (error) throw error;
+      
+      setIsEditing(false);
+      setIsDeleting(false);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="min-h-screen text-white p-6">
+    <div className="min-h-screen bg-[#f6f9fc] text-[#1a1f36] font-sans antialiased selection:bg-indigo-100">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-12 py-12">
+        
+        {/* HEADER STRIPE STYLE */}
+        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 bg-[#635bff] rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Music className="text-white" size={24} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight">Music Requests</h1>
+              <div className="flex items-center gap-2">
 
-      {/* HEADER */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <Music /> Music Requests
-        </h1>
+              </div>
+            </div>
+          </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-2 text-gray-400" size={14} />
-          <input
-            placeholder="search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 pr-4 py-2 rounded-xl text-xs bg-gray-900 border border-gray-800"
-          />
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#635bff]" size={16} />
+              <input
+                placeholder="Search by song or email..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                className="pl-10 pr-4 py-2.5 bg-white border border-[#e3e8ee] rounded-lg text-sm shadow-sm outline-none w-80 focus:ring-4 focus:ring-[#635bff]/10 focus:border-[#635bff] transition-all"
+              />
+            </div>
+            {newCount > 0 && (
+              <motion.button 
+                initial={{ scale: 0.8 }} animate={{ scale: 1 }}
+                onClick={() => { fetchRequests(); setNewCount(0); }}
+                className="bg-indigo-50 text-red-500  px-4 py-2.5 rounded-lg text-xs font-bold border border-indigo-100 flex items-center gap-2 hover:bg-indigo-100 transition-colors shadow-sm"
+              >
+                <Sparkles size={14} className="animate-pulse" /> {newCount} NEW
+              </motion.button>
+            )}
+          </div>
+        </header>
+
+        {/* TABLE COMPONENT */}
+        <div className="bg-white rounded-xl shadow-[0_2px_5px_rgba(0,0,0,0.05)] border border-[#e3e8ee] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#fcfdfe] border-b border-[#e3e8ee] text-[#697386] text-[11px] font-bold uppercase tracking-[0.15em]">
+                  <th className="px-8 py-5">Song & Client</th>
+                  <th className="px-8 py-5 text-center">Status</th>
+                  <th className="px-8 py-5">Production Details</th>
+                  <th className="px-8 py-5">Amount</th>
+                  <th className="px-8 py-5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e3e8ee]">
+                {loading ? (
+                  <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin inline text-slate-200" size={40}/></td></tr>
+                ) : paginatedData.length === 0 ? (
+                  <tr><td colSpan={5} className="py-20 text-center text-slate-400 font-medium">No results found</td></tr>
+                ) : (
+                  paginatedData.map((req) => (
+                    <tr key={req.id} className="hover:bg-[#f9fafb] transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="font-bold text-[#3c4257] truncate max-w-[220px]">{req.nume_piesa}</div>
+                        <div className="text-xs text-[#697386] flex items-center gap-1"><Mail size={10}/> {req.email_client}</div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex justify-center">
+                          <StatusBadge status={req.status} />
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex flex-wrap gap-1">
+                          {req.genre && <span className="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-black uppercase">{req.genre}</span>}
+                          {req.vocal_gender && <span className="text-[9px] bg-indigo-50 px-2 py-0.5 rounded text-indigo-500 font-black uppercase">{req.vocal_gender}</span>}
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 font-mono text-sm font-bold text-[#3c4257] italic">€{req.pret_total}</td>
+                      <td className="px-8 py-5 text-right">
+                        <button 
+                          onClick={() => { setActive({...req}); setIsEditing(true); setIsDeleting(false); }} 
+                          className="text-[#635bff] hover:text-[#0a2540] font-black text-xs uppercase tracking-wider transition-colors px-4 py-2 hover:bg-indigo-50 rounded-lg"
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINATION STRIPE STYLE */}
+          <div className="px-8 py-5 flex items-center justify-between border-t border-[#e3e8ee] bg-[#fcfdfe]">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <div className="flex gap-2">
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)} 
+                className="px-4 py-2 rounded-lg border border-[#e3e8ee] bg-white text-xs font-bold shadow-sm hover:bg-[#f6f9fc] disabled:opacity-30 flex items-center gap-1 transition-all"
+              >
+                <ChevronLeft size={14}/> Previous
+              </button>
+              <button 
+                disabled={currentPage >= totalPages} 
+                onClick={() => setCurrentPage(p => p + 1)} 
+                className="px-4 py-2 rounded-lg border border-[#e3e8ee] bg-white text-xs font-bold shadow-sm hover:bg-[#f6f9fc] disabled:opacity-30 flex items-center gap-1 transition-all"
+              >
+                Next <ChevronRight size={14}/>
+              </button>
+            </div>
+          </div>
         </div>
-      </header>
-
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <AnimatePresence>
-          {loading
-            ? [...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-32 bg-gray-900 rounded-2xl animate-pulse"
-                />
-              ))
-            : filtered.map((req) => (
-                <motion.div
-                  key={req.id}
-                  layout
-                  className="bg-gray-900 border border-gray-800 rounded-2xl p-4"
-                >
-                  {/* status bar */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        req.status === "finalise"
-                          ? "bg-green-500"
-                          : req.status === "workinprogress"
-                          ? "bg-orange-500"
-                          : "bg-yellow-500"
-                      }`}
-                    />
-                    <span className="text-xs">{req.status}</span>
-                  </div>
-
-                  <h3 className="font-bold">{req.nume_piesa}</h3>
-
-                  <div className="text-xs text-gray-400">
-                    {req.email_client}
-                  </div>
-
-                  <div className="text-xs text-gray-500 mt-1">
-                    created: {formatDate(req.created_at)}
-                  </div>
-
-                  <div className="text-xs text-gray-400 mt-2 line-clamp-2">
-                    {req.continut_text || "—"}
-                  </div>
-
-                  <div className="flex justify-between mt-4">
-                    <button
-                      onClick={() => {
-                        setActive(req);
-                        setIsEditing(true);
-                      }}
-                      className="text-xs text-indigo-400"
-                    >
-                      edit
-                    </button>
-
-                    <button
-                      onClick={() => setDeleteId(req.id)}
-                      className="text-red-400"
-                    >
-                      delete
-                    </button>
-                  </div>
-
-                  {/* delete confirm */}
-                  <AnimatePresence>
-             {deleteId === req.id && (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="absolute inset-0 bg-black/80 flex items-center justify-center p-4"
-  >
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-xs text-center">
-      <AlertTriangle className="text-red-500 mx-auto" />
-
-      <p className="text-xs mt-2 uppercase tracking-wide">
-        delete request?
-      </p>
-
-      <div className="text-xs text-gray-400 mt-2">
-        {req.nume_piesa}
       </div>
 
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => remove(req.id)}
-          className="flex-1 py-2 bg-red-600 text-xs rounded-xl"
-        >
-          yes
-        </button>
-
-        <button
-          onClick={() => setDeleteId(null)}
-          className="flex-1 py-2 bg-gray-800 text-xs rounded-xl"
-        >
-          no
-        </button>
-      </div>
-    </div>
-  </motion.div>
-)}
-                  </AnimatePresence>
-                </motion.div>
-              ))}
-        </AnimatePresence>
-      </div>
-
-      {/* DRAWER EDIT */}
+      {/* DRAWER / SIDEBAR EDIT */}
       <AnimatePresence>
         {isEditing && active && (
           <div className="fixed inset-0 z-50 flex justify-end">
-            <motion.div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setIsEditing(false)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            {/* Overlay */}
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+              onClick={() => !saving && setIsEditing(false)} 
+              className="absolute inset-0 bg-[#0a2540]/20 backdrop-blur-[2px]" 
             />
-
-            <motion.div
-              className="relative w-full max-w-md bg-gray-900 p-6"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+            {/* Panel */}
+            <motion.div 
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} 
+              transition={{ type: "spring", damping: 25, stiffness: 200 }} 
+              className="relative w-full max-w-xl bg-white shadow-2xl h-full flex flex-col"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold">edit request</h3>
-                <button onClick={() => setIsEditing(false)}>
-                  <X />
+              <div className="p-8 border-b border-[#e3e8ee] flex justify-between items-center sticky top-0 bg-white z-10">
+                <div>
+                  <h2 className="text-xl font-bold text-[#1a1f36]">Edit Request Details</h2>
+                  <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-widest">{active.id}</p>
+                </div>
+                <button onClick={() => setIsEditing(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+                  <X size={24}/>
                 </button>
               </div>
 
-              <div className="space-y-4 overflow-y-auto max-h-[70vh]">
+              <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                
+                {/* SECTION: STATUS & PRICE */}
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Status</label>
+                    <select 
+                      value={active.status || ""} 
+                      onChange={(e) => setActive({...active, status: e.target.value})} 
+                      className="w-full border-2 border-[#e3e8ee] rounded-xl p-3 bg-[#fcfdfe] outline-none focus:border-[#635bff] transition-all font-bold text-sm"
+                    >
+                      {/* STATUSURILE RO PENTRU CHECK CONSTRAINT */}
+                      <option value="primita">primita</option>
+                      <option value="in_lucru">in_lucru</option>
+                      <option value="finalizata">finalizata</option>
+                      <option value="anulata">anulata</option>
+                    </select>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Price (€)</label>
+                    <div className="relative">
+                      <Euro className="absolute left-3 top-3.5 text-slate-300" size={16} />
+                      <input 
+                        type="number" 
+                        value={active.pret_total || 0} 
+                        onChange={(e) => setActive({...active, pret_total: e.target.value})} 
+                        className="w-full pl-10 pr-4 py-3 border-2 border-[#e3e8ee] rounded-xl bg-[#fcfdfe] font-mono font-bold outline-none focus:border-[#635bff]" 
+                      />
+                    </div>
+                  </div>
+                </div>
 
-                {/* status */}
-                <div>
-                  <label className="text-xs text-gray-400">status</label>
-                  <select
-                    value={active.status}
-                    onChange={(e) =>
-                      setActive({ ...active, status: e.target.value })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  >
-                    {["primita", "in_lucru", "finalizata", "anulata"].map(
-                      (s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      )
+                {/* SECTION: ARTISTIC INFO */}
+                <div className="space-y-6">
+                  <h3 className="text-xs font-black text-[#635bff] uppercase tracking-[0.2em] border-b border-indigo-50 pb-2">Production Metadata</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Genre</label>
+                      <input value={active.genre || ""} onChange={(e) => setActive({...active, genre: e.target.value})} className="w-full border border-[#e3e8ee] rounded-lg p-3 text-sm focus:border-[#635bff] outline-none font-medium" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Mood</label>
+                      <input value={active.mood || ""} onChange={(e) => setActive({...active, mood: e.target.value})} className="w-full border border-[#e3e8ee] rounded-lg p-3 text-sm focus:border-[#635bff] outline-none font-medium" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Vocal Gender</label>
+                    <select value={active.vocal_gender || ""} onChange={(e) => setActive({...active, vocal_gender: e.target.value})} className="w-full border border-[#e3e8ee] rounded-lg p-3 text-sm outline-none focus:border-[#635bff] font-medium">
+                      <option value="Male">Male Artist</option>
+                      <option value="Female">Female Artist</option>
+                      <option value="Duet">Duet (Male + Female)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Lyrics / Description</label>
+                    <textarea 
+                      rows={6} 
+                      value={active.continut_text || ""} 
+                      onChange={(e) => setActive({...active, continut_text: e.target.value})} 
+                      className="w-full border border-[#e3e8ee] rounded-xl p-4 bg-[#fcfdfe] resize-none outline-none focus:border-[#635bff] text-sm leading-relaxed" 
+                    />
+                  </div>
+                </div>
+
+                {/* SECTION: DELIVERY */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-[#635bff] uppercase tracking-widest">Final Result Link</label>
+                  <div className="relative group">
+                    <LinkIcon className="absolute left-3 top-3.5 text-slate-300 group-focus-within:text-[#635bff]" size={16} />
+                    <input 
+                      value={active.link_rezultat || ""} 
+                      onChange={(e) => setActive({...active, link_rezultat: e.target.value})} 
+                      className="w-full pl-10 pr-4 py-3 border-2 border-indigo-50 rounded-xl outline-none focus:border-[#635bff] text-sm font-bold" 
+                      placeholder="https://" 
+                    />
+                    {active.link_rezultat && (
+                      <a href={active.link_rezultat} target="_blank" className="absolute right-3 top-3 p-1 text-indigo-400 hover:text-indigo-600">
+                        <ExternalLink size={16}/>
+                      </a>
                     )}
-                  </select>
-                </div>
-
-                {/* genre */}
-                <div>
-                  <label className="text-xs text-gray-400">genre</label>
-                  <input
-                    value={active.genre || ""}
-                    onChange={(e) =>
-                      setActive({ ...active, genre: e.target.value })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* mood */}
-                <div>
-                  <label className="text-xs text-gray-400">mood</label>
-                  <input
-                    value={active.mood || ""}
-                    onChange={(e) =>
-                      setActive({ ...active, mood: e.target.value })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* voice */}
-                <div>
-                  <label className="text-xs text-gray-400">voice</label>
-                  <input
-                    value={active.vocal_gender || ""}
-                    onChange={(e) =>
-                      setActive({ ...active, vocal_gender: e.target.value })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* text */}
-                <div>
-                  <label className="text-xs text-gray-400">lyrics / text</label>
-                  <textarea
-                    rows={6}
-                    value={active.continut_text || ""}
-                    onChange={(e) =>
-                      setActive({ ...active, continut_text: e.target.value })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* price */}
-                <div>
-                  <label className="text-xs text-gray-400">price</label>
-                  <input
-                    type="number"
-                    value={active.pret_total || 0}
-                    onChange={(e) =>
-                      setActive({
-                        ...active,
-                        pret_total: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* result link */}
-                <div>
-                  <label className="text-xs text-gray-400 flex items-center gap-1">
-                    <LinkIcon size={12} /> result link
-                  </label>
-                  <input
-                    value={active.link_rezultat || ""}
-                    onChange={(e) =>
-                      setActive({
-                        ...active,
-                        link_rezultat: e.target.value,
-                      })
-                    }
-                    className="w-full bg-gray-800 p-2 rounded"
-                  />
-                </div>
-
-                {/* dates */}
-                <div className="text-xs text-gray-500">
-                  created: {formatDate(active.created_at)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  updated: {formatDate(active.ultima_actualizare)}
+                  </div>
                 </div>
               </div>
 
-              <button
-                onClick={save}
-                disabled={saving}
-                className="mt-6 w-full py-2 bg-indigo-600 rounded"
-              >
-                {saving ? "saving..." : "save"}
-              </button>
+              {/* FOOTER ACTIONS */}
+              <div className="p-8 border-t border-[#e3e8ee] bg-[#fcfdfe] space-y-4">
+                <button 
+                  onClick={handleSave} 
+                  disabled={saving}
+                  className="w-full py-4 bg-[#635bff] hover:bg-[#544af0] text-white rounded-xl font-black text-sm shadow-xl shadow-indigo-100 disabled:opacity-50 transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+                >
+                  {saving && !isDeleting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18}/>}
+                  Save Changes
+                </button>
+
+                {!isDeleting ? (
+                  <button 
+                    onClick={() => setIsDeleting(true)} 
+                    className="w-full py-2 text-red-400 hover:bg-red-50 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] transition-all"
+                  >
+                    Delete Permanently
+                  </button>
+                ) : (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2">
+                    <button onClick={handleRemove} className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200">Yes, Delete</button>
+                    <button onClick={() => setIsDeleting(false)} className="flex-1 py-3 bg-white text-slate-500 rounded-xl font-black text-xs uppercase tracking-widest border border-slate-200">Cancel</button>
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e3e8ee; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #635bff; }
+      `}</style>
     </div>
+  );
+}
+
+// --- HELPER COMPONENT: STATUS BADGE ---
+function StatusBadge({ status }: { status: string }) {
+  const config: any = {  
+    primita: { label: "primita", color: "bg-[#f4f7fa] text-[#697386] border-[#e3e8ee]" },
+    in_lucru: { label: "in_lucru", color: "bg-[#fff9e6] text-[#946c00] border-[#ffebad]" },
+      finalizata: { label: "finalizata", color: "bg-[#e3fcf1] text-[#008d51] border-[#c0f2dc]" },
+    anulata: { label: "anulata", color: "bg-[#ffe3e3] text-[#d00000] border-[#ffb3b3]" }
+  };
+  const current = config[status] || config.primita;
+
+  return (
+    <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm ${current.color}`}>
+      {current.label}
+    </span>
   );
 }

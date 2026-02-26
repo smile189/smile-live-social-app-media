@@ -123,7 +123,7 @@ useEffect(() => {
 
       <main className="relative z-10">
         
-  {/* ================= HERO CAROUSEL ================= */}
+
 {/* ================= HERO CAROUSEL RESPONSIVE ================= */}
 <section className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-black">
 

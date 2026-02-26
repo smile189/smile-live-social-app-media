@@ -82,7 +82,7 @@ export default function CyberIndustrialNav() {
           {/* DESKTOP LINKS */}
           <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl">
             <NavButton label="Agency" onClick={() => toggleMenu("hub")} active={openMenu === "hub"} isScrolled={isScrolled} />
-            <NavButton label="AI Engine" href="/landing/404" isScrolled={isScrolled} />
+            <NavButton label="AI Music" href="/landing/ai_music" isScrolled={isScrolled} />
             <NavButton label="Investors" href="/landing/resource/sponsor/" isScrolled={isScrolled} />
           </div>
 

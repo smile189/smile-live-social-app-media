@@ -1,3 +1,8 @@
+/**
+ * author: BM 2026
+ * about: ai_music.tsx dashboard notifications
+ */
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";

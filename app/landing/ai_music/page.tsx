@@ -69,13 +69,9 @@ export default function SunoServicePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060608] text-white relative overflow-hidden">
+<div className="min-h-screen bg-[#09080d] text-white relative overflow-hidden">
+  <div className="fixed inset-0 -z-10 bg-gradient-to-b from-[#0c0420] to-[#020249]" />
 
-      {/* Background optimized */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute w-[500px] h-[500px] bg-orange-600/20 rounded-full blur-[120px] -top-40 -left-40" />
-        <div className="absolute w-[500px] h-[500px] bg-yellow-500/10 rounded-full blur-[120px] -bottom-40 -right-40" />
-      </div>
 
       <div className="max-w-6xl mx-auto px-5 py-14">
 
@@ -146,7 +142,7 @@ export default function SunoServicePage() {
 
                     <button
                       onClick={() => setStep(2)}
-                      className="w-full py-4 bg-white text-black font-bold rounded-xl active:scale-95 transition"
+                      className="w-full py-4 bg-yellow-500 text-black font-bold rounded-xl active:scale-95 transition"
                     >
                       Continue
                     </button>
@@ -167,7 +163,7 @@ export default function SunoServicePage() {
 
                     {/* Add-ons */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className={`p-4 rounded-xl border cursor-pointer flex justify-between ${form.urgent ? "bg-orange-500 text-black border-orange-500" : "bg-white/5 border-white/10"}`}>
+                      <label className={`p-4 rounded-xl border cursor-pointer flex justify-between ${form.urgent ? "bg-red-500 text-black border-orange-500" : "bg-white/5 border-white/10"}`}>
                         Urgent (2h)
                         <input type="checkbox" hidden checked={form.urgent}
                           onChange={(e)=>setForm({...form, urgent:e.target.checked})}/>
@@ -186,14 +182,14 @@ export default function SunoServicePage() {
                     <div className="flex bg-white/5 p-1 rounded-xl">
                       <button
                         onClick={() => setForm({...form, sursa_text: "ai"})}
-                        className={`flex-1 py-3 text-xs font-bold rounded-lg transition ${form.sursa_text === "ai" ? "bg-orange-500 text-black" : "text-zinc-400"}`}
+                        className={`flex-1 py-3 text-xs font-bold rounded-lg transition ${form.sursa_text === "ai" ? "bg-violet-500 text-black" : "text-zinc-400"}`}
                       >
                         AI WRITER
                       </button>
 
                       <button
                         onClick={() => setForm({...form, sursa_text: "client"})}
-                        className={`flex-1 py-3 text-xs font-bold rounded-lg transition ${form.sursa_text === "client" ? "bg-orange-500 text-black" : "text-zinc-400"}`}
+                        className={`flex-1 py-3 text-xs font-bold rounded-lg transition ${form.sursa_text === "client" ? "bg-yellow-500 text-black" : "text-zinc-400"}`}
                       >
                         MY TEXT
                       </button>
@@ -219,7 +215,7 @@ export default function SunoServicePage() {
                       </button>
                       <button
                         onClick={() => setStep(3)}
-                        className="flex-1 py-4 bg-white text-black font-bold rounded-xl"
+                        className="flex-1 py-4 bg-yellow-500 text-black font-bold rounded-xl"
                       >
                         Continue
                       </button>
@@ -240,7 +236,7 @@ export default function SunoServicePage() {
 
                     <input
                       type="email"
-                      placeholder="YOUR@EMAIL.COM"
+                      placeholder="youremail@mail.com"
                       className="w-full bg-white/5 border border-white/10 p-5 rounded-xl text-center text-lg"
                       value={form.email_client}
                       onChange={(e)=>
@@ -259,9 +255,9 @@ export default function SunoServicePage() {
                       <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="flex-1 py-4 bg-[#0075eb] rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition"
+                        className="flex-1 py-4 bg-pink-500 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition"
                       >
-                        {loading ? "Processing..." : <>Forge & Pay <ArrowRight size={18}/></>}
+                        {loading ? "Processing..." : <>Place order & Pay <ArrowRight size={18}/></>}
                       </button>
                     </div>
                   </motion.div>
@@ -275,7 +271,7 @@ export default function SunoServicePage() {
             {/* SUMMARY */}
             <div className="lg:w-80">
               <div className="bg-white/5 border border-white/10 p-6 rounded-2xl lg:sticky lg:top-20">
-                <h3 className="text-xs uppercase text-orange-500 mb-4">
+                <h3 className="text-xs uppercase text-yellow-500 mb-4">
                   Order Summary
                 </h3>
 
@@ -286,14 +282,14 @@ export default function SunoServicePage() {
                   </div>
 
                   {form.urgent && (
-                    <div className="flex justify-between text-orange-400">
+                    <div className="flex justify-between text-yellow-400">
                       <span>Urgent</span>
                       <span>+20€</span>
                     </div>
                   )}
 
                   {form.extended && (
-                    <div className="flex justify-between text-orange-400">
+                    <div className="flex justify-between text-yellow-400">
                       <span>Extended</span>
                       <span>+15€</span>
                     </div>
@@ -310,9 +306,9 @@ export default function SunoServicePage() {
           </div>
         ) : (
           <div className="text-center py-20 space-y-8">
-            <CheckCircle size={60} className="mx-auto text-orange-500"/>
+            <CheckCircle size={60} className="mx-auto text-yellow-500"/>
             <h2 className="text-4xl font-black uppercase">
-              Order Forged!
+              Order !
             </h2>
             <p className="text-zinc-400">
               Redirecting to Revolut for secure payment...
@@ -329,7 +325,7 @@ export default function SunoServicePage() {
 
         <Link href="/landing">
           <div className="fixed top-5 left-5 bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs flex items-center gap-2">
-            <ArrowLeft size={16}/> Return
+            <ArrowLeft size={16}/> Back Home
           </div>
         </Link>
 

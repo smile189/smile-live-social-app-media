@@ -133,7 +133,7 @@ export default function CyberIndustrialNav() {
                 </div>
                 <div className="flex flex-col gap-4 flex-1">
                   <MobileLink href="landing/404" label="Begin Agency Creator" num="01" icon={<Briefcase size={20} />} />
-                  <MobileLink href="/landing/404" label="AI Music creator" num="02" icon={<Wand2 size={20} />} />
+                  <MobileLink href="/landing/ai_music" label="AI Music creator" num="02" icon={<Wand2 size={20} />} />
                   <MobileLink href="/landing/resource/sponsor/" label="Investor Relations" num="03" icon={<Users2 size={20} />} />
                 </div>
                 <div className="space-y-3 mt-auto">

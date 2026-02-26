@@ -25,6 +25,7 @@ import FinancesTab from "./finances/FinancesTab"; // Import real FinancesTab com
 import GiftsTab from "./gifts/Gifts"; // Import real GiftsTab component
 import Money from "./money/Money"; // Import real Money component
 import ModerateSmile from './moderate/ModerateSmile'; 
+import MusicRequestsDashboard from './neuromusic/ai_music';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +40,7 @@ type NavItemType =
   | "finances"
   | "moderation"
   | "gifts"
+  |  "AI Music"
   | "chat";
 
 export default function SuperAdminDashboard() {
@@ -124,6 +126,7 @@ export default function SuperAdminDashboard() {
             { icon: "💰", label: "Financials", key: "finances" },
             { icon: "🎁", label: "Gifts System", key: "gifts" },
             { icon: "🚩", label: "Moderation", key: "moderation" },
+            { icon: "🎵✨", label: "AI Music demand", key: "ai_music" },
             { icon: "💬", label: "Live Support", key: "chat" }, 
           ].map((item) => (
             <button
@@ -227,6 +230,7 @@ export default function SuperAdminDashboard() {
                 {activeTab === "finances" && <FinancesTab />}
                 {activeTab === "gifts" && <GiftsTab />}
                 {activeTab === "moderation" && <ModerateSmile />}
+                {activeTab === "ai_music" && <MusicRequestsDashboard/>}
                 {activeTab === "chat" && <Chat />}
               </motion.div>
             </AnimatePresence>

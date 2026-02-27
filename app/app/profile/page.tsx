@@ -8,16 +8,20 @@ import Link from "next/link";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createBrowserClient(
+  
+  // Inițializăm clientul Supabase o singură dată
+  const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  ));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // State pentru editare date
   const [editData, setEditData] = useState({ full_name: "", bio: "" });
 
   useEffect(() => {
@@ -25,18 +29,26 @@ export default function ProfilePage() {
   }, []);
 
   async function fetchProfile() {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Folosim getUser() pentru a verifica sesiunea activă
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    // REDIRECTIONARE: Dacă nu există user, trimite-l la login
-    if (!user) {
+    // REDIRECTIONARE: Dacă nu există user, trimite-l la login (ruta URL corectă)
+    if (!user || authError) {
       router.push("app/login");
       return;
     }
 
-    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
     if (data) {
       setProfile(data);
       setEditData({ full_name: data.full_name || "", bio: data.bio || "" });
+    } else {
+      console.error("Profile not found:", error);
     }
     setLoading(false);
   }
@@ -64,17 +76,31 @@ export default function ProfilePage() {
       if (!file) return;
 
       const fileExt = file.name.split('.').pop();
-      const filePath = `${profile.id}/${Math.random()}.${fileExt}`;
+      // Folosim timestamp pentru a evita conflictele de nume
+      const filePath = `${profile.id}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+      // Upload în bucket-ul 'avatars'
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
       if (uploadError) throw uploadError;
 
+      // Obținem URL-ul public
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
+      
+      // Actualizăm profilul în DB
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
       
       setProfile({ ...profile, avatar_url: publicUrl });
     } catch (err) {
-      console.error(err);
+      console.error("Upload error:", err);
+      alert("Upload failed. Check if Storage RLS policies allow uploads.");
     } finally {
       setUploading(false);
     }
@@ -82,7 +108,8 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("app/login");
+    router.refresh(); // Curăță cache-ul router-ului
   };
 
   if (loading && !profile) return (
@@ -96,7 +123,7 @@ export default function ProfilePage() {
       
       {/* TOP NAV BAR */}
       <div className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900 px-6 py-4 flex justify-between items-center">
-        <Link href="/"><ChevronLeft size={28} className="text-white active:scale-90 transition" /></Link>
+        <Link href="/app"><ChevronLeft size={28} className="text-white active:scale-90 transition" /></Link>
         <span className="font-black text-xs tracking-[0.3em] uppercase">My Profile</span>
         <button onClick={handleSignOut} className="text-zinc-600 hover:text-red-500 transition"><LogOut size={20}/></button>
       </div>
@@ -105,10 +132,11 @@ export default function ProfilePage() {
         
         {/* AVATAR & STATS SECTION */}
         <div className="px-6 flex flex-col md:flex-row items-center md:items-start gap-8">
+          
           <div className="relative shrink-0">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-yellow-400 p-1 bg-zinc-900 overflow-hidden shadow-[0_0_30px_rgba(250,204,21,0.1)]">
               <img 
-                src={profile?.avatar_url || `https://api.dicebear.com{profile?.username}`} 
+                src={profile?.avatar_url || `https://api.dicebear.com{profile?.username || 'default'}`} 
                 className={`w-full h-full rounded-full object-cover transition-opacity ${uploading ? 'opacity-30' : 'opacity-100'}`}
                 alt="Avatar"
               />

@@ -164,8 +164,9 @@ export default function DirectChatPage() {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-[#FFF0F6] text-zinc-900 font-sans overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-[#FFF0F6] text-zinc-900 font-sans overflow-hidden relative touch-none">
       
+      {/* GIFT ANIMATION OVERLAY */}
       <AnimatePresence>
         {activeGiftAnim && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center pointer-events-none bg-pink-500/10 backdrop-blur-[2px]">
@@ -182,103 +183,122 @@ export default function DirectChatPage() {
         )}
       </AnimatePresence>
 
-      {/* SIDEBAR - Responsive */}
-      <aside className={`${activePartner ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] lg:w-[400px] border-r border-pink-100 bg-white flex-col z-20 transition-all`}>
-        <div className="p-4 md:p-6 border-b border-pink-50 bg-white">
+      {/* SIDEBAR - Responsive Mobile */}
+      <aside className={`${activePartner ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] lg:w-[400px] border-r border-pink-100 bg-white flex-col z-20 transition-all duration-300`}>
+        <div className="p-4 md:p-6 border-b border-pink-50 sticky top-0 bg-white z-30">
           <div className="flex items-center justify-between mb-4 md:mb-6">
-            <Link href="/app" className="flex items-center gap-2 group">
-                <div className="p-2 bg-pink-500 rounded-xl text-white group-hover:bg-pink-600 transition-all"><ArrowLeft size={18} /></div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-pink-500">Back</span>
+            <Link href="/app" className="flex items-center gap-2">
+              <div className="p-2 bg-pink-500 rounded-xl text-white shadow-lg shadow-pink-200">
+                <ArrowLeft size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-pink-500">Back Home</span>
             </Link>
             <div className="p-2 bg-yellow-400 rounded-full text-white shadow-lg shadow-yellow-100"><Shield size={16} /></div>
           </div>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-200" size={16} />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search people..." className="w-full bg-pink-50/50 border border-pink-100 rounded-2xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/10 transition-all" />
+            <input 
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
+              placeholder="Search conversations..." 
+              className="w-full bg-pink-50/50 border border-pink-100 rounded-2xl py-3 pl-12 pr-4 text-sm outline-none focus:bg-white transition-all" 
+            />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto no-scrollbar p-2 md:p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-2 no-scrollbar touch-pan-y">
           {recentChats.map(u => (
-            <button key={u.id} onClick={() => setActivePartner(u)} className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all ${activePartner?.id === u.id ? 'bg-pink-50 border-pink-100' : 'hover:bg-pink-50/50 border-transparent'} border`}>
-              <img src={u.avatar_url} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-sm" />
+            <button 
+              key={u.id} 
+              onClick={() => setActivePartner(u)} 
+              className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all ${activePartner?.id === u.id ? 'bg-pink-50 border-pink-100' : 'hover:bg-pink-50/50 border-transparent'} border`}
+            >
+              <img src={u.avatar_url} className="w-11 h-11 md:w-12 md:h-12 rounded-full object-cover shadow-sm border border-pink-50" />
               <div className="text-left font-bold text-sm truncate">{u.username}</div>
             </button>
           ))}
         </div>
       </aside>
 
-      {/* CHAT MAIN - Responsive */}
-      <main className={`flex-1 flex flex-col bg-white ${!activePartner ? 'hidden md:flex' : 'flex'}`}>
+      {/* CHAT MAIN SECTION */}
+      <main className={`flex-1 flex flex-col bg-white ${!activePartner ? 'hidden md:flex' : 'flex'} w-full transition-all duration-300`}>
         {activePartner ? (
           <>
-            <header className="p-3 md:p-4 border-b border-pink-50 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <header className="p-3 md:p-4 border-b border-pink-50 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-40">
               <div className="flex items-center gap-3">
-                <button onClick={() => setActivePartner(null)} className="md:hidden text-pink-500 p-1"><ChevronLeft size={24} /></button>
+                <button onClick={() => setActivePartner(null)} className="md:hidden text-pink-500 p-2 -ml-2 rounded-full active:bg-pink-50">
+                  <ChevronLeft size={28} />
+                </button>
                 <img src={activePartner.avatar_url} className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border border-pink-100" />
                 <div>
-                  <h3 className="font-bold text-sm md:text-base leading-none">{activePartner.username}</h3>
-                  <span className="text-[9px] text-green-500 font-bold uppercase">Online</span>
+                  <h3 className="font-bold text-sm md:text-base leading-none truncate max-w-[150px] md:max-w-none">{activePartner.username}</h3>
+                  <span className="text-[9px] text-green-500 font-black uppercase">Active now</span>
                 </div>
               </div>
               <div className="relative">
                 <button onClick={() => setShowOptions(!showOptions)} className="p-2 text-zinc-400 hover:text-pink-500 transition-colors"><MoreHorizontal size={20} /></button>
                 {showOptions && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-pink-100 rounded-2xl shadow-xl z-50 overflow-hidden text-xs">
-                    <button onClick={deleteFullChat} className="w-full flex items-center gap-2 p-4 text-red-500 hover:bg-red-50 transition-colors font-bold"><Trash2 size={16} /> Delete Chat History</button>
+                  <div className="absolute right-0 mt-2 w-52 bg-white border border-pink-100 rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <button onClick={deleteFullChat} className="w-full flex items-center gap-3 p-4 text-red-500 hover:bg-red-50 transition-colors font-bold text-xs"><Trash2 size={16} /> DELETE CHAT HISTORY</button>
                   </div>
                 )}
               </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#FFF9FB] no-scrollbar">
+            {/* MESSAGES AREA */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#FFF9FB] touch-pan-y scroll-smooth">
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.sender_id === me.id ? "justify-end" : "justify-start"}`}>
                   <div className="group relative max-w-[85%] md:max-w-[70%]">
                     <div className={`p-3 md:p-4 rounded-2xl shadow-sm ${m.sender_id === me.id ? "bg-pink-500 text-white" : "bg-white border border-pink-100 text-zinc-800"}`}>
                       {m.content.includes("⤵️ Replying to:") && (
-                        <div className="mb-2 p-2 bg-black/5 rounded-lg text-[10px] italic border-l-2 border-pink-300 truncate">
+                        <div className="mb-2 p-2 bg-black/5 rounded-lg text-[10px] italic border-l-2 border-pink-300 truncate opacity-80">
                           {m.content.split('\n')[0]}
                         </div>
                       )}
                       {m.content.startsWith("[GIFT]:") ? (
                         <div className="text-center py-2">
                           <img src={m.content.split("|")[0].replace("[GIFT]:", "")} className="w-20 h-20 mx-auto" />
-                          <p className="text-[10px] font-black uppercase opacity-60 mt-1">Gift: {m.content.split("|")[1]}</p>
+                          <p className="text-[10px] font-black uppercase opacity-60 mt-2 tracking-widest">GIFT SENT</p>
                         </div>
-                      ) : <p className="text-sm whitespace-pre-wrap">{m.content.includes("⤵️") ? m.content.split('\n')[1] : m.content}</p>}
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {m.content.includes("⤵️") ? m.content.split('\n').slice(1).join('\n') : m.content}
+                        </p>
+                      )}
                     </div>
-                    {/* Message Actions (Reply/Delete) */}
-                    <div className={`absolute top-0 ${m.sender_id === me.id ? "-left-14 flex-row-reverse" : "-right-14"} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white p-1 rounded-full shadow-md`}>
-                      <button onClick={() => setReplyTo(m)} className="p-1.5 text-pink-500 hover:bg-pink-50 rounded-full"><Reply size={14} /></button>
-                      <button onClick={() => deleteMessage(m.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-full"><Trash2 size={14} /></button>
+                    {/* Floating Actions */}
+                    <div className={`absolute -top-4 ${m.sender_id === me.id ? "-left-16 flex-row-reverse" : "-right-16"} opacity-0 group-hover:opacity-100 md:group-hover:flex hidden items-center gap-1`}>
+                      <button onClick={() => setReplyTo(m)} className="p-2 bg-white border border-pink-100 rounded-full text-pink-500 shadow-xl hover:scale-110 transition-all"><Reply size={14}/></button>
+                      <button onClick={() => deleteMessage(m.id)} className="p-2 bg-white border border-pink-100 rounded-full text-red-500 shadow-xl hover:scale-110 transition-all"><Trash2 size={14}/></button>
                     </div>
                   </div>
                 </div>
               ))}
-              <div ref={scrollRef} />
+              <div ref={scrollRef} className="h-2" />
             </div>
 
-            {/* GIFT MODAL - Responsive */}
+            {/* GIFTS INTERFACE */}
             <AnimatePresence>
               {showGiftModal && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-white/95 backdrop-blur-md z-40 p-4 md:p-8 flex flex-col items-center justify-center">
-                  <button onClick={() => setShowGiftModal(false)} className="absolute top-4 right-4 p-2 bg-pink-50 rounded-full text-pink-600"><X /></button>
-                  <h2 className="text-xl md:text-2xl font-black text-pink-600 mb-2">Select a Gift 🎁</h2>
+                <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25 }} className="absolute inset-0 bg-white z-[50] flex flex-col">
+                  <div className="p-4 border-b flex items-center justify-between bg-pink-50/50">
+                    <h2 className="text-lg font-black text-pink-600 uppercase tracking-tighter">Send Magic Gift 🎁</h2>
+                    <button onClick={() => setShowGiftModal(false)} className="p-2 bg-white rounded-full shadow-sm text-pink-500"><X /></button>
+                  </div>
                   
                   {giftError && (
-                    <motion.div initial={{ y: -10 }} animate={{ y: 0 }} className="mb-4 text-center">
-                      <p className="text-red-500 text-xs font-bold mb-1 tracking-tight uppercase">Not enough coins!</p>
-                      <Link href="/buy-coins" target="_blank" className="text-pink-500 text-[10px] font-black underline uppercase tracking-widest hover:text-pink-700">Buy Coins Now</Link>
-                    </motion.div>
+                    <div className="p-4 bg-red-50 border-b border-red-100 text-center">
+                      <p className="text-red-500 text-xs font-bold uppercase mb-2">Insufficient Coins!</p>
+                      <Link href="/buy-coins" target="_blank" className="inline-block px-4 py-1.5 bg-red-500 text-white text-[10px] font-black rounded-full uppercase shadow-lg shadow-red-200">Add Coins 🪙</Link>
+                    </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 w-full max-w-2xl overflow-y-auto no-scrollbar py-4 px-2">
-                    {isLoadingGifts ? <Loader2 className="animate-spin text-pink-500 mx-auto" /> : 
+                  <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 no-scrollbar">
+                    {isLoadingGifts ? <div className="col-span-full flex justify-center py-10"><Loader2 className="animate-spin text-pink-500" /></div> : 
                       giftTypes.map(gt => (
-                        <button key={gt.id} onClick={() => sendGift(gt)} className="bg-white p-3 rounded-[24px] border border-pink-50 hover:border-pink-300 hover:shadow-xl transition-all flex flex-col items-center group">
-                          <img src={gt.image_url} className="w-12 h-12 md:w-16 md:h-16 object-contain group-hover:scale-110 transition-transform" />
-                          <p className="font-bold text-[10px] mt-2 uppercase tracking-tighter truncate w-full text-center">{gt.name}</p>
-                          <div className="mt-1 px-2 py-0.5 bg-yellow-400 text-white text-[9px] font-black rounded-full shadow-sm">{gt.coin_price} 🪙</div>
+                        <button key={gt.id} onClick={() => sendGift(gt)} className="bg-white p-4 rounded-[32px] border border-pink-100 hover:border-pink-400 hover:shadow-2xl transition-all flex flex-col items-center group">
+                          <img src={gt.image_url} className="w-16 h-16 object-contain group-hover:scale-110 transition-transform duration-300" />
+                          <p className="font-bold text-[11px] mt-3 uppercase truncate w-full text-center tracking-tighter">{gt.name}</p>
+                          <div className="mt-1 px-3 py-1 bg-yellow-400 text-white text-[9px] font-black rounded-full shadow-sm">{gt.coin_price} 🪙</div>
                         </button>
                     ))}
                   </div>
@@ -286,33 +306,37 @@ export default function DirectChatPage() {
               )}
             </AnimatePresence>
 
-            <footer className="p-3 md:p-4 bg-white border-t border-pink-50">
-              {/* REPLY BAR */}
+            {/* INPUT FOOTER */}
+            <footer className="p-3 md:p-4 bg-white border-t border-pink-50 pb-safe">
               {replyTo && (
-                <div className="mb-2 p-2 bg-pink-50 rounded-xl flex items-center justify-between border-l-4 border-pink-400 animate-in slide-in-from-bottom-2">
-                  <div className="flex-1 truncate pr-2">
-                    <p className="text-[10px] font-bold text-pink-500 uppercase leading-none mb-1 tracking-tighter">Replying to</p>
-                    <p className="text-[11px] text-zinc-600 truncate">{replyTo.content}</p>
+                <div className="mb-3 p-3 bg-pink-50 rounded-2xl flex items-center justify-between border-l-4 border-pink-500 animate-in slide-in-from-bottom-2">
+                  <div className="flex-1 truncate pr-4">
+                    <p className="text-[9px] font-black text-pink-500 uppercase mb-1">Replying to {activePartner.username}</p>
+                    <p className="text-xs text-zinc-600 truncate opacity-80 italic">"{replyTo.content}"</p>
                   </div>
-                  <button onClick={() => setReplyTo(null)} className="p-1 bg-pink-100 rounded-full text-pink-500"><X size={12}/></button>
+                  <button onClick={() => setReplyTo(null)} className="p-1.5 bg-pink-100 rounded-full text-pink-500 hover:bg-pink-200 transition-colors"><X size={14}/></button>
                 </div>
               )}
-              <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar py-1">
-                {quickEmojis.map(e => <button key={e} onClick={() => handleSend(e)} className="text-xl md:text-2xl hover:scale-125 transition-transform shrink-0">{e}</button>)}
+              <div className="flex gap-3 mb-4 overflow-x-auto no-scrollbar py-1 touch-pan-x">
+                {quickEmojis.map(e => <button key={e} onClick={() => handleSend(e)} className="text-2xl md:text-3xl hover:scale-125 active:scale-150 transition-all shrink-0 drop-shadow-sm">{e}</button>)}
               </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { setShowGiftModal(true); fetchGiftTypes(); }} className="p-3 md:p-4 bg-yellow-400 text-white rounded-xl shadow-lg active:scale-90 transition-all"><Gift size={20}/></button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setShowGiftModal(true); fetchGiftTypes(); }} className="p-4 bg-yellow-400 text-white rounded-2xl shadow-xl shadow-yellow-100 active:scale-90 transition-all"><Gift size={22}/></button>
                 <div className="flex-1 relative">
-                  <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Type something..." className="w-full bg-pink-50/50 border border-pink-100 rounded-xl py-3 px-4 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-pink-500/10 transition-all" />
+                  <input 
+                    value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} 
+                    placeholder="Write magic..." 
+                    className="w-full bg-pink-50/50 border border-pink-100 rounded-2xl py-4 px-6 text-sm outline-none focus:bg-white focus:ring-4 focus:ring-pink-500/5 transition-all shadow-inner" 
+                  />
                 </div>
-                <button onClick={() => handleSend()} className="p-3 md:p-4 bg-pink-500 text-white rounded-xl shadow-lg active:scale-95 transition-all"><Send size={20}/></button>
+                <button onClick={() => handleSend()} className="p-4 bg-pink-500 text-white rounded-2xl shadow-xl shadow-pink-200 active:scale-95 transition-all"><Send size={22}/></button>
               </div>
             </footer>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-pink-200 p-8 text-center">
-            <MessageSquare size={54} className="mb-4 opacity-20" />
-            <p className="italic opacity-60 text-sm">Select someone to start chatting</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-pink-200 p-10 text-center animate-pulse">
+            <div className="p-6 bg-pink-50 rounded-full mb-6"><MessageSquare size={60} className="opacity-30" /></div>
+            <p className="italic font-bold opacity-40 text-sm tracking-widest uppercase">Start a new magic conversation</p>
           </div>
         )}
       </main>

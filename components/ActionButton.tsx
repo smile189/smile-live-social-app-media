@@ -30,35 +30,32 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
     fetchComments();
   }, [post.id, supabase]);
 
-  // REPARARE BUILD: Această funcție trebuie să existe aici pentru a fi apelată de butonul de jos
-  const handleSend = async () => {
-    if (!newComment.trim()) return;
-    setIsSending(true);
-    const { data: { user } } = await supabase.auth.getUser();
+  const handleShare = async () => {
+    // Luăm ID-ul curat al postării
+    const postId = post.id;
     
-    const { data, error } = await supabase
-      .from("comments")
-      .insert({ 
-        post_id: post.id, 
-        user_id: user?.id, 
-        content: newComment,
-        parent_id: replyTo?.id || null 
-      })
-      .select(`*, profiles(username, avatar_url)`)
-      .single();
-
-    if (!error && data) { 
-      setComments([...comments, data]); 
-      setNewComment(""); 
-      setReplyTo(null); 
+    // Generăm link-ul FIX cum vrei tu să apară (cu /app/post/)
+    const shareUrl = `${window.location.origin}/app/post/${postId}`;
+      
+    if (navigator.share) {
+      try {
+        await navigator.share({ 
+          title: `Smile Live @${post.profiles?.username}`, 
+          url: shareUrl 
+        });
+      } catch (err) { console.log("Share failed"); }
+    } else {
+      // Fallback: copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      alert("Link copiat!");
     }
-    setIsSending(false);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose} />
       
+      {/* Adaptare PC: sm:rounded-[3rem] și eliminare mb-80 pe desktop pentru centrare */}
       <div className="relative w-full max-w-xl bg-[#0A0A0A] border-t sm:border border-white/10 rounded-t-[3rem] sm:rounded-[3rem] h-[75vh] sm:h-[80vh] mb-[80px] sm:mb-0 flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-700 ease-out">
         
         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/40 backdrop-blur-md">
@@ -196,19 +193,19 @@ export default function SidebarActions({ post }: { post: any }) {
   };
 
   const handleShare = async () => {
-    const postId = post.id;
-    // REPARAT: Adăugăm /app/ la URL pentru a se potrivi cu structura ta și a evita 404
-    const shareUrl = `${window.location.origin}/app/post/${postId}`;
+    const shareUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/app/post/${post.id}` 
+      : '';
       
     if (navigator.share) {
       try {
         await navigator.share({ 
-          title: `Smile Live @${post.profiles?.username}`, 
+          title: `Vezi postarea lui @${post.profiles?.username}`, 
           url: shareUrl 
         });
       } catch (err) { console.log("Share failed"); }
     } else {
-      await navigator.clipboard.writeText(shareUrl);
+      navigator.clipboard.writeText(shareUrl);
       alert("Link copiat!");
     }
   };
@@ -238,15 +235,19 @@ export default function SidebarActions({ post }: { post: any }) {
           <div className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 transition-all ${liked ? 'text-red-500' : 'group-hover:bg-white/10'}`}>
             <Heart size={28} className={liked ? "fill-red-500 text-red-500" : ""} strokeWidth={2} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">{likeCount}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {likeCount > 999 ? (likeCount / 1000).toFixed(1) + "K" : likeCount}
+          </span>
         </button>
 
-        {/* MESSAGES */}
+        {/* MESSAGES (CHAT) */}
         <button onClick={() => setShowMessages(true)} className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white">
           <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 group-hover:bg-white/10 transition-all">
             <MessageSquare size={28} strokeWidth={2} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">{commentCount}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {commentCount > 999 ? (commentCount / 1000).toFixed(1) + "K" : commentCount}
+          </span>
         </button>
 
         {/* SHARE */}
@@ -257,7 +258,7 @@ export default function SidebarActions({ post }: { post: any }) {
           <span className="text-[10px] font-black uppercase tracking-widest">Share</span>
         </button>
 
-        {/* SAVE */}
+        {/* SAVE (BOOKMARK) */}
         <button className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white/40 hover:text-white">
           <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 group-hover:bg-white/10 transition-all">
             <Bookmark size={28} strokeWidth={2} />

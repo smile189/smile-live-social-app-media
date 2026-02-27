@@ -63,7 +63,7 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/40 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Live Transmission Board</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">comments</span>
           </div>
           <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-zinc-400"><X size={20}/></button>
         </div>

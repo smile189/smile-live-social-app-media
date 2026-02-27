@@ -222,9 +222,7 @@ export default function CreatePostPage() {
               </div>
             </button>
             
-            <p className="text-center mt-6 text-[8px] font-black uppercase tracking-[0.5em] text-zinc-700">
-              By broadcasting, you agree to the Smile Live protocols.
-            </p>
+
           </div>
         </section>
       </main>

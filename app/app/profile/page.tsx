@@ -2,17 +2,24 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { useRouter } from "next/navigation"; // Importă router-ul pentru redirecționare
+import { useRouter } from "next/navigation";
 import { Camera, LogOut, Grid3X3, Bookmark, ChevronLeft, Loader2, Check, X } from "lucide-react";
 import Link from "next/link";
 
 export default function ProfilePage() {
   const router = useRouter();
   
-  // Inițializăm clientul Supabase o singură dată
+  // Configurare client pentru persistență maximă în browser
   const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
   ));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -20,35 +27,44 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
-  // State pentru editare date
   const [editData, setEditData] = useState({ full_name: "", bio: "" });
 
   useEffect(() => {
-    fetchProfile();
+    const checkUser = async () => {
+      // Verificăm sesiunea existentă în cache/cookie
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push("/app/login");
+        return;
+      }
+
+      // Dacă avem sesiune, luăm datele profilului
+      await fetchProfile(session.user.id);
+    };
+
+    checkUser();
+
+    // Ascultăm schimbările de stare (login/logout) în timp real
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push("/app/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile() {
-    // Folosim getUser() pentru a verifica sesiunea activă
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    // REDIRECTIONARE: Dacă nu există user, trimite-l la login (ruta URL corectă)
-    if (!user || authError) {
-      router.push("app/login");
-      return;
-    }
-
+  async function fetchProfile(userId: string) {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
 
     if (data) {
       setProfile(data);
       setEditData({ full_name: data.full_name || "", bio: data.bio || "" });
-    } else {
-      console.error("Profile not found:", error);
     }
     setLoading(false);
   }
@@ -76,31 +92,22 @@ export default function ProfilePage() {
       if (!file) return;
 
       const fileExt = file.name.split('.').pop();
-      // Folosim timestamp pentru a evita conflictele de nume
       const filePath = `${profile.id}/${Date.now()}.${fileExt}`;
 
-      // Upload în bucket-ul 'avatars'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Obținem URL-ul public
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
       
-      // Actualizăm profilul în DB
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', profile.id);
-
-      if (updateError) throw updateError;
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
       
       setProfile({ ...profile, avatar_url: publicUrl });
     } catch (err) {
-      console.error("Upload error:", err);
-      alert("Upload failed. Check if Storage RLS policies allow uploads.");
+      console.error(err);
+      alert("Upload error. Ensure storage policies are set.");
     } finally {
       setUploading(false);
     }
@@ -108,8 +115,8 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("app/login");
-    router.refresh(); // Curăță cache-ul router-ului
+    // Persistența este eliminată automat de Supabase la signOut
+    router.push("/app/login");
   };
 
   if (loading && !profile) return (
@@ -121,7 +128,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen w-full bg-black text-white font-sans selection:bg-yellow-400 selection:text-black">
       
-      {/* TOP NAV BAR */}
       <div className="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900 px-6 py-4 flex justify-between items-center">
         <Link href="/app"><ChevronLeft size={28} className="text-white active:scale-90 transition" /></Link>
         <span className="font-black text-xs tracking-[0.3em] uppercase">My Profile</span>
@@ -129,14 +135,12 @@ export default function ProfilePage() {
       </div>
 
       <div className="pt-24 pb-32 max-w-2xl mx-auto">
-        
-        {/* AVATAR & STATS SECTION */}
         <div className="px-6 flex flex-col md:flex-row items-center md:items-start gap-8">
           
           <div className="relative shrink-0">
             <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-yellow-400 p-1 bg-zinc-900 overflow-hidden shadow-[0_0_30px_rgba(250,204,21,0.1)]">
               <img 
-                src={profile?.avatar_url || `https://api.dicebear.com{profile?.username || 'default'}`} 
+                src={profile?.avatar_url || `https://api.dicebear.com{profile?.username || 'user'}`} 
                 className={`w-full h-full rounded-full object-cover transition-opacity ${uploading ? 'opacity-30' : 'opacity-100'}`}
                 alt="Avatar"
               />
@@ -189,7 +193,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* STATS BAR */}
         <div className="mt-12 grid grid-cols-3 border-y border-zinc-900 py-6">
           <div className="text-center border-r border-zinc-900">
             <p className="text-2xl font-black">0</p>
@@ -205,7 +208,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* CONTENT TABS */}
         <div className="mt-0">
           <div className="flex bg-black sticky top-14 z-20 border-b border-zinc-900">
             <button className="flex-1 flex justify-center py-4 border-b-2 border-yellow-400 text-yellow-400">
@@ -215,7 +217,6 @@ export default function ProfilePage() {
               <Bookmark size={24} strokeWidth={2}/>
             </button>
           </div>
-          
           <div className="grid grid-cols-3 gap-0.5 mt-0.5">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="aspect-[3/4] bg-zinc-900 animate-pulse border border-black/50"></div>

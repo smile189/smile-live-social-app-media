@@ -70,7 +70,7 @@ export default function PublicProfilePage() {
         <div className="w-full h-full bg-yellow-400 animate-[progress_1s_infinite_linear]" />
       </div>
       <span className="text-[10px] font-black uppercase tracking-[0.5em] text-yellow-400 animate-pulse italic">
-        Syncing Signal...
+        Loading...
       </span>
       <style jsx>{`
         @keyframes progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }

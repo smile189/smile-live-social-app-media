@@ -1,6 +1,7 @@
 /**
  * app/app/upload/page.tsx - Official Production Module
  * SMILE LIVE - High Priority Transmission (Mobile Optimized)
+ * Fully Responsive | Corporate UX | Supabase SSR Integrated
  */
 
 "use client";
@@ -9,15 +10,15 @@ import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { 
-  X, ChevronLeft, Image as ImageIcon, 
-  Upload, Shield, Send, Loader2, Globe, Zap, 
-  Sparkles, Info, CheckCircle2
+  X, ChevronLeft, Upload, Shield, Send, Loader2, Globe, Zap, 
+  Sparkles
 } from "lucide-react";
 
 export default function CreatePostPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Inițializare client Supabase stabilă
   const [supabase] = useState(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,11 +31,15 @@ export default function CreatePostPage() {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // Verificare sesiune utilizator
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) router.push("/app/login");
-      else setUser(user);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        router.push("/app/login");
+      } else {
+        setUser(currentUser);
+      }
     };
     getUser();
   }, [supabase, router]);
@@ -44,41 +49,56 @@ export default function CreatePostPage() {
     setLoading(true);
     
     try {
-      // 1. Simulare progres pentru feedback vizual corporate
+      // 1. Simulare progres vizual
       const progressInterval = setInterval(() => {
-        setUploadProgress(prev => (prev < 90 ? prev + 10 : prev));
-      }, 100);
+        setUploadProgress(prev => (prev < 90 ? prev + 5 : prev));
+      }, 150);
 
+      // 2. Pregătire fișier (Nume unic pentru a evita conflictele de cache)
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // 3. Upload în bucket-ul 'posts'
       const { error: uploadError } = await supabase.storage
         .from("posts")
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+        .upload(filePath, file, { 
+          cacheControl: '3600', 
+          upsert: false 
+        });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(fileName);
+      // 4. GENERARE URL PUBLIC (CRITIC: Aceasta face poza vizibilă în feed)
+      const { data: urlData } = supabase.storage
+        .from("posts")
+        .getPublicUrl(filePath);
 
-      const { error: dbError } = await supabase.from("posts").insert({
-        user_id: user.id,
-        caption: caption,
-        thumbnail_url: publicUrl,
-      });
+      const publicUrl = urlData.publicUrl;
+
+      // 5. Inserare metadate în Tabelul public.posts
+      const { error: dbError } = await supabase
+        .from("posts")
+        .insert({
+          user_id: user.id,
+          caption: caption,
+          thumbnail_url: publicUrl, // Salvăm URL-ul complet, nu doar calea
+        });
 
       if (dbError) throw dbError;
 
       clearInterval(progressInterval);
       setUploadProgress(100);
       
-      // Delay scurt pentru a vedea succesul pe mobil
+      // Navigare către feed după succes
       setTimeout(() => {
         router.push("/app");
         router.refresh();
-      }, 800);
+      }, 1000);
       
     } catch (err: any) {
-      alert("Transmission failed: " + err.message);
+      console.error("Transmission failed", err);
+      alert("Error: " + err.message);
       setLoading(false);
       setUploadProgress(0);
     }
@@ -89,7 +109,7 @@ export default function CreatePostPage() {
   return (
     <div className="fixed inset-0 bg-black flex flex-col font-sans text-white overflow-hidden">
       
-      {/* HEADER: ADAPTIVE BLUR */}
+      {/* HEADER: EXECUTIVE BLUR */}
       <header className="flex justify-between items-center px-4 py-5 border-b border-white/[0.05] bg-black/80 backdrop-blur-2xl z-50">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-zinc-400 active:scale-90 transition">
           <ChevronLeft size={28} />
@@ -97,26 +117,27 @@ export default function CreatePostPage() {
         
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_#eab308]" />
             <span className="text-[10px] font-black tracking-[0.4em] uppercase text-zinc-200">Production Studio</span>
           </div>
-          <span className="text-[8px] text-zinc-500 font-mono tracking-widest mt-1">SMILE-SYS-V2</span>
+          <span className="text-[8px] text-zinc-500 font-mono tracking-widest mt-1 uppercase">Transmission Unit</span>
         </div>
 
-        <div className="p-2 -mr-2 opacity-0 pointer-events-none">
-          <ChevronLeft size={28} />
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/5">
+           <Globe size={10} className="text-zinc-500" />
+           <span className="text-[8px] font-bold uppercase tracking-widest text-zinc-400">Global</span>
         </div>
       </header>
 
-      {/* BODY: SCROLLABLE WITH HIDDEN SCROLLBAR */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 overflow-y-auto no-scrollbar flex flex-col md:flex-row bg-[#030303]">
         
-        {/* PREVIEW: DYNAMIC SIZING */}
-        <section className="w-full md:flex-1 p-4 md:p-10 flex items-center justify-center">
-          <div className="relative w-full aspect-[9/16] max-w-[360px] md:max-w-[400px] shadow-[0_0_100px_rgba(0,0,0,1)]">
+        {/* MEDIA PREVIEW: 9:16 ASPECT */}
+        <section className="w-full md:flex-1 p-6 md:p-12 flex items-center justify-center">
+          <div className="relative w-full aspect-[9/16] max-w-[340px] md:max-w-[380px] shadow-[0_0_80px_rgba(0,0,0,1)]">
             {preview ? (
-              <div className="w-full h-full rounded-[2.5rem] border border-white/10 overflow-hidden relative group">
-                <img src={preview} className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-500" alt="Preview" />
+              <div className="w-full h-full rounded-[2.5rem] border border-white/10 overflow-hidden relative group animate-in fade-in zoom-in-95 duration-700">
+                <img src={preview} className="w-full h-full object-cover" alt="Visual Asset" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <button 
                   onClick={() => {setFile(null); setPreview(null); setUploadProgress(0);}} 
@@ -130,77 +151,78 @@ export default function CreatePostPage() {
                 onClick={() => fileInputRef.current?.click()} 
                 className="w-full h-full rounded-[2.5rem] border-2 border-dashed border-white/5 bg-zinc-900/10 flex flex-col items-center justify-center gap-6 hover:bg-zinc-900/20 active:bg-zinc-900/40 transition-all group"
               >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-yellow-500/20 blur-2xl rounded-full group-hover:bg-yellow-500/40 transition" />
-                  <div className="relative p-6 rounded-[2rem] bg-zinc-900 border border-white/10">
-                    <Upload size={32} className="text-zinc-500 group-hover:text-yellow-500 transition-colors" />
-                  </div>
+                <div className="p-6 rounded-[2rem] bg-zinc-900 border border-white/5 group-hover:border-yellow-500/50 transition-colors shadow-2xl">
+                  <Upload size={32} className="text-zinc-600 group-hover:text-yellow-500 transition-colors" />
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-zinc-400">Import Asset</p>
-                  <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest italic">High Fidelity Only</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-zinc-400">Attach Media</p>
+                  <p className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest italic">Signal Quality: High</p>
                 </div>
               </button>
             )}
-            <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={(e) => {
-              const f = e.target.files?.[0];
-              if(f) { setFile(f); setPreview(URL.createObjectURL(f)); }
-            }} />
+            <input 
+              type="file" 
+              hidden 
+              ref={fileInputRef} 
+              accept="image/*" 
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if(f) { 
+                  setFile(f); 
+                  setPreview(URL.createObjectURL(f)); 
+                }
+              }} 
+            />
           </div>
         </section>
 
-        {/* CONTROLS: FIXED ON MOBILE IF NEEDED, BUT HERE SCROLLABLE */}
-        <section className="w-full md:w-[420px] bg-black p-6 md:p-12 space-y-10 border-t md:border-l border-white/[0.05]">
+        {/* INPUT CONTROLS SECTION */}
+        <section className="w-full md:w-[420px] bg-black p-8 md:p-12 space-y-12 border-t md:border-l border-white/[0.05]">
           
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 flex items-center gap-2">
-                <Sparkles size={12} className="text-yellow-500" /> Narrative
-              </label>
-              <span className="text-[9px] font-mono text-zinc-700">{caption.length}/500</span>
-            </div>
+            <label className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600 flex items-center gap-2">
+              <Sparkles size={12} className="text-yellow-500" /> Narrative Caption
+            </label>
             <textarea 
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="What's the story behind this transmission?"
-              className="w-full bg-transparent border-none focus:ring-0 text-xl md:text-2xl font-medium text-white placeholder-zinc-800 resize-none min-h-[120px] p-0"
-              maxLength={500}
+              placeholder="What's your story today?"
+              className="w-full bg-transparent border-none focus:ring-0 text-xl md:text-2xl font-medium text-white placeholder-zinc-800 resize-none min-h-[140px] p-0 leading-snug"
             />
           </div>
 
-          {/* REAL-TIME DATA CARDS */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-3xl bg-zinc-900/20 border border-white/[0.03] flex flex-col gap-3">
-              <Globe size={16} className="text-zinc-500" />
+          {/* TECH BADGES */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-5 rounded-[1.8rem] bg-zinc-900/30 border border-white/[0.03] space-y-3">
+              <Zap size={16} className="text-yellow-500" />
               <div>
-                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Visibility</p>
-                <p className="text-[10px] font-bold text-zinc-300">Global Stream</p>
+                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Processing</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase">Instant Sync</p>
               </div>
             </div>
-            <div className="p-4 rounded-3xl bg-zinc-900/20 border border-white/[0.03] flex flex-col gap-3">
+            <div className="p-5 rounded-[1.8rem] bg-zinc-900/30 border border-white/[0.03] space-y-3">
               <Shield size={16} className="text-zinc-500" />
               <div>
-                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Security</p>
-                <p className="text-[10px] font-bold text-zinc-300">Encrypted</p>
+                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600">Encryption</p>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase">End-to-End</p>
               </div>
             </div>
           </div>
 
-          {/* BROADCAST BUTTON */}
-          <div className="pt-4">
+          {/* ACTION: BROADCAST */}
+          <div className="pt-6">
             <button 
               onClick={handlePost}
               disabled={loading || !file}
               className={`
-                w-full relative overflow-hidden py-5 md:py-6 rounded-[1.5rem] transition-all active:scale-[0.98]
-                ${loading ? 'bg-zinc-900' : 'bg-white hover:bg-yellow-400 group'}
-                disabled:opacity-20 disabled:grayscale
+                w-full relative overflow-hidden py-5 md:py-6 rounded-3xl transition-all active:scale-[0.97]
+                ${loading ? 'bg-zinc-900 cursor-not-allowed' : 'bg-white hover:bg-zinc-100 group shadow-[0_20px_50px_rgba(255,255,255,0.05)]'}
               `}
             >
-              {/* Progress Bar Background */}
+              {/* Progress Overlay */}
               {loading && (
                 <div 
-                  className="absolute inset-0 bg-yellow-500/20 transition-all duration-300" 
+                  className="absolute inset-0 bg-yellow-500/20 transition-all duration-300 ease-out" 
                   style={{ width: `${uploadProgress}%` }}
                 />
               )}
@@ -210,19 +232,21 @@ export default function CreatePostPage() {
                   <>
                     <Loader2 size={20} className="animate-spin text-yellow-500" />
                     <span className="text-yellow-500 font-black text-xs uppercase tracking-[0.3em]">
-                      {uploadProgress < 100 ? `Transmitting ${uploadProgress}%` : 'Finalizing...'}
+                      {uploadProgress < 95 ? `Uploading ${uploadProgress}%` : 'Finalizing...'}
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="text-black font-black text-xs uppercase tracking-[0.4em]">Broadcast Transmission</span>
-                    <Send size={18} className="text-black group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    <span className="text-black font-black text-xs uppercase tracking-[0.4em]">Broadcast Now</span>
+                    <Send size={16} className="text-black group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </>
                 )}
               </div>
             </button>
             
-
+            <p className="text-center mt-8 text-[8px] font-black uppercase tracking-[0.6em] text-zinc-700">
+              Smile Live Network Protocol V.2.6
+            </p>
           </div>
         </section>
       </main>

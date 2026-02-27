@@ -1,8 +1,3 @@
-/**
- * app/app/page.tsx - Official Pipeline Feed
- * SMILE LIVE - High-End Social App Experience
- */
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -16,7 +11,6 @@ export default function AppPage() {
   const [activePost, setActivePost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Folosim useRef pentru instanța de Supabase pentru stabilitate
   const supabase = useRef(createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -26,12 +20,7 @@ export default function AppPage() {
     const fetchFeed = async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select(`
-          *, 
-          profiles(username, avatar_url, full_name), 
-          likes(count), 
-          comments(count)
-        `)
+        .select(`*, profiles(username, avatar_url, full_name), likes(count), comments(count)`)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -43,7 +32,6 @@ export default function AppPage() {
     fetchFeed();
   }, [supabase]);
 
-  // FIX PENTRU EROAREA DE TYPE: Ref-ul trebuie să fie un dicționar de elemente HTML
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
   useEffect(() => {
@@ -59,10 +47,9 @@ export default function AppPage() {
           }
         });
       },
-      { threshold: 0.7 }
+      { threshold: 0.6 } // Ajustat pentru o detecție mai rapidă la scroll
     );
 
-    // Observăm doar elementele care nu sunt null
     Object.values(sectionRefs.current).forEach((section) => {
       if (section) observer.observe(section);
     });
@@ -72,40 +59,40 @@ export default function AppPage() {
 
   if (loading) return (
     <div className="h-screen bg-black flex items-center justify-center">
-      <div className="text-yellow-400 font-black text-3xl animate-pulse uppercase tracking-[0.5em] italic">
-        Smile Live
-      </div>
+      <div className="text-yellow-400 font-black text-3xl animate-pulse uppercase tracking-[0.5em] italic">Smile Live</div>
     </div>
   );
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden relative font-sans">
+    // Folosim touch-none pe containerul părinte dacă vrei control total, 
+    // dar e mai bine să lăsăm browserul să gestioneze snap-ul.
+    <div className="fixed inset-0 bg-black overflow-hidden font-sans">
       <TopNav />
 
-      {/* PIPELINE CONTAINER */}
-      <div className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-[#050505]">
+      {/* PIPELINE CONTAINER - MODIFICĂRI AICI PENTRU SNAP SMOOTH */}
+      <div className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar bg-[#050505]">
         {posts.map((post) => (
           <section 
             key={post.id} 
             data-id={post.id}
-            // FIX LINIA 69: Am folosit acolade {} pentru a evita return-ul implicit (void)
             ref={(el) => { sectionRefs.current[post.id] = el; }}
-            className="h-screen w-full snap-start relative flex flex-col justify-end"
+            // snap-start forțează oprirea la începutul secțiunii
+            className="h-full w-full snap-start snap-always relative flex flex-col justify-end"
           >
-            {/* MEDIA LAYER (CONTENT BROADCAST) */}
+            {/* MEDIA LAYER */}
             <div className="absolute inset-0 z-0 bg-zinc-950">
                {post.thumbnail_url && (
                  <img 
                    src={post.thumbnail_url} 
-                   className="w-full h-full object-cover opacity-90 transition-opacity duration-1000" 
+                   className="w-full h-full object-cover opacity-100 transition-opacity duration-700" 
                    alt="Broadcast Stream" 
                  />
                )}
-               <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90" />
+               <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/90" />
             </div>
 
             {/* OVERLAY METADATA */}
-            <div className="z-10 p-8 pb-40 max-w-xl animate-in fade-in slide-in-from-bottom-10 duration-1000">
+            <div className="z-10 p-8 pb-44 max-w-xl animate-in fade-in slide-in-from-bottom-10 duration-700">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-400 text-black text-[9px] font-black uppercase tracking-[0.2em] mb-4">
                  <div className="h-1.5 w-1.5 rounded-full bg-black animate-pulse" /> Live Transmission
               </div>
@@ -126,19 +113,23 @@ export default function AppPage() {
 
         {posts.length === 0 && (
           <div className="h-full flex items-center justify-center">
-            <span className="text-zinc-700 font-black uppercase text-[10px] tracking-[0.4em]">No active signals in sector</span>
+            <span className="text-zinc-700 font-black uppercase text-[10px] tracking-[0.4em]">No active signals</span>
           </div>
         )}
       </div>
 
-      {/* FLOATING INTERACTION LAYER */}
       <SidebarActions post={activePost} />
-
       <BottomNav />
 
       <style jsx global>{`
+        /* Ascunde scrollbar dar păstrează snap-ul funcțional */
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar { 
+          -ms-overflow-style: none; 
+          scrollbar-width: none;
+          /* Optimizează scroll-ul pentru mobil */
+          -webkit-overflow-scrolling: touch; 
+        }
       `}</style>
     </div>
   );

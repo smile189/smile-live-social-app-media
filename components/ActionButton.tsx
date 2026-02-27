@@ -30,25 +30,28 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
     fetchComments();
   }, [post.id, supabase]);
 
-  const handleShare = async () => {
-    // Luăm ID-ul curat al postării
-    const postId = post.id;
+  const handleSend = async () => {
+    if (!newComment.trim()) return;
+    setIsSending(true);
+    const { data: { user } } = await supabase.auth.getUser();
     
-    // Generăm link-ul FIX cum vrei tu să apară (cu /app/post/)
-    const shareUrl = `${window.location.origin}/app/post/${postId}`;
-      
-    if (navigator.share) {
-      try {
-        await navigator.share({ 
-          title: `Smile Live @${post.profiles?.username}`, 
-          url: shareUrl 
-        });
-      } catch (err) { console.log("Share failed"); }
-    } else {
-      // Fallback: copy to clipboard
-      await navigator.clipboard.writeText(shareUrl);
-      alert("Link copiat!");
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ 
+        post_id: post.id, 
+        user_id: user?.id, 
+        content: newComment,
+        parent_id: replyTo?.id || null 
+      })
+      .select(`*, profiles(username, avatar_url)`)
+      .single();
+
+    if (!error && data) { 
+      setComments([...comments, data]); 
+      setNewComment(""); 
+      setReplyTo(null); 
     }
+    setIsSending(false);
   };
 
   return (

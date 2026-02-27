@@ -153,7 +153,6 @@ export default function DirectChatPage() {
     const text = emojiContent || input;
     if (!text.trim() || !me || !activePartner) return;
     
-    // Inserăm reply-ul vizual în text pentru stabilitate
     const finalContent = replyTo 
       ? `⤵️ Replying to: "${replyTo.content.substring(0, 20)}..."\n${text}`
       : text;
@@ -172,7 +171,7 @@ export default function DirectChatPage() {
   return (
     <div className="flex h-screen bg-[#FFF0F6] text-zinc-900 font-sans overflow-hidden">
       
-      {/* SIDEBAR */}
+      {/* SIDEBAR - Responsive: ascuns pe mobil când chat-ul e activ */}
       <aside className={`
         ${activePartner ? 'hidden md:flex' : 'flex'} 
         w-full md:w-[380px] border-r border-pink-100 bg-white flex-col z-20 transition-all duration-300
@@ -230,30 +229,45 @@ export default function DirectChatPage() {
         </div>
       </aside>
 
-      {/* CHAT AREA */}
+      {/* CHAT AREA - Responsive: ocupă tot ecranul pe mobil */}
       <main className={`flex-1 flex flex-col bg-white relative ${!activePartner ? 'hidden md:flex' : 'flex'}`}>
         {activePartner ? (
           <>
-            <div className="p-4 border-b border-pink-50 flex items-center justify-between bg-white/80 backdrop-blur-md">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setActivePartner(null)} className="md:hidden text-pink-500"><ChevronLeft size={24} /></button>
-                <img src={activePartner.avatar_url} className="w-10 h-10 rounded-full object-cover border-2 border-pink-100 shadow-sm" alt="" />
-                <span className="font-black text-[12px] uppercase tracking-widest">{activePartner.username}</span>
+            {/* HEADER STICKY - Fixat sus */}
+            <div className="sticky top-0 z-30 p-4 border-b border-pink-50 flex items-center justify-between bg-white/95 backdrop-blur-sm shadow-sm">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setActivePartner(null)} 
+                  className="p-2 -ml-2 text-pink-500 hover:bg-pink-50 rounded-full transition-colors active:scale-90"
+                >
+                  <ChevronLeft size={28} />
+                </button>
+                <div className="relative">
+                  <img src={activePartner.avatar_url} className="w-10 h-10 rounded-full object-cover border border-pink-100 shadow-sm" alt="" />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-black text-[12px] uppercase tracking-widest leading-none mb-1">{activePartner.username}</span>
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">Secure Connection</span>
+                </div>
               </div>
-              <button className="p-2 text-zinc-300 hover:text-pink-500 transition-colors"><MoreHorizontal size={20} /></button>
+              <button className="p-2 text-zinc-300 hover:text-pink-500 transition-colors">
+                <MoreHorizontal size={20} />
+              </button>
             </div>
 
+            {/* MESSAGE LIST - Zona de scroll */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FFF0F6]/10 no-scrollbar">
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className="group relative max-w-[75%] transition-all">
+                  <div className="group relative max-w-[85%] md:max-w-[75%] transition-all">
                     <div className={`px-5 py-3 rounded-[2rem] text-sm shadow-sm whitespace-pre-wrap ${m.sender_id === me?.id ? 'bg-pink-500 text-white rounded-tr-none' : 'bg-white text-zinc-700 rounded-tl-none border border-pink-50'}`}>
                       {m.content}
                     </div>
-                    {/* ACTIUNI LA HOVER */}
+                    {/* ACTIUNI LA HOVER (SAU TAP PE MOBIL) */}
                     <div className={`absolute top-0 ${m.sender_id === me?.id ? '-left-14' : '-right-14'} flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-full shadow-sm border border-pink-50`}>
-                        <button onClick={() => setReplyTo(m)} className="p-1 text-pink-400 hover:text-pink-600 transition-colors"><Reply size={14} /></button>
-                        <button onClick={() => deleteMessage(m.id)} className="p-1 text-red-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                        <button onClick={() => setReplyTo(m)} className="p-1.5 text-pink-400 hover:text-pink-600 transition-colors"><Reply size={14} /></button>
+                        <button onClick={() => deleteMessage(m.id)} className="p-1.5 text-red-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </div>
@@ -261,8 +275,8 @@ export default function DirectChatPage() {
               <div ref={scrollRef} />
             </div>
 
-            <div className="p-6 bg-white border-t border-pink-50">
-              {/* REPLY PREVIEW */}
+            {/* INPUT AREA - Fixată jos */}
+            <div className="p-4 md:p-6 bg-white border-t border-pink-50">
               {replyTo && (
                 <div className="mb-3 p-3 bg-pink-50 rounded-2xl flex items-center justify-between border border-pink-100 animate-in slide-in-from-bottom-2">
                   <div className="text-[10px] truncate text-zinc-600 italic px-2">
@@ -273,14 +287,13 @@ export default function DirectChatPage() {
                 </div>
               )}
 
-              {/* QUICK EMOJI BAR */}
-              <div className="flex gap-4 mb-4 px-2 overflow-x-auto no-scrollbar">
+              <div className="flex gap-3 mb-4 px-2 overflow-x-auto no-scrollbar pb-1">
                 {quickEmojis.map(emoji => (
                   <button key={emoji} onClick={() => handleSend(emoji)} className="text-xl hover:scale-125 transition-transform active:scale-90">{emoji}</button>
                 ))}
               </div>
 
-              <div className="flex gap-3 items-center bg-pink-50/50 p-2 rounded-[2.5rem] border border-pink-100 focus-within:bg-white focus-within:ring-4 focus-within:ring-pink-500/5 transition-all">
+              <div className="flex gap-3 items-center bg-pink-50/50 p-2 rounded-[2.5rem] border border-pink-100 focus-within:bg-white focus-within:ring-4 focus-within:ring-pink-500/5 transition-all shadow-inner">
                 <input 
                   value={input} 
                   onChange={(e) => setInput(e.target.value)}
@@ -288,14 +301,16 @@ export default function DirectChatPage() {
                   placeholder="Express yourself..."
                   className="flex-1 bg-transparent px-4 py-2 text-sm outline-none placeholder:text-pink-200"
                 />
-                <button onClick={() => handleSend()} className="bg-pink-500 text-white p-3 rounded-full hover:bg-pink-600 transition-all shadow-lg active:scale-95"><Send size={18} /></button>
+                <button onClick={() => handleSend()} className="bg-pink-500 text-white p-3 rounded-full hover:bg-pink-600 transition-all shadow-lg shadow-pink-200 active:scale-95">
+                  <Send size={18} />
+                </button>
               </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center bg-[#FFF0F6]/10 text-pink-200">
             <MessageSquare size={48} className="mb-4 opacity-20" />
-            <p className="font-black uppercase tracking-[0.3em] text-[10px]">Secure Connection</p>
+            <p className="font-black uppercase tracking-[0.3em] text-[10px]">Select a Connection</p>
           </div>
         )}
       </main>

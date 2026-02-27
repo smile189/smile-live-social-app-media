@@ -196,14 +196,20 @@ export default function SidebarActions({ post }: { post: any }) {
   };
 
   const handleShare = async () => {
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : '';
+    const shareUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/app/post/${post.id}` 
+      : '';
+      
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Check this out!', url: shareUrl });
-      } catch (err) { console.log(err); }
+        await navigator.share({ 
+          title: `Vezi postarea lui @${post.profiles?.username}`, 
+          url: shareUrl 
+        });
+      } catch (err) { console.log("Share failed"); }
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert("Link copied!");
+      alert("Link copiat!");
     }
   };
 

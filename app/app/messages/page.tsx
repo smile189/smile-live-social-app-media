@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { 
   Send, ChevronLeft, Shield, MoreHorizontal, CheckCheck, 
-  Search, MessageSquare, Loader2, User, Menu, X, Home, ArrowLeft
+  Search, MessageSquare, Loader2, User, Menu, X, Home, ArrowLeft, Trash2, Reply
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,9 +23,11 @@ export default function DirectChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [replyTo, setReplyTo] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const getRoomId = (id1: string, id2: string) => [id1, id2].sort().join("_");
+  const quickEmojis = ["❤️", "🔥", "😂", "😮", "🙌", "✨"];
 
   // --- SOLICITARE PERMISIUNI NOTIFICĂRI ---
   useEffect(() => {
@@ -71,6 +73,14 @@ export default function DirectChatPage() {
     }
   };
 
+  // --- ȘTERGERE MESAJ INDIVIDUAL ---
+  const deleteMessage = async (msgId: string) => {
+    const { error } = await supabase.from("direct_messages").delete().eq("id", msgId);
+    if (!error) {
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+    }
+  };
+
   useEffect(() => {
     const searchUsers = async () => {
       if (searchQuery.length < 2) { setSearchResults([]); return; }
@@ -92,7 +102,6 @@ export default function DirectChatPage() {
   useEffect(() => {
     if (!me) return;
 
-    // Abonare la TOATE mesajele care implică user-ul meu pentru notificări de fundal
     const globalChannel = supabase.channel('global-notifications')
       .on('postgres_changes', { 
         event: 'INSERT', 
@@ -103,15 +112,14 @@ export default function DirectChatPage() {
         const isNotFromMe = payload.new.sender_id !== me.id;
         const isNotCurrentRoom = activePartner ? !payload.new.room_id.includes(activePartner.id) : true;
 
-        // Trimitem notificare dacă tab-ul e ascuns SAU dacă nu suntem în camera respectivă
         if (isForMe && isNotFromMe && (document.hidden || isNotCurrentRoom)) {
           if (Notification.permission === "granted") {
             new Notification("Smile Live Message", {
               body: payload.new.content,
-              icon: "/logo.png" // Asigură-te că ai un logo în public/logo.png
+              icon: "/logo.png"
             });
           }
-          fetchRecentChats(me.id); // Refresh inbox-ul să apară sus
+          fetchRecentChats(me.id);
         }
       })
       .subscribe();
@@ -126,8 +134,11 @@ export default function DirectChatPage() {
     fetchMessages();
 
     const roomChannel = supabase.channel(`room:${roomId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `room_id=eq.${roomId}` }, 
-      (payload) => { setMessages(prev => [...prev, payload.new]); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages', filter: `room_id=eq.${roomId}` }, 
+      (payload) => { 
+        if (payload.eventType === 'INSERT') setMessages(prev => [...prev, payload.new]); 
+        if (payload.eventType === 'DELETE') setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
       .subscribe();
 
     return () => { 
@@ -138,14 +149,22 @@ export default function DirectChatPage() {
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !me || !activePartner) return;
-    const content = input;
+  const handleSend = async (emojiContent?: string) => {
+    const text = emojiContent || input;
+    if (!text.trim() || !me || !activePartner) return;
+    
+    // Inserăm reply-ul vizual în text pentru stabilitate
+    const finalContent = replyTo 
+      ? `⤵️ Replying to: "${replyTo.content.substring(0, 20)}..."\n${text}`
+      : text;
+
     setInput("");
+    setReplyTo(null);
+
     await supabase.from("direct_messages").insert({
       room_id: getRoomId(me.id, activePartner.id),
       sender_id: me.id,
-      content: content
+      content: finalContent
     });
     fetchRecentChats(me.id);
   };
@@ -201,16 +220,10 @@ export default function DirectChatPage() {
               <button 
                 key={chat.id} 
                 onClick={() => setActivePartner(chat)}
-                className={`w-full flex items-center gap-4 p-4 rounded-3xl transition-all ${activePartner?.id === chat.id ? 'bg-pink-500 text-white shadow-xl shadow-pink-200/50' : 'hover:bg-pink-50 bg-white/50 border border-pink-50'}`}
+                className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all ${activePartner?.id === chat.id ? 'bg-pink-50 shadow-inner' : 'hover:bg-pink-50/50'}`}
               >
-                <div className="relative">
-                   <img src={chat.avatar_url} className={`w-12 h-12 rounded-2xl object-cover border-2 ${activePartner?.id === chat.id ? 'border-pink-300' : 'border-white'}`} alt="" />
-                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-400 border-2 border-white rounded-full shadow-sm"></div>
-                </div>
-                <div className="text-left flex-1">
-                  <p className={`text-xs font-black uppercase tracking-wider ${activePartner?.id === chat.id ? 'text-white' : 'text-zinc-800'}`}>@{chat.username}</p>
-                  <p className={`text-[10px] ${activePartner?.id === chat.id ? 'text-pink-100' : 'text-pink-300'} font-bold`}>Link Secured</p>
-                </div>
+                <img src={chat.avatar_url} className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm" alt="" />
+                <div className="text-left font-black text-[11px] uppercase tracking-wider text-zinc-600">@{chat.username}</div>
               </button>
             ))}
           </div>
@@ -218,70 +231,71 @@ export default function DirectChatPage() {
       </aside>
 
       {/* CHAT AREA */}
-      <main className={`
-        ${!activePartner ? 'hidden md:flex' : 'flex'} 
-        flex-1 flex-col relative bg-[#FFF9FB]
-      `}>
+      <main className={`flex-1 flex flex-col bg-white relative ${!activePartner ? 'hidden md:flex' : 'flex'}`}>
         {activePartner ? (
           <>
-            <header className="h-20 px-4 md:px-10 border-b border-pink-100 flex items-center justify-between bg-white/90 backdrop-blur-xl z-30">
+            <div className="p-4 border-b border-pink-50 flex items-center justify-between bg-white/80 backdrop-blur-md">
               <div className="flex items-center gap-4">
-                <button onClick={() => setActivePartner(null)} className="md:hidden p-2 text-pink-400 transition-transform active:scale-90"><ChevronLeft size={24}/></button>
-                <div className="relative">
-                    <img src={activePartner.avatar_url} className="w-10 h-10 rounded-full object-cover ring-2 ring-pink-100 shadow-sm" alt="" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-black uppercase tracking-widest text-zinc-800">@{activePartner.username}</h2>
-                  <span className="text-[8px] font-black text-pink-400 uppercase tracking-[0.2em] animate-pulse">Encrypted Uplink</span>
-                </div>
+                <button onClick={() => setActivePartner(null)} className="md:hidden text-pink-500"><ChevronLeft size={24} /></button>
+                <img src={activePartner.avatar_url} className="w-10 h-10 rounded-full object-cover border-2 border-pink-100 shadow-sm" alt="" />
+                <span className="font-black text-[12px] uppercase tracking-widest">{activePartner.username}</span>
               </div>
-              <div className="flex items-center gap-3">
-                 <button className="p-2.5 text-pink-300 hover:bg-pink-50 rounded-xl transition"><MoreHorizontal size={20} /></button>
-              </div>
-            </header>
+              <button className="p-2 text-zinc-300 hover:text-pink-500 transition-colors"><MoreHorizontal size={20} /></button>
+            </div>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 no-scrollbar">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex flex-col ${msg.sender_id === me?.id ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                  <div className={`max-w-[85%] md:max-w-[60%] px-6 py-4 rounded-[22px] text-sm leading-relaxed shadow-sm ${
-                    msg.sender_id === me?.id 
-                    ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-tr-none' 
-                    : 'bg-white text-zinc-700 border border-pink-50 rounded-tl-none shadow-sm'
-                  }`}>
-                    {msg.content}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FFF0F6]/10 no-scrollbar">
+              {messages.map((m) => (
+                <div key={m.id} className={`flex ${m.sender_id === me?.id ? 'justify-end' : 'justify-start'}`}>
+                  <div className="group relative max-w-[75%] transition-all">
+                    <div className={`px-5 py-3 rounded-[2rem] text-sm shadow-sm whitespace-pre-wrap ${m.sender_id === me?.id ? 'bg-pink-500 text-white rounded-tr-none' : 'bg-white text-zinc-700 rounded-tl-none border border-pink-50'}`}>
+                      {m.content}
+                    </div>
+                    {/* ACTIUNI LA HOVER */}
+                    <div className={`absolute top-0 ${m.sender_id === me?.id ? '-left-14' : '-right-14'} flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-full shadow-sm border border-pink-50`}>
+                        <button onClick={() => setReplyTo(m)} className="p-1 text-pink-400 hover:text-pink-600 transition-colors"><Reply size={14} /></button>
+                        <button onClick={() => deleteMessage(m.id)} className="p-1 text-red-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                  <span className="text-[8px] font-black text-pink-200 uppercase mt-2 px-1 tracking-widest">
-                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
                 </div>
               ))}
               <div ref={scrollRef} />
             </div>
 
-            <footer className="p-4 md:p-8 bg-white border-t border-pink-50">
-              <div className="relative max-w-5xl mx-auto flex items-center gap-3">
+            <div className="p-6 bg-white border-t border-pink-50">
+              {/* REPLY PREVIEW */}
+              {replyTo && (
+                <div className="mb-3 p-3 bg-pink-50 rounded-2xl flex items-center justify-between border border-pink-100 animate-in slide-in-from-bottom-2">
+                  <div className="text-[10px] truncate text-zinc-600 italic px-2">
+                    <span className="font-black text-pink-500 uppercase mr-2 italic tracking-tighter">Replying:</span>
+                    {replyTo.content}
+                  </div>
+                  <button onClick={() => setReplyTo(null)} className="p-1 text-pink-400 hover:bg-white rounded-full"><X size={16} /></button>
+                </div>
+              )}
+
+              {/* QUICK EMOJI BAR */}
+              <div className="flex gap-4 mb-4 px-2 overflow-x-auto no-scrollbar">
+                {quickEmojis.map(emoji => (
+                  <button key={emoji} onClick={() => handleSend(emoji)} className="text-xl hover:scale-125 transition-transform active:scale-90">{emoji}</button>
+                ))}
+              </div>
+
+              <div className="flex gap-3 items-center bg-pink-50/50 p-2 rounded-[2.5rem] border border-pink-100 focus-within:bg-white focus-within:ring-4 focus-within:ring-pink-500/5 transition-all">
                 <input 
-                  value={input}
+                  value={input} 
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type secure transmission..."
-                  className="flex-1 bg-pink-50/20 border border-pink-100 rounded-[20px] py-4 px-8 text-sm outline-none focus:bg-white focus:border-pink-500 transition-all"
+                  placeholder="Express yourself..."
+                  className="flex-1 bg-transparent px-4 py-2 text-sm outline-none placeholder:text-pink-200"
                 />
-                <button 
-                  onClick={handleSend}
-                  className="p-4 bg-yellow-400 rounded-2xl text-white hover:bg-yellow-500 active:scale-95 transition-all shadow-xl shadow-yellow-200"
-                >
-                  <Send size={20} />
-                </button>
+                <button onClick={() => handleSend()} className="bg-pink-500 text-white p-3 rounded-full hover:bg-pink-600 transition-all shadow-lg active:scale-95"><Send size={18} /></button>
               </div>
-            </footer>
+            </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-pink-200">
-            <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl shadow-pink-100/50 border border-pink-50">
-              <MessageSquare size={40} className="text-pink-300" />
-            </div>
-            <p className="text-[9px] font-black uppercase tracking-[0.5em] text-pink-400">Select Connection Studio</p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#FFF0F6]/10 text-pink-200">
+            <MessageSquare size={48} className="mb-4 opacity-20" />
+            <p className="font-black uppercase tracking-[0.3em] text-[10px]">Secure Connection</p>
           </div>
         )}
       </main>

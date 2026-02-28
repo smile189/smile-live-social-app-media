@@ -29,7 +29,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        // Fix la split email pentru TS
         const defaultName = user.email ? user.email.split('@')[0] : 'Guest';
         setMe(profile || { id: user.id, username: defaultName });
       }
@@ -43,7 +42,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
     init();
   }, [supabase]);
 
-  // REPARAT: Structura corectă a canalului fără eroarea de Postgres_changes
   useEffect(() => {
     const channelName = `live_global_${Math.random()}`;
     
@@ -125,7 +123,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
   return (
     <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-end p-4 pb-10 pointer-events-none overflow-hidden">
       
-      {/* GIFT ANIMATIONS - CORPORATE CLEAN */}
       <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
         <AnimatePresence>
           {activeGifts.map((g) => (
@@ -146,7 +143,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
 
       <div className="relative z-20 w-full max-w-[480px] pointer-events-auto flex flex-col items-center gap-4">
         
-        {/* COMBO */}
         <AnimatePresence>
           {combo.count > 1 && (
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
@@ -158,9 +154,21 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
           )}
         </AnimatePresence>
 
-        {/* MESSAGES - NO BUBBLES */}
-        <div ref={scrollRef} className="w-full flex flex-col gap-2 overflow-y-auto max-h-[40vh] no-scrollbar px-4"
-          style={{ maskImage: 'linear-gradient(to top, black 85%, transparent 100%)' }}>
+        {/* MESSAGES - SCROLLBAR HIDDEN */}
+        <div 
+          ref={scrollRef} 
+          className="w-full flex flex-col gap-2 overflow-y-auto max-h-[40vh] px-4 scrollbar-hide"
+          style={{ 
+            maskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
+            msOverflowStyle: 'none',  /* IE and Edge */
+            scrollbarWidth: 'none'    /* Firefox */
+          }}
+        >
+          {/* Webkit scrollbar hide inline */}
+          <style dangerouslySetInnerHTML={{__html: `
+            .scrollbar-hide::-webkit-scrollbar { display: none; }
+          `}} />
+          
           {messages.map((msg, i) => (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={msg.id || i} className="flex justify-center text-center">
               <div className="flex flex-wrap justify-center items-baseline gap-2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
@@ -179,7 +187,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
           ))}
         </div>
 
-        {/* INPUT - CENTRAT PE DEVICE */}
         <div className="w-full flex items-center gap-2 bg-black/30 backdrop-blur-2xl border border-white/10 rounded-full p-1.5 px-4 shadow-2xl">
           <button onClick={() => setShowGifts(!showGifts)} className="p-2 text-white/50 hover:text-blue-400 transition-colors">
             <GiftIcon size={20} />
@@ -198,7 +205,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
         </div>
       </div>
 
-      {/* GIFT SELECTOR */}
       <AnimatePresence>
         {showGifts && (
           <motion.div 

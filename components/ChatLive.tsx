@@ -24,13 +24,14 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
   const [combo, setCombo] = useState({ count: 0, lastId: '', user: '' });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch inițial date - LOGICĂ COMPLETĂ
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        setMe(profile || { id: user.id, username: user.email?.split('@')[0] });
+        // Fix la split email pentru TS
+        const defaultName = user.email ? user.email.split('@')[0] : 'Guest';
+        setMe(profile || { id: user.id, username: defaultName });
       }
 
       const { data: gifts } = await supabase.from('gift_types').select('*').order('coin_price', { ascending: true });
@@ -42,42 +43,41 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
     init();
   }, [supabase]);
 
-  // 2. Realtime Engine - LOGICĂ COMPLETĂ
+  // REPARAT: Structura corectă a canalului fără eroarea de Postgres_changes
   useEffect(() => {
     const channelName = `live_global_${Math.random()}`;
     
-    const channel = supabase.channel(channelName, {
-      config: {
-        postgres_changes: [{ 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'live_messages' 
-        }]
-      }
-    })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_messages' }, (payload) => {
-      const newMsg = payload.new;
-      
-      setMessages(prev => {
-        if (prev.some(m => m.id === newMsg.id)) return prev;
-        return [...prev, newMsg].slice(-40);
-      });
-
-      if (newMsg.is_gift) {
-        const animId = Date.now();
-        setActiveGifts(prev => [...prev, { id: animId, content: newMsg.gift_emoji, user: newMsg.username_cache }]);
+    const channel = supabase.channel(channelName)
+    .on('postgres_changes', 
+      { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'live_messages' 
+      }, 
+      (payload) => {
+        const newMsg = payload.new as any;
         
-        setCombo(prev => ({
-          count: (prev.lastId === newMsg.gift_emoji && prev.user === newMsg.username_cache) ? prev.count + 1 : 1,
-          lastId: newMsg.gift_emoji,
-          user: newMsg.username_cache
-        }));
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg].slice(-40);
+        });
 
-        setTimeout(() => {
-          setActiveGifts(prev => prev.filter(g => g.id !== animId));
-        }, 4000);
+        if (newMsg.is_gift) {
+          const animId = Date.now();
+          setActiveGifts(prev => [...prev, { id: animId, content: newMsg.gift_emoji, user: newMsg.username_cache }]);
+          
+          setCombo(prev => ({
+            count: (prev.lastId === newMsg.gift_emoji && prev.user === newMsg.username_cache) ? prev.count + 1 : 1,
+            lastId: newMsg.gift_emoji,
+            user: newMsg.username_cache
+          }));
+
+          setTimeout(() => {
+            setActiveGifts(prev => prev.filter(g => g.id !== animId));
+          }, 4000);
+        }
       }
-    })
+    )
     .subscribe();
 
     return () => {
@@ -85,14 +85,12 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
     };
   }, [supabase]);
 
-  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
-  // 3. Logica de Trimitere - LOGICĂ COMPLETĂ
   const handleAction = async (gift?: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert("Log in to participate!");
@@ -127,7 +125,7 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
   return (
     <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-end p-4 pb-10 pointer-events-none overflow-hidden">
       
-      {/* GIFT ANIMATIONS - FĂRĂ FUNDAL / CENTRAT */}
+      {/* GIFT ANIMATIONS - CORPORATE CLEAN */}
       <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
         <AnimatePresence>
           {activeGifts.map((g) => (
@@ -135,7 +133,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
               initial={{ scale: 0.5, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: -40 }}
               exit={{ scale: 1.2, opacity: 0 }}
-              transition={{ duration: 3 }}
               className="absolute flex flex-col items-center"
             >
               <img src={g.content} className="w-40 h-40 md:w-56 md:h-56 object-contain drop-shadow-2xl" alt="gift" />
@@ -147,7 +144,6 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
         </AnimatePresence>
       </div>
 
-      {/* CHAT INTERFACE - CENTRAT / NO BUBBLES */}
       <div className="relative z-20 w-full max-w-[480px] pointer-events-auto flex flex-col items-center gap-4">
         
         {/* COMBO */}
@@ -162,7 +158,7 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
           )}
         </AnimatePresence>
 
-        {/* MESSAGES - PURE TEXT / CENTERED */}
+        {/* MESSAGES - NO BUBBLES */}
         <div ref={scrollRef} className="w-full flex flex-col gap-2 overflow-y-auto max-h-[40vh] no-scrollbar px-4"
           style={{ maskImage: 'linear-gradient(to top, black 85%, transparent 100%)' }}>
           {messages.map((msg, i) => (
@@ -183,7 +179,7 @@ export default function ChatLive({ streamerId }: ChatLiveProps) {
           ))}
         </div>
 
-        {/* INPUT - CORPORATE MINIMALIST */}
+        {/* INPUT - CENTRAT PE DEVICE */}
         <div className="w-full flex items-center gap-2 bg-black/30 backdrop-blur-2xl border border-white/10 rounded-full p-1.5 px-4 shadow-2xl">
           <button onClick={() => setShowGifts(!showGifts)} className="p-2 text-white/50 hover:text-blue-400 transition-colors">
             <GiftIcon size={20} />

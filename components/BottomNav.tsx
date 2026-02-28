@@ -1,141 +1,129 @@
-/**
- * bottomNav.tsx - component for the bottom navigation bar in Smile Live App
- * author: BM, responsible for rendering the fixed bottom navigation with interactive icons and handling user authentication state 
- * to conditionally navigate users to appropriate pages based on their login status.
- * This component uses Supabase for authentication state management and Next.js router for navigation.
- *  It features a visually appealing design with smooth animations and responsive interactions, enhancing the user experience on mobile devices.
- * The navigation includes icons for Home, Hot, Create, Chat, and Connect, with special handling for
- *  the Create button to make it stand out. User authentication is checked before allowing access to certain routes, ensuring a secure and intuitive navigation flow.
- */
-
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Home, Compass, MessageSquare, Plus, User } from "lucide-react";
 
 export default function BottomNav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [active, setActive] = useState("feed");
   const [user, setUser] = useState<any>(null);
+  const [hasUnread, setHasUnread] = useState(false);
 
-  // Init supabase client for auth state management
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Verify user authentication state on component mount and on auth changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    if (pathname?.includes("messages")) setActive("chat");
+    else if (pathname?.includes("profile")) setActive("connect");
+    else if (pathname?.includes("upload")) setActive("add");
+    else setActive("feed");
+  }, [pathname]);
 
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+  const checkUnread = async (userId: string) => {
+    try {
+      const { count, error } = await supabase
+        .from("direct_messages")
+        .select("*", { count: 'exact', head: true })
+        .neq("sender_id", userId)
+        .filter('room_id', 'ilike', `%${userId}%`);
 
-  const handleAction = async (id: string) => {
-    setActive(id);
-
-    // 1. Logica pentru HOME (Refresh/Scroll)
-    if (id === "feed") {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    // 2. Verificăm dacă userul este logat pentru restul funcțiilor
-    if (!user) {
-      // Dacă NU e logat, orice buton (Hot, Create, Chat, Connect) îl duce la login
-      router.push("app/login");
-      return;
-    }
-
-    // 3. Dacă ESTE logat, deblocăm rutele specifice
-    switch (id) {
-      case "connect":
-        router.push("app/profile"); // Pagina lui de profil
-        break;
-      case "add":
-        router.push("app/upload"); // Pagina de urcare clipuri
-        break;
-      case "chat":
-        router.push("app/messages"); // Mesageria
-        break;
-      case "hot":
-        console.log("Loading trending content...");
-        break;
-      default:
-        break;
+      if (!error) setHasUnread((count || 0) > 0);
+    } catch (err) {
+      console.log("Eroare badge:", err);
     }
   };
 
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      if (currentUser) checkUnread(currentUser.id);
+    };
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const curr = session?.user ?? null;
+      setUser(curr);
+      if (curr) checkUnread(curr.id);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel('nav-realtime-dot')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
+        if (payload.new.room_id.includes(user.id) && payload.new.sender_id !== user.id) {
+          setHasUnread(true);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   const navItems = [
-    { id: "feed", label: "Home", icon: Home },
-    { id: "hot", label: "Hot", icon: Compass },
-    { id: "add", label: "Create", icon: Plus, isSpecial: true },
-    { id: "chat", label: "Chat", icon: MessageSquare },
-    { id: "connect", label: "Connect", icon: User },
+    { id: "feed", label: "Home", icon: Home, path: "/app" },
+    { id: "hot", label: "Hot", icon: Compass, path: "/app" },
+    { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
+    { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
+    { id: "connect", label: "Connect", icon: User, path: "/app/profile" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 w-full px-4 pb-8 pt-4 z-50 pointer-events-none">
-      <nav className="max-w-md mx-auto h-20 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] flex items-center justify-around px-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-auto">
-        
+    <div className="fixed bottom-0 left-0 w-full z-[999] pointer-events-none flex flex-col items-center">
+      {/* GLASS NAV BAR */}
+      <nav className="w-full md:max-w-[420px] h-[65px] md:h-16 bg-black/40 backdrop-blur-2xl border-t md:border border-white/20 md:rounded-[30px] md:mb-6 flex items-center justify-around px-2 shadow-2xl pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
 
           if (item.isSpecial) {
             return (
-              <div key={item.id} className="relative group -translate-y-4">
-                <div className="absolute inset-0 bg-yellow-400/40 blur-2xl rounded-full scale-150 animate-[pulse_4s_ease-in-out_infinite]" />
-                <button 
-                  onClick={() => handleAction(item.id)}
-                  className="relative w-14 h-14 bg-yellow-400 rounded-2xl flex items-center justify-center text-black shadow-[0_10px_30px_rgba(250,204,21,0.4)] hover:scale-110 active:scale-90 transition-all duration-300"
-                >
-                  <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-500" />
-                </button>
-              </div>
+              <button 
+                key={item.id} 
+                onClick={() => router.push(item.path)} 
+                className="relative -translate-y-2 md:-translate-y-4 group active:scale-90 transition-transform"
+              >
+                {/* TIKTOK STYLE YELLOW GLOW/OUTLINE */}
+                <div className="absolute inset-0 bg-yellow-400 rounded-xl translate-x-[3px]" />
+                <div className="absolute inset-0 bg-white rounded-xl -translate-x-[3px]" />
+                
+                {/* MAIN BUTTON BODY */}
+                <div className="relative w-12 h-9 bg-black rounded-xl flex items-center justify-center text-white border border-zinc-800">
+                  <Plus size={24} strokeWidth={3} className="text-yellow-400" />
+                </div>
+              </button>
             );
           }
 
           return (
-            <button
-              key={item.id}
-              onClick={() => handleAction(item.id)}
-              className="flex flex-col items-center gap-1 min-w-[60px] group transition-all"
-            >
-              <div className="relative">
-                <Icon 
-                  size={24} 
-                  strokeWidth={isActive ? 2.5 : 1.8} 
-                  className={`transition-all duration-500 ${
-                    isActive ? "text-white scale-110 shadow-white" : "text-white/30 group-hover:text-white/60"
-                  }`} 
-                />
+            <button key={item.id} onClick={() => router.push(item.path)} className="flex flex-col items-center justify-center flex-1 h-full relative group">
+              <div className="relative p-1">
+                <Icon size={22} className={`transition-all duration-300 ${isActive ? "text-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-white/40 group-hover:text-white/60"}`} />
+                
+                {/* BULINA ROȘIE (PUNCT MINIMALIST) */}
+                {item.id === "chat" && hasUnread && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-black shadow-[0_0_10px_rgba(220,38,38,0.8)] z-50" />
+                )}
+
                 {isActive && (
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]" />
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]" />
                 )}
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
-                isActive ? "text-white opacity-100" : "text-white/20 opacity-0 group-hover:opacity-100"
-              }`}>
+              <span className={`text-[8px] font-bold uppercase mt-1 tracking-tighter ${isActive ? "text-white opacity-100" : "opacity-0"}`}>
                 {item.label}
               </span>
             </button>
           );
         })}
       </nav>
-
-      <style jsx global>{`
-        @keyframes pulse-custom {
-          0%, 100% { opacity: 0.2; transform: scale(1.2); }
-          50% { opacity: 0.6; transform: scale(1.8); }
-        }
-        * { -webkit-tap-highlight-color: transparent; }
-      `}</style>
+      {/* SAFE AREA IPHONE GLASS */}
+      <div className="md:hidden h-[env(safe-area-inset-bottom)] bg-black/40 backdrop-blur-2xl w-full border-t border-white/5" />
     </div>
   );
 }

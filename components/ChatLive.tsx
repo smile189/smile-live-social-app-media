@@ -1,205 +1,229 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { createBrowserClient } from "@supabase/ssr";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Gift as GiftIcon, X, Sparkles, Flame } from 'lucide-react';
 
-interface Message {
-  id: string;
-  username: string;
-  text: string;
-  color?: string;
-  isGift?: boolean;
+interface ChatLiveProps {
+  streamerId?: string;
 }
 
-const GIFT_OPTIONS = [
-  { emoji: '💎', label: 'Diamond', color: '#00d4ff' },
-  { emoji: '🔥', label: 'Fire', color: '#ff4d00' },
-  { emoji: '👑', label: 'Crown', color: '#ffcc00' },
-  { emoji: '🚀', label: 'Rocket', color: '#a855f7' },
-  { emoji: '🎁', label: 'Surprise', color: '#ef4444' },
-  { emoji: '🦁', label: 'Lion', color: '#f59e0b' },
-  { emoji: '🌹', label: 'Rose', color: '#e11d48' },
-  { emoji: '🍦', label: 'Ice Cream', color: '#f472b6' },
-  { emoji: '⚡', label: 'Energy', color: '#fbbf24' },
-  { emoji: '🦄', label: 'Unicorn', color: '#d946ef' },
-  { emoji: '🛸', label: 'UFO', color: '#22c55e' },
-  { emoji: '🏆', label: 'Trophy', color: '#facc15' }
-];
+export default function ChatLive({ streamerId }: ChatLiveProps) {
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ), []);
 
-export default function ChatLive() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [me, setMe] = useState<any>(null);
+  const [giftTypes, setGiftTypes] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [showGifts, setShowGifts] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [activeGifts, setActiveGifts] = useState<{ id: number; x: number; emoji: string }[]>([]);
-  const [taps, setTaps] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [activeGifts, setActiveGifts] = useState<any[]>([]);
+  const [combo, setCombo] = useState({ count: 0, lastId: '', user: '' });
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // 1. Fetch inițial date - LOGICĂ COMPLETĂ
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        setMe(profile || { id: user.id, username: user.email?.split('@')[0] });
+      }
+
+      const { data: gifts } = await supabase.from('gift_types').select('*').order('coin_price', { ascending: true });
+      if (gifts) setGiftTypes(gifts);
+
+      const { data: msgs } = await supabase.from('live_messages').select('*').order('created_at', { ascending: false }).limit(25);
+      if (msgs) setMessages(msgs.reverse());
+    };
+    init();
+  }, [supabase]);
+
+  // 2. Realtime Engine - LOGICĂ COMPLETĂ
+  useEffect(() => {
+    const channelName = `live_global_${Math.random()}`;
+    
+    const channel = supabase.channel(channelName, {
+      config: {
+        postgres_changes: [{ 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'live_messages' 
+        }]
+      }
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_messages' }, (payload) => {
+      const newMsg = payload.new;
+      
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg].slice(-40);
+      });
+
+      if (newMsg.is_gift) {
+        const animId = Date.now();
+        setActiveGifts(prev => [...prev, { id: animId, content: newMsg.gift_emoji, user: newMsg.username_cache }]);
+        
+        setCombo(prev => ({
+          count: (prev.lastId === newMsg.gift_emoji && prev.user === newMsg.username_cache) ? prev.count + 1 : 1,
+          lastId: newMsg.gift_emoji,
+          user: newMsg.username_cache
+        }));
+
+        setTimeout(() => {
+          setActiveGifts(prev => prev.filter(g => g.id !== animId));
+        }, 4000);
+      }
+    })
+    .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
-  const playPopSound = () => {
-    const audio = new Audio('https://assets.mixkit.co');
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
-  };
+  // 3. Logica de Trimitere - LOGICĂ COMPLETĂ
+  const handleAction = async (gift?: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Log in to participate!");
 
-  const handleTap = (e: any) => {
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
-    const id = Date.now();
-    setTaps(prev => [...prev, { id, x, y }]);
-    setTimeout(() => setTaps(prev => prev.filter(t => t.id !== id)), 2000);
-  };
+    if (gift) {
+      const { error } = await supabase.from('gifts').insert([{
+        sender_id: user.id,
+        receiver_id: streamerId || user.id,
+        amount: gift.coin_price
+      }]);
+      if (error) return alert("Transaction error: " + error.message);
+      setShowGifts(false);
+    } else {
+      if (!inputValue.trim()) return;
+      const text = inputValue;
+      setInputValue('');
 
-  const triggerSpectacularGift = (gift: typeof GIFT_OPTIONS[0]) => {
-    const id = Date.now();
-    const xPos = 20 + Math.random() * 60;
-    playPopSound();
-    
-    // Animația vizuală
-    setActiveGifts(prev => [...prev, { id, x: xPos, emoji: gift.emoji }]);
-    
-    // Notificarea în chat
-    const giftMessage = {
-      id: id.toString(),
-      username: 'You',
-      text: `Sent ${gift.emoji} ${gift.label}`,
-      color: gift.color,
-      isGift: true
-    };
-    setMessages(prev => [...prev, giftMessage]);
-    
-    setShowGifts(false);
-    setTimeout(() => setActiveGifts(prev => prev.filter(g => g.id !== id)), 4000);
-  };
+      const { error } = await supabase.from('live_messages').insert([{
+        user_id: user.id,
+        content: text,
+        username_cache: me?.username || user.email?.split('@')[0],
+        is_gift: false
+      }]);
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
-    const newMessage = { id: Date.now().toString(), username: 'You', text: inputValue, color: '#fbbf24' };
-    setMessages(prev => [...prev, newMessage]);
-    setInputValue('');
+      if (error) {
+        alert("Failed to send: " + error.message);
+        setInputValue(text);
+      }
+    }
   };
 
   return (
-    <div className="fixed inset-0 w-full h-full flex flex-col justify-end overflow-hidden select-none touch-none bg-transparent">
+    <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-end p-4 pb-10 pointer-events-none overflow-hidden">
       
-      <div className="absolute inset-0 z-0 cursor-pointer" onClick={handleTap} onTouchStart={handleTap} />
-
-      <div className="fixed inset-0 pointer-events-none z-[50]">
-        {taps.map(tap => (
-          <div key={tap.id} className="absolute animate-tap-float text-6xl drop-shadow-2xl" style={{ left: tap.x - 30, top: tap.y - 30 }}>🥰</div>
-        ))}
+      {/* GIFT ANIMATIONS - FĂRĂ FUNDAL / CENTRAT */}
+      <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+        <AnimatePresence>
+          {activeGifts.map((g) => (
+            <motion.div key={g.id}
+              initial={{ scale: 0.5, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: -40 }}
+              exit={{ scale: 1.2, opacity: 0 }}
+              transition={{ duration: 3 }}
+              className="absolute flex flex-col items-center"
+            >
+              <img src={g.content} className="w-40 h-40 md:w-56 md:h-56 object-contain drop-shadow-2xl" alt="gift" />
+              <div className="mt-2 text-white font-black text-xl italic tracking-tighter drop-shadow-lg uppercase">
+                {g.user} sent a gift!
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
-      <div className="fixed inset-0 pointer-events-none z-[60] flex justify-center items-center">
-        {activeGifts.map((g) => (
-          <div key={g.id} className="absolute bottom-[20%] animate-gift-spectacular flex flex-col items-center">
-            <div className="absolute inset-0 flex items-center justify-center scale-150">
-              {[...Array(16)].map((_, i) => (
-                <div key={i} className="absolute w-2 h-6 rounded-full animate-confetti-burst"
-                  style={{ 
-                    backgroundColor: ['#fbbf24', '#f472b6', '#00d4ff', '#a855f7'][i % 4], 
-                    '--angle': `${i * 22.5}deg`,
-                    transform: `rotate(${i * 22.5}deg)`
-                  } as any}
-                />
-              ))}
-            </div>
-            <span className="text-[12rem] drop-shadow-[0_0_50px_rgba(255,255,255,0.6)] animate-shimmer">{g.emoji}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="relative z-[100] w-full max-w-[500px] mx-auto px-4 pb-8 flex flex-col gap-4">
+      {/* CHAT INTERFACE - CENTRAT / NO BUBBLES */}
+      <div className="relative z-20 w-full max-w-[480px] pointer-events-auto flex flex-col items-center gap-4">
         
-        <div 
-          ref={scrollRef}
-          className="flex flex-col gap-3 overflow-y-auto max-h-[35vh] scrollbar-hide pointer-events-none"
-          style={{ WebkitMaskImage: 'linear-gradient(to top, black 80%, transparent 100%)' }}
-        >
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex items-start gap-3 animate-in slide-in-from-bottom-2 fade-in duration-500 bg-black/20 backdrop-blur-sm p-2 rounded-xl self-start border ${msg.isGift ? 'border-white/30 bg-white/10' : 'border-white/5'}`}>
-              <div className={`w-[3px] h-6 rounded-full mt-1 shrink-0 animate-pulse ${msg.isGift ? 'bg-white' : 'bg-yellow-400 shadow-[0_0_12px_#fbbf24]'}`} />
-              <div className="flex flex-col">
-                <span className="font-black text-[10px] tracking-widest uppercase" style={{ color: msg.color }}>{msg.username}</span>
-                <span className={`text-[15px] font-bold drop-shadow-xl leading-tight ${msg.isGift ? 'italic text-white' : 'text-white'}`}>
-                  {msg.text}
+        {/* COMBO */}
+        <AnimatePresence>
+          {combo.count > 1 && (
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+              className="text-orange-500 flex items-center gap-2 drop-shadow-md"
+            >
+              <Flame size={20} className="fill-current animate-bounce" />
+              <span className="font-black italic text-2xl tracking-tighter">X{combo.count} COMBO</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* MESSAGES - PURE TEXT / CENTERED */}
+        <div ref={scrollRef} className="w-full flex flex-col gap-2 overflow-y-auto max-h-[40vh] no-scrollbar px-4"
+          style={{ maskImage: 'linear-gradient(to top, black 85%, transparent 100%)' }}>
+          {messages.map((msg, i) => (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={msg.id || i} className="flex justify-center text-center">
+              <div className="flex flex-wrap justify-center items-baseline gap-2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+                <span className={`text-[11px] font-bold tracking-widest uppercase ${msg.is_gift ? 'text-blue-400' : 'text-white/60'}`}>
+                  {msg.username_cache}:
+                </span>
+                <span className={`text-[14px] text-white font-medium ${msg.is_gift ? 'italic font-bold' : ''}`}>
+                  {msg.is_gift ? (
+                    <span className="flex items-center gap-1.5">
+                      Sent <img src={msg.gift_emoji} className="w-5 h-5 object-contain" />
+                    </span>
+                  ) : msg.content}
                 </span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-end pointer-events-auto">
-            <button onClick={() => { if(navigator.share) navigator.share({url: window.location.href}) }} className="w-12 h-12 flex flex-col items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/20 active:scale-75 transition-all shadow-2xl">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current"><path d="M14.545 3l7.455 7.455-7.455 7.455V13.8C8.8 13.8 4.8 15.6 2 19.6c.6-5.6 4-11.2 12.545-12.4V3z" /></svg>
-            </button>
-          </div>
-
-          {showGifts && (
-            <div className="grid grid-cols-4 gap-3 bg-black/90 backdrop-blur-3xl p-5 rounded-[2.5rem] border border-white/10 animate-in slide-in-from-bottom-10 pointer-events-auto shadow-2xl">
-              {GIFT_OPTIONS.map((gift) => (
-                <button key={gift.label} onClick={() => triggerSpectacularGift(gift)} className="flex flex-col items-center gap-2 active:scale-90 transition-transform">
-                  <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-3xl border border-white/5">{gift.emoji}</div>
-                  <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">{gift.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 pointer-events-auto">
-            <div className="flex-1 bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl h-14 px-5 flex items-center shadow-2xl focus-within:border-yellow-400/50 transition-all">
-              <input 
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Smile words..." 
-                className="bg-transparent w-full text-sm outline-none text-white placeholder:text-white/20"
-              />
-              {inputValue.trim() && (
-                <button onClick={handleSendMessage} className="bg-yellow-400 text-black w-10 h-8 rounded-lg font-bold transition-all active:scale-90">➤</button>
-              )}
-            </div>
-            <button onClick={() => setShowGifts(!showGifts)} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border-2 ${showGifts ? 'bg-yellow-400 border-white scale-110 shadow-[0_0_20px_#fbbf24]' : 'bg-white/5 border-white/10 text-white'}`}>
-              <span className="text-2xl">🎁</span>
-            </button>
-          </div>
+        {/* INPUT - CORPORATE MINIMALIST */}
+        <div className="w-full flex items-center gap-2 bg-black/30 backdrop-blur-2xl border border-white/10 rounded-full p-1.5 px-4 shadow-2xl">
+          <button onClick={() => setShowGifts(!showGifts)} className="p-2 text-white/50 hover:text-blue-400 transition-colors">
+            <GiftIcon size={20} />
+          </button>
+          
+          <input 
+            value={inputValue} onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAction()}
+            placeholder="Message..."
+            className="flex-1 bg-transparent border-none outline-none text-white text-sm placeholder:text-white/20"
+          />
+          
+          <button onClick={() => handleAction()} className="p-2 text-blue-500 hover:scale-110 transition-transform">
+            <Send size={20} />
+          </button>
         </div>
       </div>
 
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        
-        @keyframes tap-float {
-          0% { transform: translateY(0) scale(0.5); opacity: 1; }
-          100% { transform: translateY(-250px) scale(2); opacity: 0; }
-        }
-        .animate-tap-float { animation: tap-float 1s ease-out forwards; }
-
-        @keyframes gift-spectacular {
-          0% { transform: scale(0) translateY(100px); opacity: 0; }
-          20% { transform: scale(1.2) translateY(0); opacity: 1; }
-          80% { transform: scale(1) translateY(0); opacity: 1; }
-          100% { transform: scale(3) translateY(-100px); opacity: 0; }
-        }
-        .animate-gift-spectacular { animation: gift-spectacular 3s ease-in-out forwards; }
-
-        @keyframes confetti-burst {
-          0% { transform: rotate(var(--angle)) translateY(0); opacity: 1; }
-          100% { transform: rotate(var(--angle)) translateY(-150px); opacity: 0; }
-        }
-        .animate-confetti-burst { animation: confetti-burst 1s ease-out forwards; }
-
-        @keyframes shimmer {
-          0% { filter: brightness(1); }
-          50% { filter: brightness(1.3) drop-shadow(0 0 20px rgba(255,255,255,0.4)); }
-          100% { filter: brightness(1); }
-        }
-        .animate-shimmer { animation: shimmer 1s infinite; }
-      `}</style>
+      {/* GIFT SELECTOR */}
+      <AnimatePresence>
+        {showGifts && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-24 w-[90%] max-w-sm bg-slate-900/90 backdrop-blur-3xl rounded-[32px] p-6 z-50 pointer-events-auto border border-white/10 shadow-2xl"
+          >
+            <div className="grid grid-cols-4 gap-4">
+              {giftTypes.map((gt) => (
+                <button 
+                  key={gt.id} 
+                  onClick={() => handleAction(gt)}
+                  className="flex flex-col items-center gap-2 hover:scale-110 transition-transform"
+                >
+                  <img src={gt.image_url} className="w-12 h-12 object-contain" alt={gt.name} />
+                  <span className="text-[10px] text-white/40 font-bold">{gt.coin_price} 🪙</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

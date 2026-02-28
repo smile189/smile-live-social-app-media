@@ -53,7 +53,7 @@ export default function MainLive() {
     id="chat-mount-point" 
     className="h-[350px] w-full max-w-lg mb-4 px-4 md:mx-auto flex flex-col items-center"
   >
-<ChatLive streamerId={params.username} />
+  <ChatLive streamerId={""} />
   </div>
 
 </div>

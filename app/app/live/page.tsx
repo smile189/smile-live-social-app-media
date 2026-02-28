@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import ChatLive from '@/components/ChatLive';
 import FLive from '@/components/FLive';
 
@@ -9,6 +10,10 @@ import FLive from '@/components/FLive';
  * Fundal ultra-vibrant mov, umbre profunde și watermark stilizat.
  */
 export default function MainLive() {
+  // Extragem username-ul din URL (ex: /live/andrei -> username va fi "andrei")
+  const params = useParams();
+  const streamerId = (params?.username as string) || "";
+
   return (
     <main className="relative min-h-screen w-full bg-[#05010a] overflow-hidden flex flex-col justify-between p-6">
       
@@ -43,21 +48,21 @@ export default function MainLive() {
       {/* Middle - Spatiu liber pentru stream video / alerte */}
       <div className="relative z-20 flex-1" />
 
-<FLive />
+      <FLive />
 
-{/* Bottom - Chat & Brand */}
-<div className="relative z-20 w-full flex flex-col items-center gap-6 mt-auto">
-  
-  {/* Zona CHAT - Pe desktop o forțăm pe centru cu mx-auto */}
-  <div 
-    id="chat-mount-point" 
-    className="h-[350px] w-full max-w-lg mb-4 px-4 md:mx-auto flex flex-col items-center"
-  >
-  <ChatLive streamerId={""} />
-  </div>
+      {/* Bottom - Chat & Brand */}
+      <div className="relative z-20 w-full flex flex-col items-center gap-6 mt-auto">
+        
+        {/* Zona CHAT - Pe desktop o forțăm pe centru cu mx-auto */}
+        <div 
+          id="chat-mount-point" 
+          className="h-[350px] w-full max-w-lg mb-4 px-4 md:mx-auto flex flex-col items-center"
+        >
+          {/* Trimitem streamerId-ul extras din URL pentru a valida TypeScript */}
+          <ChatLive streamerId={streamerId} />
+        </div>
 
-</div>
-
+      </div>
 
     </main>
   );

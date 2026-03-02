@@ -7,33 +7,44 @@ import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
 import { AlertCircle, Play } from "lucide-react";
 
-function MediaRenderer({ post, isActive }: { post: any; isActive: boolean }) {
+function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolean; isNear: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(false);
 
+  // Update Progress Bar
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isActive) return;
+
     const updateProgress = () => {
       if (video.duration) setProgress((video.currentTime / video.duration) * 100);
     };
+
     video.addEventListener("timeupdate", updateProgress);
     return () => video.removeEventListener("timeupdate", updateProgress);
-  }, []);
+  }, [isActive]);
 
+  // Managementul Resurselor: Play/Pause/Unload
   useEffect(() => {
-    if (post.type === "video" && videoRef.current) {
-      if (isActive) {
-        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    const video = videoRef.current;
+    if (!video || post.type !== "video") return;
+
+    if (isActive) {
+      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    } else {
+      video.pause();
+      if (!isNear) {
+        // În loc de "", folosim null sau lăsăm componenta să se distrugă
+        video.removeAttribute('src'); 
+        video.load();
       } else {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
-        setIsPlaying(false);
+        video.currentTime = 0;
       }
+      setIsPlaying(false);
     }
-  }, [isActive, post.type]);
+  }, [isActive, isNear, post.type]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,14 +58,15 @@ function MediaRenderer({ post, isActive }: { post: any; isActive: boolean }) {
     }
   };
 
-  if (post.type === "video" && post.video_url && !error) {
+  // Randăm video-ul DOAR dacă este activ sau în proximitate (isNear)
+  if (post.type === "video" && !error && (isActive || isNear)) {
     return (
-      <div className="relative w-full h-full flex justify-center items-center bg-black overflow-hidden" onClick={togglePlay}>
+      <div className="relative w-full h-full flex justify-center items-center bg-black overflow-hidden transform-gpu" onClick={togglePlay}>
         <video
           ref={videoRef}
           key={post.id}
-          src={post.video_url}
-          className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu shadow-[0_0_100px_rgba(0,0,0,0.5)]"
+          src={post.video_url || undefined} // Folosim undefined în loc de ""
+          className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu will-change-transform scale-[1.005]"
           loop
           playsInline
           muted={false}
@@ -62,6 +74,7 @@ function MediaRenderer({ post, isActive }: { post: any; isActive: boolean }) {
           onError={() => setError(true)}
         />
         
+        {/* Progress Bar */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-center z-50">
            <div className="w-full md:w-[calc(100vh*(9/16))] h-[1.5px] bg-white/10">
               <div className="h-full bg-yellow-400 shadow-[0_0_8px_#facc15]" style={{ width: `${progress}%` }} />
@@ -77,16 +90,21 @@ function MediaRenderer({ post, isActive }: { post: any; isActive: boolean }) {
     );
   }
 
+  // Fallback Image (dacă e imagine sau dacă video-ul nu e încărcat încă)
   const imageUrl = post.thumbnail_url || post.video_url;
   if (imageUrl) {
     return (
       <div className="w-full h-full flex justify-center items-center bg-black">
-        <img src={imageUrl} className="h-full w-full md:w-auto md:aspect-[9/16] object-cover" alt="Post" />
+        <img src={imageUrl} className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu" alt="Media" />
       </div>
     );
   }
 
-  return <div className="w-full h-full flex items-center justify-center bg-black"><AlertCircle size={30} className="text-zinc-800" /></div>;
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-black">
+      <AlertCircle size={30} className="text-zinc-800" />
+    </div>
+  );
 }
 
 export default function AppPage() {
@@ -123,7 +141,7 @@ export default function AppPage() {
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.6 }
     );
     const sections = containerRef.current?.querySelectorAll("section");
     sections?.forEach((s) => observer.observe(s));
@@ -135,6 +153,7 @@ export default function AppPage() {
   );
 
   const activePost = posts.find(p => p.id === activePostId);
+  const activeIndex = posts.findIndex(p => p.id === activePostId);
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans select-none">
@@ -145,14 +164,18 @@ export default function AppPage() {
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar"
         style={{ scrollBehavior: 'auto' }}
       >
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <section 
             key={post.id} 
             data-id={post.id}
             className="h-full w-full snap-start snap-always relative flex flex-col justify-end overflow-hidden"
           >
             <div className="absolute inset-0 z-0">
-               <MediaRenderer post={post} isActive={activePostId === post.id} />
+               <MediaRenderer 
+                  post={post} 
+                  isActive={activePostId === post.id} 
+                  isNear={Math.abs(index - activeIndex) <= 1}
+               />
                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/90 pointer-events-none" />
             </div>
 
@@ -171,7 +194,6 @@ export default function AppPage() {
         ))}
       </div>
 
-      {/* SIDEBAR RESTRANS (scale-85) SI JOS (bottom-16 pe mobil) */}
       <div className="fixed right-3 bottom-16 md:bottom-24 z-50 pointer-events-auto transform scale-85 md:scale-100 origin-bottom-right">
          <SidebarActions post={activePost} />
       </div>

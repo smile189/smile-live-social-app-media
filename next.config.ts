@@ -1,13 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  // 1. Am eliminat experimental.appDir deoarece este activat implicit în v16
   images: {
-    domains: [
-      "images.pexels.com",
-      "images.unsplash.com",
-      "commondatastorage.googleapis.com",
+    // 2. Am înlocuit 'domains' (deprecated) cu 'remotePatterns' (standard modern)
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'commondatastorage.googleapis.com',
+      },
     ],
   },
 };

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
-import { Camera, LogOut, Grid3X3, Bookmark, ChevronLeft, Loader2, Check, X, Play, MessageCircle, Heart, Send, Reply as ReplyIcon } from "lucide-react";
+import { Camera, LogOut, Grid3X3, Bookmark, ChevronLeft, Loader2, X, Play, MessageCircle, Heart, Send, Reply as ReplyIcon, Wallet } from "lucide-react";
 import Link from "next/link";
 
 export default function ProfilePage() {
@@ -20,7 +20,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ full_name: "", bio: "" });
+  const [balance, setBalance] = useState<number>(0);
+  // MODIFICAT: editData include acum si username
+  const [editData, setEditData] = useState({ full_name: "", bio: "", username: "" });
 
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [postComments, setPostComments] = useState<any[]>([]);
@@ -43,7 +45,11 @@ export default function ProfilePage() {
 
   async function fetchProfileAndPosts(userId: string) {
     setLoading(true);
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    // FETCH DATE PARALEL: Profil + Balanta Wallet
+    const [pRes, wRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.from("wallets").select("coins_balance").eq("id", userId).maybeSingle()
+    ]);
     
     // FETCH DATE REALE CU COUNT
     const { data: postsData } = await supabase
@@ -52,10 +58,15 @@ export default function ProfilePage() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (profileData) { 
-      setProfile(profileData); 
-      setEditData({ full_name: profileData.full_name || "", bio: profileData.bio || "" }); 
+    if (pRes.data) { 
+      setProfile(pRes.data); 
+      setEditData({ 
+        full_name: pRes.data.full_name || "", 
+        bio: pRes.data.bio || "",
+        username: pRes.data.username || "" 
+      }); 
     }
+    if (wRes.data) setBalance(wRes.data.coins_balance);
     if (postsData) setPosts(postsData);
     setLoading(false);
   }
@@ -84,8 +95,8 @@ export default function ProfilePage() {
       setPostComments([...postComments, data]);
       setNewComment("");
       setReplyTo(null);
-      // UPDATE COUNT LOCAL IN GRID
-      setPosts(posts.map(p => p.id === selectedPost.id ? { ...p, comments: [{ count: (p.comments[0]?.count || 0) + 1 }] } : p));
+      // UPDATE COUNT LOCAL IN GRID (Fixat accesarea count-ului)
+      setPosts(posts.map(p => p.id === selectedPost.id ? { ...p, comments: [{ count: (p.comments?.[0]?.count || 0) + 1 }] } : p));
     }
     setSendingComment(false);
   };
@@ -93,8 +104,21 @@ export default function ProfilePage() {
   const handleUpdateInfo = async () => {
     if (!profile?.id) return;
     setLoading(true);
-    const { error } = await supabase.from("profiles").update({ full_name: editData.full_name, bio: editData.bio }).eq("id", profile.id);
-    if (!error) { setProfile({ ...profile, ...editData }); setIsEditing(false); }
+    // Curatare username (fara spatii, litere mici)
+    const cleanUsername = editData.username.toLowerCase().trim().replace(/\s/g, "");
+    
+    const { error } = await supabase.from("profiles").update({ 
+      full_name: editData.full_name, 
+      bio: editData.bio,
+      username: cleanUsername
+    }).eq("id", profile.id);
+
+    if (!error) { 
+      setProfile({ ...profile, ...editData, username: cleanUsername }); 
+      setIsEditing(false); 
+    } else {
+      alert("Username deja luat!");
+    }
     setLoading(false);
   };
 
@@ -124,12 +148,12 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#050505] text-white font-sans selection:bg-yellow-400 selection:text-black">
+    <div className="min-h-screen w-full bg-[#050505] text-white font-sans selection:bg-yellow-400 selection:text-black overflow-x-hidden">
       
       {/* PREMIUM TOP NAV */}
-      <div className="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center">
+      <div className="fixed top-0 w-full z-[60] bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-5 flex justify-between items-center">
         <Link href="/app"><ChevronLeft size={28} className="text-white hover:text-yellow-400 transition" /></Link>
-        <span className="font-black text-[10px] tracking-[0.5em] uppercase text-zinc-500">Official Profile</span>
+        <span className="font-black text-[10px] tracking-[0.5em] uppercase text-zinc-500 italic">Smile Official</span>
         <button onClick={handleSignOut} className="text-zinc-500 hover:text-red-500 transition-all active:scale-90"><LogOut size={22}/></button>
       </div>
 
@@ -159,192 +183,187 @@ export default function ProfilePage() {
 
           <div className="mt-6 text-center w-full max-w-lg">
             {!isEditing ? (
-              <div className="animate-in fade-in zoom-in-95 duration-500">
-                <h1 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">@{profile?.username}</h1>
+              <div className="animate-in fade-in zoom-in-95 duration-500 flex flex-col items-center">
+                <h1 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent italic">@{profile?.username}</h1>
                 <div className="flex items-center justify-center gap-2 mt-1">
                   <div className="h-[1px] w-4 bg-yellow-400"></div>
-                  <p className="text-yellow-400 font-black text-[11px] tracking-[0.2em] uppercase">{profile?.full_name || 'Smile Live Member'}</p>
+                  <p className="text-yellow-400 font-black text-[11px] tracking-[0.2em] uppercase">{profile?.full_name || 'Smile Member'}</p>
                   <div className="h-[1px] w-4 bg-yellow-400"></div>
                 </div>
-                <p className="mt-4 text-zinc-400 text-sm md:text-base font-medium leading-relaxed italic">
+
+                {/* ADAUGAT: BUTON WALLET PREMIUM RESPONSIVE */}
+                <Link href="/app/wallet" className="mt-6 flex items-center gap-4 bg-zinc-900/50 border border-white/10 px-6 py-4 rounded-3xl hover:border-yellow-400/50 transition-all group">
+                    <div className="p-2 bg-yellow-400 rounded-xl text-black shadow-[0_0_15px_rgba(234,179,8,0.3)] group-hover:rotate-12 transition-transform">
+                      <Wallet size={22} strokeWidth={2.5} />
+                    </div>
+                    <div className="text-left leading-none">
+                      <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">Balance</p>
+                      <p className="text-xl font-mono font-bold text-white italic">{balance.toLocaleString()} 🪙</p>
+                    </div>
+                </Link>
+
+                <p className="mt-6 text-zinc-400 text-sm md:text-base font-medium leading-relaxed italic px-8">
                   "{profile?.bio || "Digital creator in the Smile universe."}"
                 </p>
                 <button 
                   onClick={() => setIsEditing(true)} 
-                  className="mt-8 px-10 py-3 bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-full hover:bg-yellow-400 transition-all shadow-[0_10px_20px_rgba(0,0,0,0.4)]"
+                  className="mt-8 px-10 py-3 bg-white text-black font-black uppercase italic rounded-xl hover:bg-yellow-400 transition-all active:scale-95 text-xs"
                 >
-                  Edit My Space
+                  Edit Profile Settings
                 </button>
               </div>
             ) : (
-              <div className="space-y-4 bg-zinc-900/50 p-6 rounded-3xl border border-white/5 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300">
-                <input value={editData.full_name} onChange={(e) => setEditData({...editData, full_name: e.target.value})} placeholder="Full Name" className="w-full bg-black/50 border border-white/10 p-4 rounded-xl text-sm focus:border-yellow-400 outline-none transition" />
-                <textarea value={editData.bio} onChange={(e) => setEditData({...editData, bio: e.target.value})} placeholder="Bio" className="w-full bg-black/50 border border-white/10 p-4 rounded-xl text-sm h-28 focus:border-yellow-400 outline-none transition resize-none" />
-                <div className="flex gap-3">
-                  <button onClick={handleUpdateInfo} className="flex-1 bg-yellow-400 text-black font-black py-3 rounded-xl text-xs uppercase flex items-center justify-center gap-2"><Check size={18}/> Update</button>
-                  <button onClick={() => setIsEditing(false)} className="px-5 bg-zinc-800 text-white rounded-xl"><X size={18}/></button>
+              <div className="space-y-4 animate-in slide-in-from-top-4 duration-500">
+                {/* ADAUGAT: INPUT USERNAME DEDICAT */}
+                <div className="text-left">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 ml-2">Username (@)</label>
+                  <input 
+                    className="w-full bg-zinc-900 border border-white/10 p-4 rounded-2xl focus:border-yellow-400 outline-none mt-1 font-bold text-yellow-400"
+                    value={editData.username}
+                    onChange={e => setEditData({...editData, username: e.target.value})}
+                  />
+                </div>
+                <div className="text-left">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 ml-2">Full Name</label>
+                  <input 
+                    className="w-full bg-zinc-900 border border-white/10 p-4 rounded-2xl focus:border-yellow-400 outline-none mt-1"
+                    value={editData.full_name}
+                    onChange={e => setEditData({...editData, full_name: e.target.value})}
+                  />
+                </div>
+                <div className="text-left">
+                  <label className="text-[10px] font-black uppercase text-zinc-500 ml-2">Bio</label>
+                  <textarea 
+                    className="w-full bg-zinc-900 border border-white/10 p-4 rounded-2xl h-28 focus:border-yellow-400 outline-none mt-1 resize-none"
+                    value={editData.bio}
+                    onChange={e => setEditData({...editData, bio: e.target.value})}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button onClick={handleUpdateInfo} className="flex-1 bg-yellow-400 text-black py-4 rounded-2xl font-black uppercase italic hover:bg-white transition-colors">Save Changes</button>
+                  <button onClick={() => setIsEditing(false)} className="px-6 bg-zinc-800 text-white py-4 rounded-2xl hover:bg-red-500 transition-colors"><X size={24}/></button>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* WOW STATS BAR */}
-        <div className="grid grid-cols-3 bg-zinc-900/30 rounded-3xl border border-white/5 py-8 mb-16 backdrop-blur-sm">
-          <div className="text-center border-r border-white/5">
-            <p className="text-3xl font-black text-white">{posts.length}</p>
-            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mt-1">Creations</p>
-          </div>
-          <div className="text-center border-r border-white/5">
-            <p className="text-3xl font-black text-white">0</p>
-            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mt-1">Network</p>
-          </div>
-          <div className="text-center">
-            <p className="text-3xl font-black text-yellow-400">{posts.reduce((acc, p) => acc + (p.likes?.[0]?.count || 0), 0)}</p>
-            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mt-1">Impact</p>
-          </div>
+        {/* POSTS LOGIC - PASTRATA SI REPARATA PENTRU COUNT */}
+        <div className="mt-16 flex items-center justify-center gap-12 border-t border-white/5 pt-6">
+          <button className="flex items-center gap-2 text-white border-t-2 border-white -mt-[26px] pt-4">
+            <Grid3X3 size={20} /> <span className="text-[11px] font-black uppercase tracking-widest italic">Posts ({posts.length})</span>
+          </button>
+          <button className="flex items-center gap-2 text-zinc-500 hover:text-white transition pt-4 -mt-[26px]">
+            <Bookmark size={20} /> <span className="text-[11px] font-black uppercase tracking-widest italic">Saved</span>
+          </button>
         </div>
 
-        {/* GRID DESIGN WOW */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 px-2">
-             <div className="p-3 bg-yellow-400 text-black rounded-2xl shadow-lg shadow-yellow-400/20"><Grid3X3 size={20} strokeWidth={3}/></div>
-             <h2 className="font-black text-xs uppercase tracking-[0.3em]">Latest Content</h2>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 md:gap-4">
-            {posts.map((post) => (
-              <div 
-                key={post.id} 
-                onClick={() => openPost(post)} 
-                className="aspect-[3/4] bg-zinc-900 rounded-2xl relative group overflow-hidden cursor-pointer border border-white/5"
-              >
-                <img 
-                  src={post.thumbnail_url || `https://placehold.co`} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                  alt="Post" 
-                />
-                
-                {/* PREVIEW STATS IN GRID - FIXED */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
-                   <div className="flex items-center gap-4 mb-2 animate-in slide-in-from-bottom-2">
-                      <div className="flex items-center gap-1.5">
-                        <Heart size={14} className="fill-yellow-400 text-yellow-400" />
-                        <span className="text-[10px] font-black">{post.likes?.[0]?.count || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MessageCircle size={14} className="fill-white text-white" />
-                        <span className="text-[10px] font-black">{post.comments?.[0]?.count || 0}</span>
-                      </div>
-                   </div>
-                </div>
-                <div className="absolute top-3 right-3 p-1.5 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 group-hover:bg-yellow-400 group-hover:text-black transition-colors">
-                  <Play size={12} className="fill-current" />
-                </div>
+        <div className="grid grid-cols-3 gap-1 md:gap-4 mt-8">
+          {posts.map((post) => (
+            <div 
+              key={post.id} 
+              onClick={() => openPost(post)}
+              className="relative aspect-square bg-zinc-900 cursor-pointer group overflow-hidden rounded-sm md:rounded-xl"
+            >
+              <img src={post.media_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 md:gap-8">
+                <div className="flex items-center gap-1.5 font-black text-[10px] md:text-base"><Heart size={18} fill="white" /> {post.likes?.[0]?.count || 0}</div>
+                <div className="flex items-center gap-1.5 font-black text-[10px] md:text-base"><MessageCircle size={18} fill="white" /> {post.comments?.[0]?.count || 0}</div>
               </div>
-            ))}
-          </div>
-          {posts.length === 0 && (
-            <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-3xl">
-               <p className="text-zinc-600 font-black text-xs uppercase tracking-widest">Awaiting first upload...</p>
+              {post.type === 'video' && <div className="absolute top-2 right-2"><Play size={16} fill="white" /></div>}
             </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* --- MODAL DESIGN WOW (GLASSMORPHISM) --- */}
+      {/* MODAL POST - REPARAT PENTRU MOBILE CU BUTON X DEDICAT */}
       {selectedPost && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 lg:p-12 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={() => {setSelectedPost(null); setReplyTo(null);}}></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md" onClick={() => setSelectedPost(null)} />
           
-          <div className="relative bg-[#0a0a0a] w-full h-full md:max-w-6xl md:h-[90vh] flex flex-col md:flex-row overflow-hidden md:rounded-[40px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,1)]">
+          {/* BUTON X PENTRU MOBILE (In afara containerului principal pentru vizibilitate) */}
+          <button 
+            onClick={() => setSelectedPost(null)} 
+            className="absolute top-6 right-6 z-[110] p-3 bg-white/10 hover:bg-white/20 rounded-full md:hidden border border-white/10 transition-all"
+          >
+            <X size={24} className="text-white" />
+          </button>
+
+          <div className="relative bg-zinc-950 w-full max-w-6xl h-full md:h-[80vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row border-white/10 md:border shadow-2xl">
             
-            {/* CONTENT VIEW */}
-            <div className="flex-[1.5] bg-black flex items-center justify-center relative group">
-               <img src={selectedPost.thumbnail_url} className="h-full w-full object-contain" alt="Preview" />
-               <button onClick={() => setSelectedPost(null)} className="absolute top-6 left-6 p-4 bg-white/5 backdrop-blur-xl rounded-full md:hidden text-white border border-white/10"><ChevronLeft size={24}/></button>
+            <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden h-[45vh] md:h-full">
+              <img src={selectedPost.media_url} className="w-full h-full object-contain" alt="" />
+              <button onClick={() => setSelectedPost(null)} className="absolute top-4 left-4 p-3 bg-black/40 rounded-full md:hidden border border-white/10 shadow-lg"><ChevronLeft size={24}/></button>
             </div>
-            
-            {/* SIDEBAR PANEL */}
-            <div className="flex-1 flex flex-col bg-[#0d0d0d] border-l border-white/5">
-               <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                     <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
-                     <span className="font-black text-[10px] uppercase tracking-[0.3em] text-zinc-500">Engagement</span>
-                  </div>
-                  <button onClick={() => setSelectedPost(null)} className="hidden md:block p-2 hover:bg-white/5 rounded-full transition text-zinc-500 hover:text-white"><X size={20}/></button>
-               </div>
-               
-               <div className="p-6 bg-yellow-400/5">
-                  <p className="text-[10px] font-black text-yellow-400 uppercase mb-2 tracking-widest opacity-60">Creative Caption</p>
-                  <p className="text-base font-bold text-white leading-relaxed">{selectedPost.caption || "No description provided for this creation."}</p>
-               </div>
 
-               {/* SCROLLABLE COMMENTS */}
-               <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gradient-to-b from-transparent to-black/20">
-                  {postComments.filter(c => !c.parent_id).map((com) => (
-                    <div key={com.id} className="space-y-4">
-                       <div className="flex gap-4 group/item">
-                          <img src={com.profiles?.avatar_url || `https://api.dicebear.com{com.profiles?.username}`} className="w-10 h-10 rounded-2xl border border-white/10 shadow-lg" alt="User" />
-                          <div className="flex-1">
-                             <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-black text-yellow-400 uppercase tracking-tighter">@{com.profiles?.username}</p>
-                                <button onClick={() => {setReplyTo(com); setNewComment(`@${com.profiles?.username} `);}} className="opacity-0 group-hover/item:opacity-100 text-[9px] uppercase font-black text-zinc-600 hover:text-white transition-all flex items-center gap-1"><ReplyIcon size={12}/> Reply</button>
-                             </div>
-                             <p className="text-sm text-zinc-300 leading-snug font-medium">{com.content}</p>
-                          </div>
-                       </div>
-                       
-                       {/* REPLY THREAD */}
-                       {postComments.filter(r => r.parent_id === com.id).map(reply => (
-                         <div key={reply.id} className="flex gap-3 ml-12 border-l-2 border-white/5 pl-5 py-1">
-                            <img src={reply.profiles?.avatar_url || `https://api.dicebear.com{reply.profiles?.username}`} className="w-7 h-7 rounded-xl border border-white/10" alt="Reply" />
-                            <div className="flex-1">
-                               <p className="text-[9px] font-black text-zinc-500 uppercase">@{reply.profiles?.username}</p>
-                               <p className="text-xs text-zinc-400 mt-0.5 font-medium">{reply.content}</p>
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-                  ))}
-               </div>
-
-               {/* SMART INPUT BOX */}
-               <div className="p-6 bg-zinc-900/40 backdrop-blur-2xl border-t border-white/5">
-                  {replyTo && (
-                    <div className="flex justify-between items-center mb-3 px-4 py-2 bg-yellow-400 text-black rounded-xl animate-in slide-in-from-bottom-2">
-                       <p className="text-[10px] font-black uppercase tracking-tighter">Replying to @{replyTo.profiles?.username}</p>
-                       <button onClick={() => {setReplyTo(null); setNewComment("");}} className="hover:rotate-90 transition-transform"><X size={14}/></button>
-                    </div>
-                  )}
-                  <div className="flex gap-3 items-center bg-black/60 p-2 rounded-2xl border border-white/10 focus-within:border-yellow-400/50 transition-all shadow-inner">
-                    <input 
-                      placeholder={replyTo ? "Compose reply..." : "Share a thought..."} 
-                      className="flex-1 bg-transparent border-none text-sm px-3 py-2 outline-none text-white placeholder:text-zinc-600" 
-                      value={newComment} 
-                      onChange={(e) => setNewComment(e.target.value)} 
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment()} 
-                    />
-                    <button 
-                      onClick={handleAddComment} 
-                      disabled={sendingComment} 
-                      className="bg-yellow-400 text-black p-3 rounded-xl hover:scale-105 active:scale-95 transition disabled:opacity-30 disabled:grayscale shadow-lg shadow-yellow-400/10"
-                    >
-                      {sendingComment ? <Loader2 className="animate-spin" size={20}/> : <Send size={20} strokeWidth={2.5}/>}
-                    </button>
+            <div className="w-full md:w-[400px] flex flex-col bg-zinc-950 border-l border-white/10 h-[55vh] md:h-full">
+              <div className="p-5 border-b border-white/5 flex items-center justify-between bg-zinc-900/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full border border-yellow-400/30 p-0.5">
+                    <img src={profile?.avatar_url} className="w-full h-full rounded-full object-cover shadow-lg" alt="" />
                   </div>
-               </div>
+                  <span className="font-black text-sm tracking-tight italic">@{profile?.username}</span>
+                </div>
+                <button onClick={() => setSelectedPost(null)} className="hidden md:block text-zinc-500 hover:text-white transition-all hover:rotate-90"><X size={24}/></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+                {postComments.map((comment) => (
+                  <div key={comment.id} className="group flex gap-4 animate-in slide-in-from-bottom-2 duration-300">
+                    <img src={comment.profiles?.avatar_url} className="w-8 h-8 rounded-full object-cover shadow-md" alt="" />
+                    <div className="flex-1">
+                      <p className="text-[13px] leading-relaxed">
+                        <span className="font-black mr-2 italic text-yellow-400/90">@{comment.profiles?.username}</span>
+                        <span className="text-zinc-300">{comment.content}</span>
+                      </p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{new Date(comment.created_at).toLocaleDateString()}</span>
+                        <button 
+                          onClick={() => {
+                            setReplyTo(comment);
+                            setNewComment(`@${comment.profiles?.username} `);
+                          }}
+                          className="text-[9px] font-black text-yellow-400 uppercase tracking-widest hover:text-white transition flex items-center gap-1"
+                        >
+                          <ReplyIcon size={10} /> Reply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-5 border-t border-white/5 bg-black/30 backdrop-blur-sm">
+                {replyTo && (
+                  <div className="flex items-center justify-between bg-yellow-400/10 p-3 rounded-xl mb-4 border border-yellow-400/20 animate-in slide-in-from-top-2">
+                    <p className="text-[9px] font-black uppercase text-yellow-400 tracking-widest flex items-center gap-2">
+                      Replying to <span className="underline italic">@{replyTo.profiles?.username}</span>
+                    </p>
+                    <button onClick={() => {setReplyTo(null); setNewComment("");}} className="text-yellow-400 hover:rotate-90 transition-all"><X size={14}/></button>
+                  </div>
+                )}
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                    placeholder="Drop a vibe..."
+                    className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-6 pr-14 text-sm focus:border-yellow-400 outline-none transition-all placeholder:text-zinc-600"
+                  />
+                  <button 
+                    onClick={handleAddComment}
+                    disabled={sendingComment || !newComment.trim()}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-yellow-400 hover:scale-110 disabled:opacity-0 transition-all"
+                  >
+                    {sendingComment ? <Loader2 size={18} className="animate-spin" /> : <Send size={20} />}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 20px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(250,204,21,0.2); }
-      `}</style>
     </div>
   );
 }

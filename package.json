@@ -1,6 +1,6 @@
 {
   "name": "smile-live-app",
-  "version": "0.13.270126",
+  "version": "0.13.270226",
   "private": true,
   "scripts": {
     "dev": "next dev",

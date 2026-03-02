@@ -15,6 +15,7 @@ export default function ProfilePage() {
     { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
   ));
 
+  
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<any>(null);

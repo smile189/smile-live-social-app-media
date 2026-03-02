@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, LogOut, Grid3X3, Bookmark, ChevronLeft, Loader2, X, Play, MessageCircle, Heart, Send, Reply as ReplyIcon, Wallet } from "lucide-react";
 import Link from "next/link";
 
+
 export default function ProfilePage() {
   const router = useRouter();
   const [supabase] = useState(() => createBrowserClient(
@@ -14,7 +15,7 @@ export default function ProfilePage() {
     { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
   ));
 
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]); 

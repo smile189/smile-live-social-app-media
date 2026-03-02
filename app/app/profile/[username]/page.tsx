@@ -3,6 +3,7 @@
  * Public Profile View - SMILE LIVE Protocol
  */
 
+
 "use client";
 
 import { useEffect, useState } from "react";

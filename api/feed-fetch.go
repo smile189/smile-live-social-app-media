@@ -1,9 +1,15 @@
 package handler
 
+package handler
+
 import (
-    "://github.com"
-    "://github.com" // Exemplu, dacă folosești
+	"encoding/json"
+	"net/http"
+	"time"
+	// CORECT: Fără :// în față
+	"://github.com"
 )
+
 
 // Structura pentru a simula datele din Supabase (ajusteaz-o conform bazei tale)
 type Post map[string]interface{}

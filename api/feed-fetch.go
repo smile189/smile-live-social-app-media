@@ -7,18 +7,15 @@ import (
 	"://github.com"
 )
 
-// Definim structura pentru a evita erorile de tip
-type Post map[string]interface{}
-
+// Handler este punctul de intrare pentru Vercel
 func Handler(w http.ResponseWriter, r *http.Request) {
-	// Aici ar trebui să fie logica ta de preluare a datelor (ex: din Supabase)
-	// Momentan inițializăm o listă goală pentru a permite build-ul
-	var posts []Post 
+	// Aici ar veni logica de fetch (ex: posts := supabase.Fetch())
+	var posts []map[string]interface{}
 
 	for i := range posts {
 		likes := getInt(posts[i]["likes_count"])
 		views := getInt(posts[i]["views"])
-		comments := 0 
+		comments := getInt(posts[i]["comments_count"])
 		
 		isLive, _ := posts[i]["is_live"].(bool)
 
@@ -26,7 +23,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
 		hoursOld := time.Since(createdAt).Hours()
 
-		// Apelăm motorul de calcul
+		// Calculăm scorul folosind pachetul engine
 		posts[i]["viral_score"] = engine.CalculateAdvancedScore(
 			likes, 
 			comments, 
@@ -42,7 +39,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(posts)
 }
 
-// Funcție utilitară pentru a converti datele din interfață în int
+// getInt transformă datele din interfață în numere întregi
 func getInt(v interface{}) int {
 	if v == nil { return 0 }
 	switch i := v.(type) {

@@ -7,26 +7,27 @@ import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
 import { AlertCircle, Play } from "lucide-react";
 
+// --- IMPORTURI DIN LIB ---
+import { sortPostsByViralScore } from "@/lib/ml-algorithm";
+import { prefetchVideos } from "@/lib/prefetch-utils";
+
+// --- RENDERER MEDIA OPTIMIZAT ---
 function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolean; isNear: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(false);
 
-  // Update Progress Bar
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !isActive) return;
-
     const updateProgress = () => {
       if (video.duration) setProgress((video.currentTime / video.duration) * 100);
     };
-
     video.addEventListener("timeupdate", updateProgress);
     return () => video.removeEventListener("timeupdate", updateProgress);
   }, [isActive]);
 
-  // Managementul Resurselor: Play/Pause/Unload
   useEffect(() => {
     const video = videoRef.current;
     if (!video || post.type !== "video") return;
@@ -36,7 +37,6 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
     } else {
       video.pause();
       if (!isNear) {
-        // În loc de "", folosim null sau lăsăm componenta să se distrugă
         video.removeAttribute('src'); 
         video.load();
       } else {
@@ -58,29 +58,25 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
     }
   };
 
-  // Randăm video-ul DOAR dacă este activ sau în proximitate (isNear)
   if (post.type === "video" && !error && (isActive || isNear)) {
     return (
       <div className="relative w-full h-full flex justify-center items-center bg-black overflow-hidden transform-gpu" onClick={togglePlay}>
         <video
           ref={videoRef}
           key={post.id}
-          src={post.video_url || undefined} // Folosim undefined în loc de ""
-          className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu will-change-transform scale-[1.005]"
+          src={post.video_url || undefined}
+          className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu scale-[1.005]"
           loop
           playsInline
-          muted={false}
+          muted={!isActive}
           preload="auto"
           onError={() => setError(true)}
         />
-        
-        {/* Progress Bar */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-center z-50">
            <div className="w-full md:w-[calc(100vh*(9/16))] h-[1.5px] bg-white/10">
               <div className="h-full bg-yellow-400 shadow-[0_0_8px_#facc15]" style={{ width: `${progress}%` }} />
            </div>
         </div>
-
         {!isPlaying && isActive && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Play size={60} className="fill-white/30 text-white/50 animate-pulse" />
@@ -90,7 +86,6 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
     );
   }
 
-  // Fallback Image (dacă e imagine sau dacă video-ul nu e încărcat încă)
   const imageUrl = post.thumbnail_url || post.video_url;
   if (imageUrl) {
     return (
@@ -101,12 +96,11 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-black">
-      <AlertCircle size={30} className="text-zinc-800" />
-    </div>
+    <div className="w-full h-full flex items-center justify-center bg-black"><AlertCircle size={30} className="text-zinc-800" /></div>
   );
 }
 
+// --- APP PAGE ---
 export default function AppPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
@@ -117,12 +111,24 @@ export default function AppPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )).current;
 
+  // --- FETCH & ML LOGIC ---
   useEffect(() => {
     const fetchFeed = async () => {
-      const { data } = await supabase.from("posts").select(`*, profiles(*)`).order("created_at", { ascending: false });
+      // 1. Fetch date brute
+      const { data } = await supabase
+        .from("posts")
+        .select(`*, profiles(*)`)
+        .limit(50);
+
       if (data) {
-        setPosts(data);
-        if (data.length > 0) setActivePostId(data[0].id);
+        // 2. Aplicăm ALGORITMUL ML (Importat din lib/ml-algorithm.ts)
+        const sorted = sortPostsByViralScore(data);
+        
+        setPosts(sorted);
+        if (sorted.length > 0) setActivePostId(sorted[0].id);
+        
+        // 3. PREFETCH (Importat din lib/prefetch-utils.ts)
+        prefetchVideos(sorted, 5);
       }
       setLoading(false);
     };
@@ -131,6 +137,7 @@ export default function AppPage() {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // --- INTERSECTION OBSERVER ---
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -158,7 +165,6 @@ export default function AppPage() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans select-none">
       <TopNav />
-
       <div 
         ref={containerRef}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar"
@@ -174,7 +180,8 @@ export default function AppPage() {
                <MediaRenderer 
                   post={post} 
                   isActive={activePostId === post.id} 
-                  isNear={Math.abs(index - activeIndex) <= 1}
+                  // Încărcăm clipul curent + următoarele 2 pentru scroll fluid
+                  isNear={index >= activeIndex && index <= activeIndex + 2}
                />
                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/90 pointer-events-none" />
             </div>
@@ -193,13 +200,10 @@ export default function AppPage() {
           </section>
         ))}
       </div>
-
       <div className="fixed right-3 bottom-16 md:bottom-24 z-50 pointer-events-auto transform scale-85 md:scale-100 origin-bottom-right">
          <SidebarActions post={activePost} />
       </div>
-
       <BottomNav />
-
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

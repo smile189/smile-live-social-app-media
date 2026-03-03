@@ -19,7 +19,7 @@ export function middleware(req: NextRequest) {
   const country = (req as any).geo?.country || 'US'; 
 // black list of high-risk countries based on geopolitical and security considerations (e.g., Russia, North Korea, Venezuela, Cuba, China, Iran, Syria, Vietnam, India)
   const BLOCKED = [ 
-    'RO', 'KP', // 
+    'RU', 'KP', // 
     
     // AMERICA LATINĂ (Zone cu risc ridicat sau restricții comerciale)
     'VE', // Venezuela

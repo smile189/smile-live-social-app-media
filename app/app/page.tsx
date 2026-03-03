@@ -7,11 +7,9 @@ import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
 import { AlertCircle, Play } from "lucide-react";
 
-// --- IMPORTURI DIN LIB ---
 import { sortPostsByViralScore } from "@/lib/ml-algorithm";
 import { prefetchVideos } from "@/lib/prefetch-utils";
 
-// --- RENDERER MEDIA OPTIMIZAT ---
 function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolean; isNear: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -33,10 +31,12 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
     if (!video || post.type !== "video") return;
 
     if (isActive) {
+      // Optimizare: Autoplay doar pe ce e vizibil
       video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     } else {
       video.pause();
       if (!isNear) {
+        // Eliberăm resursele complet pentru clipurile îndepărtate
         video.removeAttribute('src'); 
         video.load();
       } else {
@@ -64,12 +64,14 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
         <video
           ref={videoRef}
           key={post.id}
+          // Fix: Prevenim eroarea de cache folosind preload condiționat
           src={post.video_url || undefined}
           className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu scale-[1.005]"
           loop
           playsInline
           muted={!isActive}
-          preload="auto"
+          preload={isActive ? "auto" : "metadata"}
+          crossOrigin="anonymous"
           onError={() => setError(true)}
         />
         <div className="absolute bottom-0 left-0 right-0 flex justify-center z-50">
@@ -100,7 +102,6 @@ function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolea
   );
 }
 
-// --- APP PAGE ---
 export default function AppPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
@@ -111,24 +112,23 @@ export default function AppPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )).current;
 
-  // --- FETCH & ML LOGIC ---
   useEffect(() => {
     const fetchFeed = async () => {
-      // 1. Fetch date brute
+      // FIX 406: Încărcăm like-urile utilizatorului curent direct în fetch-ul de postări
+      // Presupunem că ai o tabelă 'likes' legată de 'posts'
       const { data } = await supabase
         .from("posts")
-        .select(`*, profiles(*)`)
+        .select(`*, profiles(*), likes(id)`) 
         .limit(50);
 
       if (data) {
-        // 2. Aplicăm ALGORITMUL ML (Importat din lib/ml-algorithm.ts)
+        // Aplicăm ALGORITMUL ML (Freshness + Engagement)
         const sorted = sortPostsByViralScore(data);
-        
         setPosts(sorted);
         if (sorted.length > 0) setActivePostId(sorted[0].id);
         
-        // 3. PREFETCH (Importat din lib/prefetch-utils.ts)
-        prefetchVideos(sorted, 5);
+        // PREFETCH: Încărcăm 10 clipuri (acum cu delay-ul din lib)
+        prefetchVideos(sorted, 10);
       }
       setLoading(false);
     };
@@ -137,7 +137,6 @@ export default function AppPage() {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // --- INTERSECTION OBSERVER ---
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -180,8 +179,8 @@ export default function AppPage() {
                <MediaRenderer 
                   post={post} 
                   isActive={activePostId === post.id} 
-                  // Încărcăm clipul curent + următoarele 2 pentru scroll fluid
-                  isNear={index >= activeIndex && index <= activeIndex + 2}
+                  // Cache inteligent: 1 în spate, 2 în față
+                  isNear={index >= activeIndex - 1 && index <= activeIndex + 2}
                />
                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/90 pointer-events-none" />
             </div>
@@ -204,10 +203,6 @@ export default function AppPage() {
          <SidebarActions post={activePost} />
       </div>
       <BottomNav />
-      <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }

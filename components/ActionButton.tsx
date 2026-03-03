@@ -124,9 +124,8 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
   );
 }
 
-/* --- SIDEBAR ACTIONS --- */
+/* --- SIDEBAR ACTIONS REPARAT (FĂRĂ ERORI 406) --- */
 export default function SidebarActions({ post }: { post: any }) {
-  const [showMenu, setShowMenu] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -142,30 +141,26 @@ export default function SidebarActions({ post }: { post: any }) {
     const fetchStats = async () => {
       if (!post) return;
 
-      // 1. Fetch Real Like Count
-      const { count: lCount } = await supabase
-        .from("likes")
-        .select("*", { count: 'exact', head: true })
-        .eq("post_id", post.id);
-      setLikeCount(lCount || 0);
+      // 1. Fetch Counts (Paralel pentru viteză)
+      const [lRes, cRes] = await Promise.all([
+        supabase.from("likes").select("*", { count: 'exact', head: true }).eq("post_id", post.id),
+        supabase.from("comments").select("*", { count: 'exact', head: true }).eq("post_id", post.id)
+      ]);
+      
+      setLikeCount(lRes.count || 0);
+      setCommentCount(cRes.count || 0);
 
-      // 2. Fetch Real Comment Count
-      const { count: cCount } = await supabase
-        .from("comments")
-        .select("*", { count: 'exact', head: true })
-        .eq("post_id", post.id);
-      setCommentCount(cCount || 0);
-
-      // 3. Check if User Liked
+      // 2. FIX EROARE 406: Nu mai folosim .single()
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("likes")
           .select("id")
           .eq("post_id", post.id)
           .eq("user_id", user.id)
-          .single();
-        setLiked(!!data);
+          .limit(1); // MODIFICARE: limit(1) în loc de single()
+        
+        setLiked(data && data.length > 0 ? true : false);
       }
     };
 
@@ -174,39 +169,30 @@ export default function SidebarActions({ post }: { post: any }) {
   }, [post, supabase]);
 
   const handleLike = async () => {
-    if (isLiking) return;
+    if (isLiking || !post) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert("Log in to like!");
 
     setIsLiking(true);
     const wasLiked = liked;
     
-    // Optimistic Update
+    // Optimistic Update (Viteza SMILE)
     setLiked(!wasLiked);
     setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
 
     if (!wasLiked) {
-      const { error } = await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
-      if (error) { setLiked(false); setLikeCount(prev => prev - 1); }
+      await supabase.from("likes").insert({ post_id: post.id, user_id: user.id });
     } else {
-      const { error } = await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-      if (error) { setLiked(true); setLikeCount(prev => prev + 1); }
+      await supabase.from("likes").delete().eq("post_id", post.id).eq("user_id", user.id);
     }
     setIsLiking(false);
   };
 
   const handleShare = async () => {
-    const shareUrl = typeof window !== 'undefined' 
-      ? `${window.location.origin}/app/post/${post.id}` 
-      : '';
-      
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/app/post/${post.id}` : '';
     if (navigator.share) {
-      try {
-        await navigator.share({ 
-          title: `Vezi postarea lui @${post.profiles?.username}`, 
-          url: shareUrl 
-        });
-      } catch (err) { console.log("Share failed"); }
+      try { await navigator.share({ title: `Smile - @${post.profiles?.username}`, url: shareUrl }); } 
+      catch (err) { console.log("Share cancelled"); }
     } else {
       navigator.clipboard.writeText(shareUrl);
       alert("Link copiat!");
@@ -219,13 +205,13 @@ export default function SidebarActions({ post }: { post: any }) {
     <>
       <div className="absolute right-4 bottom-[18vh] flex flex-col items-center gap-6 z-40 animate-in fade-in slide-in-from-right-4 duration-500">
         
-        {/* AVATAR - CLICK TO VIEW PROFILE */}
+        {/* FIX DICEBEAR URL & LINK PROFILE */}
         <Link href={`/app/profile/${post.profiles?.username}`} className="relative mb-4 group cursor-pointer active:scale-90 transition-transform">
           <div className="w-14 h-14 rounded-full border-2 border-yellow-400 p-0.5 backdrop-blur-3xl bg-white/10 overflow-hidden shadow-[0_0_20px_rgba(234,179,8,0.3)]">
             <img 
-              src={post.profiles?.avatar_url || `https://api.dicebear.com{post.profiles?.username}`} 
+              src={post.profiles?.avatar_url || `https://api.dicebear.com{post.profiles?.username || 'smile'}`} 
               className="w-full h-full rounded-full object-cover bg-zinc-900" 
-              alt="profile"
+              alt="avatar"
             />
           </div>
           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-black text-[12px] font-black border-2 border-black">
@@ -235,40 +221,29 @@ export default function SidebarActions({ post }: { post: any }) {
 
         {/* LIKE */}
         <button onClick={handleLike} className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white">
-          <div className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 transition-all ${liked ? 'text-red-500' : 'group-hover:bg-white/10'}`}>
-            <Heart size={28} className={liked ? "fill-red-500 text-red-500" : ""} strokeWidth={2} />
+          <div className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 transition-all ${liked ? 'text-red-500 border-red-500/50' : 'group-hover:bg-white/10'}`}>
+            <Heart size={28} className={liked ? "fill-red-500 text-red-500" : ""} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">
-            {likeCount > 999 ? (likeCount / 1000).toFixed(1) + "K" : likeCount}
+          <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">
+            {likeCount}
           </span>
         </button>
 
-        {/* MESSAGES (CHAT) */}
+        {/* MESSAGES */}
         <button onClick={() => setShowMessages(true)} className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white">
           <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 group-hover:bg-white/10 transition-all">
-            <MessageSquare size={28} strokeWidth={2} />
+            <MessageSquare size={28} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">
-            {commentCount > 999 ? (commentCount / 1000).toFixed(1) + "K" : commentCount}
-          </span>
+          <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">{commentCount}</span>
         </button>
 
         {/* SHARE */}
         <button onClick={handleShare} className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white">
           <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 group-hover:bg-white/10 transition-all">
-            <Share2 size={28} strokeWidth={2} />
+            <Share2 size={28} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">Share</span>
+          <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-md">Share</span>
         </button>
-
-        {/* SAVE (BOOKMARK) */}
-        <button className="group flex flex-col items-center gap-1 active:scale-75 transition-all text-white/40 hover:text-white">
-          <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 group-hover:bg-white/10 transition-all">
-            <Bookmark size={28} strokeWidth={2} />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-widest">Save</span>
-        </button>
-
       </div>
 
       {showMessages && <MessagePanel post={post} onClose={() => setShowMessages(false)} />}

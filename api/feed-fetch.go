@@ -40,6 +40,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
+	
 	// 3. Răspunsul API
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)

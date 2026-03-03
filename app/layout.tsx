@@ -1,7 +1,7 @@
 /**
- * PROJECT: Smile Live App Ecosystem- SOCIAL MEDIA PLATFORM
+ * PROJECT: Smile Live App Ecosystem - SOCIAL MEDIA PLATFORM
  * MODULE: RootLayout (Global Architecture)
- * domain: smileliveapp.com/app/
+ * DOMAIN: smileliveapp.com/app/
  * -------------------------------------------------------------------------
  * EXECUTIVE BRIEF:
  * Smile Live is engineered as a high-fidelity digital ecosystem designed 
@@ -10,10 +10,10 @@
  * rigorous SEO compliance, and optimized core web vitals.
  * -------------------------------------------------------------------------
  * 
- *  HISTORY VERSION (WEB app SUPPORT )
- * 
- * - v 0.13.270126 | 27-01-2026 | Initial creation of RootLayout with metadata and viewport settings (base version).
- * - v 0.13.270126 | 28-01-2026 | Updated metadata for SEO and social sharing optimization.
+ * HISTORY VERSION (WEB APP SUPPORT)
+ * - v 0.13.270126 | 27-01-2026 | Initial creation (base version).
+ * - v 0.13.270126 | 28-01-2026 | Updated metadata for SEO and social sharing.
+ * - v 0.13.030326 | 03-03-2026 | Final refinement & mobile optimization.
  * -------------------------------------------------------------------------
  * 
  * GOVERNANCE & ATTRIBUTION:
@@ -22,10 +22,11 @@
  * * © 2026 Smile Live App. All rights reserved.
  * -------------------------------------------------------------------------
  */
+
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-
+// Configurare Viewport pentru experiență imersivă pe mobil
 export const viewport: Viewport = {
   themeColor: "#000000",
   width: "device-width",
@@ -34,7 +35,7 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-
+// Configurare Metadata pentru SEO, WhatsApp, Facebook și Twitter
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.smileliveapp.com'), 
   
@@ -44,10 +45,10 @@ export const metadata: Metadata = {
   },
   description: "Inspired by Alexandra Storyteller. Experience the next evolution of social media with 4K live streams and real-time interaction.",
   
-  keywords: ["Smile Live", "Social Media platform App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
+  keywords: ["Smile Live", "Social Media App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
   authors: [{ name: "Smile Live Team" }],
   
-  // OpenGraph -  Facebook, WhatsApp, LinkedIn
+  // OpenGraph (WhatsApp, Facebook, Instagram)
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
     description: "Experience 4K live feeds and interactive social moments. Inspired by Alexandra Storyteller.",
@@ -61,24 +62,23 @@ export const metadata: Metadata = {
         alt: "Smile Live App Interface Preview",
       },
     ],
-    locale: "en_US",
+    locale: "ro_RO",
     type: "website",
   },
 
-  // x
+  // Twitter/X Preview
   twitter: {
     card: "summary_large_image",
     title: "Smile Live | Next-Gen Social Media",
     description: "Join the future of 4K live streaming and real-time connection.",
     images: ["/logosmile.jpeg"],
-    // 
   },
 
-  // Icons - 
+  // Iconițe Browser & Mobile App
   icons: {
-    icon: "/logosmile.ico",         // Browser favicon
-    shortcut: "/logosmile.ico",     // Desktop shortcut
-    apple: "/logosmile.jpeg",       // Apple Touch Icon 
+    icon: "/logosmile.ico",         
+    shortcut: "/logosmile.ico",     
+    apple: "/logosmile.jpeg",       
     other: [
       {
         rel: 'icon',
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     ],
   },
 
-  // 
+  // Optimizare Indexare Motoare de Căutare
   robots: {
     index: true,
     follow: true,
@@ -109,10 +109,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ro" className="scroll-smooth">
-      <body className="antialiased font-sans">
-       
-        {children}
-   
+      <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
+        {/* Main Content Area */}
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   );

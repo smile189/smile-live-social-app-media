@@ -62,6 +62,13 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
+      {/* WATERMARK SMILE - STANGA SUS */}
+      <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
+        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          smile
+        </span>
+      </div>
+
       {(isActive || isNear) && (
         <video
           ref={videoRef}
@@ -84,7 +91,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 MediaRenderer.displayName = "MediaRenderer";
 
 // --- FEED CONTENT: LOGICA DE FILTRARE ȘI ALGORITM ---
-function FeedContent() {
+export default function FeedContent() {
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState<Post[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
@@ -103,7 +110,6 @@ function FeedContent() {
     let dataToSort: any[] = [];
 
     try {
-      // 1. LOGICA PENTRU FRIENDS (Folosind tabelul follows)
       if (activeTab === "friends") {
         if (!user) {
           setPosts([]); 
@@ -128,7 +134,6 @@ function FeedContent() {
           dataToSort = data || [];
         }
       } 
-      // 2. LOGICA PENTRU LIVE SAU FOR YOU
       else {
         let query = supabase.from("posts").select(`*, profiles!inner(*), likes(id), comments(count)`);
         
@@ -141,7 +146,6 @@ function FeedContent() {
       }
 
       if (dataToSort.length > 0) {
-        // Aplicăm algoritmul tău de sortare
         const sorted = sortPostsByViralScore(dataToSort as Post[]);
         setPosts(prev => isInitial ? sorted : [...prev, ...sorted]);
         if (isInitial && sorted.length > 0) {
@@ -199,7 +203,7 @@ function FeedContent() {
 
       <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10" style={{ WebkitOverflowScrolling: 'touch' }}>
         {posts.length > 0 ? posts.map((post, index) => (
-          <section key={post.id} data-id={post.id} className="h-full w-full snap-start relative flex justify-center bg-zinc-950">
+          <section key={post.id} data-id={post.id} className="h-full w-full snap-start snap-always relative flex justify-center bg-zinc-950">
             <div className="relative h-full w-full md:max-w-[calc(100vh*9/16)] bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
                 
                 <div className="absolute inset-0 z-0">
@@ -212,49 +216,41 @@ function FeedContent() {
                   <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/90 pointer-events-none" />
                 </div>
 
-                <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 pb-32 pointer-events-none">
-                    <div className="flex justify-between items-end w-full">
-                        <div className="max-w-[80%] space-y-4 pointer-events-auto transform-gpu">
-                            <div className="flex items-center gap-3">
-                               <div className="w-12 h-12 rounded-full border-2 border-white/10 p-0.5 shadow-2xl overflow-hidden bg-zinc-800">
-                                  <img src={post.profiles?.avatar_url || `https://api.dicebear.com{post.profiles?.username}`} className="w-full h-full rounded-full object-cover" />
-                               </div>
-                               <div className="flex flex-col">
-                                  <span className="text-white font-black text-base italic tracking-tighter drop-shadow-md">@{post.profiles?.username}</span>
-                                  {activeTab === 'foryou' && <span className="text-[9px] text-yellow-400 font-bold tracking-widest uppercase">Viral Score: {Math.round(post.viral_score || 0)}</span>}
-                               </div>
-                            </div>
-                            <h2 className="text-white text-sm font-medium leading-snug line-clamp-2 drop-shadow-lg">{post.caption}</h2>
+                <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 pb-32 gap-4 pointer-events-none">
+                    <div className="flex items-center gap-3 pointer-events-auto">
+                        <div className="w-12 h-12 rounded-full border-2 border-white/10 p-0.5 shadow-2xl overflow-hidden bg-zinc-800">
+                           <img 
+                            src={(post.profiles as any)?.avatar_url || `https://api.dicebear.com{(post.profiles as any)?.username || 'smile'}`} 
+                            className="w-full h-full rounded-full object-cover" 
+                            alt="avatar" 
+                           />
                         </div>
-                        <div className="pointer-events-auto mb-2"><SidebarActions post={post} /></div>
+                        <div className="flex flex-col">
+                            <span className="text-white font-black text-base italic tracking-tighter drop-shadow-md">
+                                @{(post.profiles as any)?.username || 'user'}
+                            </span>
+                            {activeTab === 'foryou' && (
+                                <span className="text-[9px] text-yellow-400 font-bold tracking-widest uppercase">
+                                    Viral Score: {Math.round(post.viral_score || 0)}
+                                </span>
+                            )}
+                        </div>
                     </div>
+                    <p className="text-white/90 text-sm font-medium line-clamp-2 max-w-[85%] drop-shadow-md italic leading-tight pointer-events-auto">
+                        {post.caption || "Redefine entertainment with Smile Live."}
+                    </p>
+                </div>
+
+                <div className="absolute right-2 bottom-36 z-40">
+                    <SidebarActions post={post} />
                 </div>
             </div>
           </section>
         )) : (
-          <div className="h-full flex flex-col items-center justify-center text-white/20 px-10 text-center">
-            <p className="font-black italic uppercase text-xl">No content here yet</p>
-            <p className="text-xs mt-2 uppercase tracking-widest leading-relaxed">Follow more creators to see their posts in this feed.</p>
-          </div>
+          <div className="h-screen flex items-center justify-center text-white italic opacity-20 uppercase font-black">No content found</div>
         )}
       </div>
-
-      <div className="fixed bottom-[72px] z-40 w-full md:max-w-[calc(100vh*9/16)] h-[2px] bg-white/5 overflow-hidden">
-        <div 
-          className="h-full bg-yellow-400 shadow-[0_0_15px_#facc15] transition-all duration-150 ease-linear" 
-          style={{ width: `${globalProgress}%` }} 
-        />
-      </div>
-
       <BottomNav />
     </div>
-  );
-}
-
-export default function AppPage() {
-  return (
-    <Suspense fallback={<div className="h-screen bg-black" />}>
-      <FeedContent />
-    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // page.tsx (în app/share/[id]/)
 import { Metadata } from "next";
 import { createBrowserClient } from "@supabase/ssr";
-import PostShareClient from "./PostShareClient";
+import PostShareClient from "./PostShareClient.tsx";
 
 
 

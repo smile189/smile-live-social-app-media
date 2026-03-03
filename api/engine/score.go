@@ -1,53 +1,56 @@
 package engine
 
 import (
+	"fmt"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 )
 
+// Handler adăugat pentru a satisface cerințele Vercel Serverless Functions
+func Handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "Engine Score Module is active. Use CalculateAdvancedScore internally.")
+}
+
 func getMLParam(key string, fallback float64) float64 {
 	val, err := strconv.ParseFloat(os.Getenv(key), 64)
-	if err != nil { return fallback }
+	if err != nil {
+		return fallback
+	}
 	return val
 }
 
-// Implementarea Ecuației: S = α * ((Likes + Comments) / (Views + 1)) + β * FollowBoost + γ * InterestMatch + δ * LiveBoost + ε * DecayTemporal
+// CalculateAdvancedScore rămâne neschimbată pentru a fi apelată din feed-fetch.go
 func CalculateAdvancedScore(likes, comments, views int, isFollower, isLive bool, interestScore float64, hoursOld float64) float64 {
-	// 1. Preluăm coeficienții din .env
-	alpha   := getMLParam("ML_ALPHA", 4.0)   // Ponderea Engagement Rate
-	beta    := getMLParam("ML_BETA", 2.0)    // Ponderea Follower Status
-	gamma   := getMLParam("ML_GAMMA", 1.5)   // Ponderea Interest Match
-	delta   := getMLParam("ML_DELTA", 2.0)   // Ponderea Live Status
-	epsilon := getMLParam("ML_EPSILON", 1.0) // Ponderea Decay Temporal
+	// 1. Preluăm coeficienții din environment conform Vercel Docs
+	alpha := getMLParam("ML_ALPHA", 4.0)
+	beta := getMLParam("ML_BETA", 2.0)
+	gamma := getMLParam("ML_GAMMA", 1.5)
+	delta := getMLParam("ML_DELTA", 2.0)
+	epsilon := getMLParam("ML_EPSILON", 1.0)
 
 	// 2. Calculăm Componentele Ecuației
-	
-	// Engagement Rate (Likes + Comments / Views)
-	// Adăugăm +1 la Views pentru a evita împărțirea la zero
-	engagementRate := float64(likes + comments) / float64(views + 1)
+	engagementRate := float64(likes+comments) / float64(views+1)
 	term1 := alpha * engagementRate
 
-	// Follow Boost (Dacă userul urmărește creatorul, primește un boost fix)
 	followBoost := 0.0
-	if isFollower { followBoost = 1.0 }
+	if isFollower {
+		followBoost = 1.0
+	}
 	term2 := beta * followBoost
 
-	// Interest Match (Scor de relevanță AI/CLIP deja calculat anterior)
 	term3 := gamma * interestScore
 
-	// Live Boost (Prioritate maximă dacă e Live)
 	liveBoost := 0.0
-	if isLive { liveBoost = 1.0 }
+	if isLive {
+		liveBoost = 1.0
+	}
 	term4 := delta * liveBoost
 
-	// Decay Temporal (ε * 1 / (Timp^1.5))
-	// Folosim o funcție inversă pentru ca postările noi să aibă scor mare
-	decayValue := 1.0 / math.Pow(hoursOld + 1, 1.5)
+	decayValue := 1.0 / math.Pow(hoursOld+1, 1.5)
 	term5 := epsilon * decayValue
 
-	// S = Suma tuturor termenilor
-	finalScore := term1 + term2 + term3 + term4 + term5
-
-	return finalScore
+	return term1 + term2 + term3 + term4 + term5
 }

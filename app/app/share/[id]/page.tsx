@@ -4,6 +4,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import PostShareClient from "./PostShareClient";
 
 
+
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const { id } = await params;
   const supabase = createBrowserClient(

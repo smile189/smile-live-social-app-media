@@ -13,29 +13,36 @@ export interface Post {
 }
 
 export const calculateViralScore = (post: Post): number => {
-  const alpha = 4;   // Engagement
-  const beta = 2;    // Follower
-  const gamma = 1.5; // Interest
-  const delta = 2;   // Live
-  const epsilon = 1; // Decay
+  // Preluăm valorile din .env (Next.js are nevoie de prefixul NEXT_PUBLIC_ pentru a fi citite în "use client")
+  // Dacă nu sunt setate, folosim fallback-urile tale
+  const alpha = Number(process.env.NEXT_PUBLIC_ML_ALPHA) || 4;
+  const beta = Number(process.env.NEXT_PUBLIC_ML_BETA) || 2;
+  const gamma = Number(process.env.NEXT_PUBLIC_ML_GAMMA) || 1.5;
+  const delta = Number(process.env.NEXT_PUBLIC_ML_DELTA) || 2;
+  const epsilon = Number(process.env.NEXT_PUBLIC_ML_EPSILON) || 1;
+  const zeta = 3; // Coeficient fix pentru Freshness (0-60 min)
 
   const now = new Date().getTime();
-  
+  const createdDate = new Date(post.created_at).getTime();
+  const hoursOld = (now - createdDate) / 3600000;
+
   // 1. Engagement Rate
   const engagement = (Number(post.likes_count || 0) + Number(post.comments_count || 0)) / (Number(post.views || 0) + 1);
   
-  // 2. Decay Temporal (Ore)
-  const createdDate = new Date(post.created_at).getTime();
-  const hoursOld = (now - createdDate) / 3600000;
+  // 2. Decay Temporal (Efect lung: scade după ore/zile)
   const decay = 1 / Math.pow(Math.max(hoursOld, 0) + 1, 1.5);
 
-  // Ecuația SMILE
+  // 3. Freshness Boost (Efect scurt: "explodează" în prima oră)
+  const freshnessBoost = hoursOld < 1 ? Math.exp(-hoursOld) : 0;
+
+  // Ecuația Finală SMILE
   return (
     (alpha * engagement) + 
     (beta * (post.is_follower ? 1 : 0)) + 
     (gamma * (post.interest_score || 0.5)) + 
     (delta * (post.is_live ? 1 : 0)) + 
-    (epsilon * decay)
+    (epsilon * decay) +
+    (zeta * freshnessBoost)
   );
 };
 

@@ -57,7 +57,7 @@ function SidebarActions({ post }: { post: any }) {
   const handleShare = async () => {
     const shareUrl =
       typeof window !== "undefined"
-        ? `${window.location.origin}/post/${post.id}`
+        ? `${window.location.origin}/share/${post.id}`
         : "";
 
     if (navigator.share) {

@@ -1,206 +1,196 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, memo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import SidebarActions from "@/components/ActionButton";
 import BottomNav from "@/components/BottomNav";
-import TopNav from "@/components/TopNav";
-import { AlertCircle, Play } from "lucide-react";
-
+import { Play } from "lucide-react";
 import { sortPostsByViralScore } from "@/lib/ml-algorithm";
 import { prefetchVideos } from "@/lib/prefetch-utils";
 
-function MediaRenderer({ post, isActive, isNear }: { post: any; isActive: boolean; isNear: boolean }) {
+// Singleton client - previne erorile de instanțiere multiplă în Turbopack
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const MediaRenderer = memo(({ post, isActive, isNear }: { post: any; isActive: boolean; isNear: boolean }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const playPromiseRef = useRef<Promise<void> | null>(null);
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState(false);
+  const [isPausedManually, setIsPausedManually] = useState(false);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !isActive) return;
-    const updateProgress = () => {
-      if (video.duration) setProgress((video.currentTime / video.duration) * 100);
-    };
-    video.addEventListener("timeupdate", updateProgress);
-    return () => video.removeEventListener("timeupdate", updateProgress);
+    if (!isActive) setIsPausedManually(false);
   }, [isActive]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || post.type !== "video") return;
+    if (!video || !isActive) return;
+    let frameId: number;
+    const sync = () => {
+      if (video.duration) setProgress((video.currentTime / video.duration) * 100);
+      frameId = requestAnimationFrame(sync);
+    };
+    frameId = requestAnimationFrame(sync);
+    return () => cancelAnimationFrame(frameId);
+  }, [isActive]);
 
-    if (isActive) {
-      // Optimizare: Autoplay doar pe ce e vizibil
-      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-    } else {
-      video.pause();
-      if (!isNear) {
-        // Eliberăm resursele complet pentru clipurile îndepărtate
-        video.removeAttribute('src'); 
-        video.load();
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleMedia = async () => {
+      if (isActive && !isPausedManually) {
+        try {
+          if (playPromiseRef.current) await playPromiseRef.current.catch(() => {});
+          playPromiseRef.current = video.play();
+          await playPromiseRef.current;
+        } catch (e) {}
       } else {
-        video.currentTime = 0;
+        if (playPromiseRef.current) await playPromiseRef.current.catch(() => {});
+        video.pause();
+        if (!isNear) {
+          video.src = ""; 
+          video.load();
+        }
       }
-      setIsPlaying(false);
-    }
-  }, [isActive, isNear, post.type]);
+    };
+    handleMedia();
+  }, [isActive, isNear, isPausedManually]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play();
+      setIsPausedManually(false);
     } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
+      video.pause();
+      setIsPausedManually(true);
     }
   };
 
-  if (post.type === "video" && !error && (isActive || isNear)) {
-    return (
-      <div className="relative w-full h-full flex justify-center items-center bg-black overflow-hidden transform-gpu" onClick={togglePlay}>
-        <video
-          ref={videoRef}
-          key={post.id}
-          // Fix: Prevenim eroarea de cache folosind preload condiționat
-          src={post.video_url || undefined}
-          className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu scale-[1.005]"
-          loop
-          playsInline
-          muted={!isActive}
-          preload={isActive ? "auto" : "metadata"}
-          crossOrigin="anonymous"
-          onError={() => setError(true)}
-        />
-        <div className="absolute bottom-0 left-0 right-0 flex justify-center z-50">
-           <div className="w-full md:w-[calc(100vh*(9/16))] h-[1.5px] bg-white/10">
-              <div className="h-full bg-yellow-400 shadow-[0_0_8px_#facc15]" style={{ width: `${progress}%` }} />
-           </div>
-        </div>
-        {!isPlaying && isActive && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <Play size={60} className="fill-white/30 text-white/50 animate-pulse" />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const imageUrl = post.thumbnail_url || post.video_url;
-  if (imageUrl) {
-    return (
-      <div className="w-full h-full flex justify-center items-center bg-black">
-        <img src={imageUrl} className="h-full w-full md:w-auto md:aspect-[9/16] object-cover transform-gpu" alt="Media" />
-      </div>
-    );
-  }
+  const safeSrc = useMemo(() => {
+    if (!post.video_url || (!isActive && !isNear)) return null;
+    return `${post.video_url}?v=${post.id.slice(0, 5)}`;
+  }, [post.video_url, post.id, isActive, isNear]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-black"><AlertCircle size={30} className="text-zinc-800" /></div>
+    <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden transform-gpu cursor-pointer" onClick={togglePlay}>
+      {safeSrc ? (
+        <video
+          ref={videoRef}
+          src={safeSrc}
+          className="h-full w-full object-cover will-change-transform scale-[1.001]"
+          loop playsInline muted={!isActive} preload={isActive ? "auto" : "metadata"}
+        />
+      ) : (
+        <div className="w-full h-full bg-black flex items-center justify-center">
+           {post.thumbnail_url && <img src={post.thumbnail_url} className="w-full h-full object-cover opacity-40 blur-sm" alt="" />}
+        </div>
+      )}
+      {isPausedManually && isActive && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="bg-black/40 p-5 rounded-full backdrop-blur-sm">
+            <Play size={40} className="text-white fill-white ml-1" />
+          </div>
+        </div>
+      )}
+      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white/10 z-50">
+        <div className="h-full bg-yellow-400 origin-left" style={{ transform: `scaleX(${progress / 100})`, transition: 'transform 0.1s linear' }} />
+      </div>
+    </div>
   );
-}
+});
+
+MediaRenderer.displayName = "MediaRenderer";
 
 export default function AppPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const supabase = useRef(createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )).current;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchFeed = async () => {
-      // FIX 406: Încărcăm like-urile utilizatorului curent direct în fetch-ul de postări
-      // Presupunem că ai o tabelă 'likes' legată de 'posts'
-      const { data } = await supabase
-        .from("posts")
-        .select(`*, profiles(*), likes(id)`) 
-        .limit(50);
+    let isMounted = true;
+    const controller = new AbortController();
 
-      if (data) {
-        // Aplicăm ALGORITMUL ML (Freshness + Engagement)
-        const sorted = sortPostsByViralScore(data);
-        setPosts(sorted);
-        if (sorted.length > 0) setActivePostId(sorted[0].id);
-        
-        // PREFETCH: Încărcăm 10 clipuri (acum cu delay-ul din lib)
-        prefetchVideos(sorted, 10);
+    async function fetchFeed() {
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select(`*, profiles(*), likes(id), comments(count)`)
+          .limit(30)
+          .abortSignal(controller.signal);
+
+        if (isMounted && !error && data) {
+          const sorted = sortPostsByViralScore(data);
+          setPosts(sorted);
+          if (sorted.length > 0) setActivePostId(sorted[0].id);
+          prefetchVideos(sorted, 5);
+        }
+      } catch (err: any) {
+        // Ignorăm erorile de abort în consolă pentru a menține log-urile curate
+        if (err.name !== 'AbortError' && isMounted) console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
-    };
-    fetchFeed();
-  }, [supabase]);
+    }
 
-  const containerRef = useRef<HTMLDivElement>(null);
+    fetchFeed();
+    return () => {
+      isMounted = false;
+      controller.abort(); // Oprește cererea imediat ce componenta se descarcă
+    };
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute("data-id");
-            if (id) setActivePostId(id);
-          }
-        });
+        const visible = entries.find(e => e.isIntersecting && e.intersectionRatio > 0.5);
+        if (visible) setActivePostId(visible.target.getAttribute("data-id"));
       },
       { threshold: 0.6 }
     );
-    const sections = containerRef.current?.querySelectorAll("section");
-    sections?.forEach((s) => observer.observe(s));
+    containerRef.current?.querySelectorAll("section").forEach((s) => observer.observe(s));
     return () => observer.disconnect();
   }, [posts]);
 
-  if (loading) return (
-    <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black text-3xl animate-pulse italic uppercase tracking-[0.2em]">Smile</div>
-  );
+  const activeIndex = useMemo(() => posts.findIndex(p => p.id === activePostId), [posts, activePostId]);
 
-  const activePost = posts.find(p => p.id === activePostId);
-  const activeIndex = posts.findIndex(p => p.id === activePostId);
+  if (loading) return <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black text-2xl italic animate-pulse">SMILE</div>;
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden font-sans select-none">
-      <TopNav />
+    <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none overscroll-none">
       <div 
         ref={containerRef}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar"
-        style={{ scrollBehavior: 'auto' }}
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {posts.map((post, index) => (
-          <section 
-            key={post.id} 
-            data-id={post.id}
-            className="h-full w-full snap-start snap-always relative flex flex-col justify-end overflow-hidden"
-          >
+          <section key={post.id} data-id={post.id} className="h-full w-full snap-start snap-always relative flex flex-col justify-end">
             <div className="absolute inset-0 z-0">
-               <MediaRenderer 
-                  post={post} 
-                  isActive={activePostId === post.id} 
-                  // Cache inteligent: 1 în spate, 2 în față
-                  isNear={index >= activeIndex - 1 && index <= activeIndex + 2}
-               />
-               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/90 pointer-events-none" />
+               <MediaRenderer post={post} isActive={activePostId === post.id} isNear={Math.abs(index - activeIndex) <= 2} />
+               <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80 pointer-events-none" />
             </div>
-
-            <div className="z-10 p-6 pb-20 md:pb-28 max-w-[80%] pointer-events-none ml-0 md:ml-10">
-              <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-yellow-400 text-black text-[9px] font-black uppercase mb-3 shadow-lg">
-                 <div className="h-1 w-1 rounded-full bg-black animate-ping" /> Uplink Active
-              </div>
-              <h2 className="text-white text-xl md:text-3xl font-black uppercase tracking-tighter leading-tight drop-shadow-2xl line-clamp-2">
-                {post.caption}
-              </h2>
-              <p className="mt-1 text-yellow-400 text-xs font-bold uppercase tracking-tighter">
-                @{post.profiles?.username}
-              </p>
+            <div className="relative z-10 w-full p-6 pb-24 md:pb-32 flex justify-between items-end pointer-events-none">
+                <div className="max-w-[75%] space-y-3 pointer-events-auto">
+                    <div className="flex items-center gap-2">
+                       <div className="w-9 h-9 rounded-full bg-zinc-800 border border-white/20 overflow-hidden shadow-lg">
+                          {post.profiles?.avatar_url && <img src={post.profiles.avatar_url} alt="" className="w-full h-full object-cover" />}
+                       </div>
+                       <p className="text-white font-bold drop-shadow-md">@{post.profiles?.username || 'user'}</p>
+                    </div>
+                    <h2 className="text-white text-sm md:text-lg font-normal drop-shadow-md line-clamp-3 leading-snug">{post.caption}</h2>
+                </div>
+                <div className="pointer-events-auto">
+                   <SidebarActions post={post} />
+                </div>
             </div>
           </section>
         ))}
-      </div>
-      <div className="fixed right-3 bottom-16 md:bottom-24 z-50 pointer-events-auto transform scale-85 md:scale-100 origin-bottom-right">
-         <SidebarActions post={activePost} />
       </div>
       <BottomNav />
     </div>

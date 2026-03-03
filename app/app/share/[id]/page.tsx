@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
     openGraph: {
       title: `Smile Live - @${username}`,
       description: post?.caption,
-     url: `https://www.smileliveapp.com/post/${id}`,
+     url: `https://www.smileliveapp.com/share/${id}`,
       images: [
         {
           url: previewImage,

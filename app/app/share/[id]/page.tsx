@@ -32,4 +32,5 @@ export default async function Page({ params }: any) {
   const { id } = await params;
   // AICI folosim exact numele importat de sus
   return <PostShareClient id={id} />;
+
 }

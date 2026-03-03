@@ -97,7 +97,7 @@ function SidebarActions({ post }: { post: any }) {
         <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
           <MessageSquare size={28} />
         </div>
-        <span className="text-[10px] font-black italic uppercase">Chat</span>
+        <span className="text-[10px] font-black italic uppercase"> </span>
       </button>
 
       <button

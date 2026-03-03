@@ -1,11 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
-	"net/http"
-	"time"
-    // Importă pachetul engine (ajustează calea dacă e necesar)
-	"://github.com" 
+    "://github.com"
+    "://github.com" // Exemplu, dacă folosești
 )
 
 // Structura pentru a simula datele din Supabase (ajusteaz-o conform bazei tale)
@@ -40,7 +37,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
-	
+
 	// 3. Răspunsul API
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)

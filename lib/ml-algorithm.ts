@@ -1,5 +1,7 @@
 // lib/ml-algorithm.ts
 
+// lib/ml-algorithm.ts
+
 export interface Post {
   id: string;
   created_at: string;
@@ -7,12 +9,18 @@ export interface Post {
   comments?: any[] | { count: number };
   metadata?: { views?: number };
   views?: number;
-  profiles?: { is_live: boolean };
+  // MODIFICARE AICI: Adăugăm câmpurile care lipseau
+  profiles?: { 
+    is_live: boolean; 
+    avatar_url?: string; 
+    username?: string; 
+  };
   is_live?: boolean;
   is_follower?: boolean;
   interest_score?: number;
   [key: string]: any;
 }
+
 
 export const calculateViralScore = (post: Post): number => {
   // 1. EXTRACTIE CIFRE REALE DIN STRUCTURA SUPABASE (Mapping Automat)

@@ -13,8 +13,7 @@ export interface Post {
 }
 
 export const calculateViralScore = (post: Post): number => {
-  // Preluăm valorile din .env (Next.js are nevoie de prefixul NEXT_PUBLIC_ pentru a fi citite în "use client")
-  // Dacă nu sunt setate, folosim fallback-urile tale
+
   const alpha = Number(process.env.NEXT_PUBLIC_ML_ALPHA) || 4;
   const beta = Number(process.env.NEXT_PUBLIC_ML_BETA) || 2;
   const gamma = Number(process.env.NEXT_PUBLIC_ML_GAMMA) || 1.5;

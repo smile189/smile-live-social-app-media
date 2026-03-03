@@ -145,6 +145,7 @@ export default function PostSharePage({ params }: { params: Promise<{ id: string
           <SidebarActions post={post} />
         </div>
 
+
         {/* INFO OVERLAY */}
         <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/70 to-transparent z-40">
           <div className="flex items-center gap-3 mb-2">

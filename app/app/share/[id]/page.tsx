@@ -1,9 +1,7 @@
-// page.tsx (în app/share/[id]/)
+// app/app/share/[id]/page.tsx
 import { Metadata } from "next";
 import { createBrowserClient } from "@supabase/ssr";
-import PostShareClient from "./PostShareClient.tsx";
-
-
+import PostShareClient from "./PostShareClient"; // FĂRĂ .js, FĂRĂ .tsx
 
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const { id } = await params;
@@ -12,9 +10,13 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const { data: post } = await supabase.from("posts").select("video_url, caption").eq("id", id).single();
+  const { data: post } = await supabase
+    .from("posts")
+    .select("video_url, caption")
+    .eq("id", id)
+    .single();
   
-  // TRUCUL: #t=0.1 forțează generarea cadrului pentru preview
+  // TRUCUL: #t=0.1 pentru preview pe WhatsApp
   const thumb = post?.video_url ? `${post.video_url}#t=0.1` : "/logosmile.jpeg";
 
   return {
@@ -28,5 +30,6 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
 
 export default async function Page({ params }: any) {
   const { id } = await params;
+  // AICI folosim exact numele importat de sus
   return <PostShareClient id={id} />;
 }

@@ -62,7 +62,6 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
-      {/* WATERMARK SMILE - STANGA SUS */}
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
         <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           smile
@@ -99,6 +98,40 @@ export default function FeedContent() {
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFetching = useRef(false);
+
+  // --- LOGICA BLOCK REVISION ---
+  const [maintenance, setMaintenance] = useState<{ active: boolean; title: string; msg: string } | null>(null);
+
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      const { data } = await supabase
+        .from("system_control")
+        .select("is_maintenance_web, maintenance_title, maintenance_message")
+        .eq("id", 1)
+        .single();
+
+      if (data?.is_maintenance_web) {
+        setMaintenance({ active: true, title: data.maintenance_title, msg: data.maintenance_message });
+      }
+    };
+
+    checkMaintenance();
+
+    const channel = supabase
+      .channel('maintenance_sync')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_control' }, (payload) => {
+        if (payload.new.id === 1) {
+          setMaintenance(payload.new.is_maintenance_web ? {
+            active: true,
+            title: payload.new.maintenance_title,
+            msg: payload.new.maintenance_message
+          } : null);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const loadContent = useCallback(async (isInitial = false) => {
     if (isFetching.current) return;
@@ -190,6 +223,28 @@ export default function FeedContent() {
 
   const activeIndex = useMemo(() => posts.findIndex(p => p.id === activePostId), [posts, activePostId]);
 
+  // --- RENDERING CONDITIONAT PENTRU MENTENANȚĂ (FIX PENTRU BUILD ERROR) ---
+  if (maintenance?.active) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+        <h1 className="text-yellow-500 font-black text-6xl italic uppercase mb-12 tracking-tighter drop-shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+          Smile
+        </h1>
+        <div className="max-w-md w-full p-8 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-3xl shadow-2xl space-y-6">
+          <div className="w-16 h-1.5 bg-yellow-500 mx-auto rounded-full animate-pulse" />
+          <div className="space-y-2">
+            <h2 className="text-white font-black text-sm uppercase tracking-[0.3em] leading-tight">
+              {maintenance.title}
+            </h2>
+            <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-widest leading-loose italic">
+              {maintenance.msg}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && posts.length === 0) return (
     <div className="h-screen bg-black flex items-center justify-center">
       <div className="text-yellow-400 font-black text-2xl italic animate-pulse uppercase tracking-[0.2em]">Smile</div>
@@ -198,14 +253,11 @@ export default function FeedContent() {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none flex flex-col items-center">
-      
       <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
-
       <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10" style={{ WebkitOverflowScrolling: 'touch' }}>
         {posts.length > 0 ? posts.map((post, index) => (
           <section key={post.id} data-id={post.id} className="h-full w-full snap-start snap-always relative flex justify-center bg-zinc-950">
             <div className="relative h-full w-full md:max-w-[calc(100vh*9/16)] bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
-                
                 <div className="absolute inset-0 z-0">
                   <MediaRenderer 
                     post={post} 
@@ -213,44 +265,11 @@ export default function FeedContent() {
                     isNear={Math.abs(index - activeIndex) <= 2} 
                     onProgress={setGlobalProgress} 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/90 pointer-events-none" />
-                </div>
-
-                <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 pb-32 gap-4 pointer-events-none">
-                    <div className="flex items-center gap-3 pointer-events-auto">
-                        <div className="w-12 h-12 rounded-full border-2 border-white/10 p-0.5 shadow-2xl overflow-hidden bg-zinc-800">
-                           <img 
-                            src={(post.profiles as any)?.avatar_url || `https://api.dicebear.com{(post.profiles as any)?.username || 'smile'}`} 
-                            className="w-full h-full rounded-full object-cover" 
-                            alt="avatar" 
-                           />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-white font-black text-base italic tracking-tighter drop-shadow-md">
-                                @{(post.profiles as any)?.username || 'user'}
-                            </span>
-                            {activeTab === 'foryou' && (
-                                <span className="text-[9px] text-yellow-400 font-bold tracking-widest uppercase">
-                                    Viral Score: {Math.round(post.viral_score || 0)}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <p className="text-white/90 text-sm font-medium line-clamp-2 max-w-[85%] drop-shadow-md italic leading-tight pointer-events-auto">
-                        {post.caption || "Redefine entertainment with Smile Live."}
-                    </p>
-                </div>
-
-                <div className="absolute right-2 bottom-36 z-40">
-                    <SidebarActions post={post} />
                 </div>
             </div>
           </section>
-        )) : (
-          <div className="h-screen flex items-center justify-center text-white italic opacity-20 uppercase font-black">No content found</div>
-        )}
+        )) : null}
       </div>
-      <BottomNav />
     </div>
   );
 }

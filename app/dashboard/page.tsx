@@ -26,6 +26,7 @@ import GiftsTab from "./gifts/Gifts"; // Import real GiftsTab component
 import Money from "./money/Money"; // Import real Money component
 import ModerateSmile from './moderate/ModerateSmile'; 
 import MusicRequestsDashboard from './neuromusic/ai_music';
+import ContentSmile from './content/ContentSmile';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -229,7 +230,8 @@ export default function SuperAdminDashboard() {
                 {activeTab === "money" && <Money supabase={supabase} />}
 
                 {activeTab === "users" && <UsersTab />}
-                {activeTab === "content" && <BlankTab name="Posts & Video Content" />}
+
+                {activeTab === "content" && <ContentSmile />}
                 {activeTab === "finances" && <FinancesTab />}
                 {activeTab === "gifts" && <GiftsTab />}
                 {activeTab === "moderation" && <ModerateSmile />}
@@ -298,6 +300,7 @@ function StatCard({ label, value, icon }: any) {
  */
 
 
+// --- COMPONENTA PRINCIPALĂ ---
 export function OverviewTab() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [liveRevenue, setLiveRevenue] = useState<number>(0);
@@ -307,6 +310,9 @@ export function OverviewTab() {
   const [recentTrans, setRecentTrans] = useState<any[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [notifications, setNotifications] = useState<{id: number, msg: string, type: 'info' | 'success'}[]>([]);
+  
+  // State pentru system_control
+  const [sysControl, setSysControl] = useState<any>(null);
 
   const addNotify = (msg: string, type: 'info' | 'success' = 'info') => {
     const id = Date.now();
@@ -315,33 +321,47 @@ export function OverviewTab() {
   };
 
   const fetchStats = async () => {
-    const [uCount, lCount, transData, walletsData] = await Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("posts").select("id", { count: "exact", head: true }),
-      supabase.from("gift_transactions")
-        .select("id, coins_amount, created_at, sender_id, profiles!gift_transactions_sender_id_fkey(username)")
-        .order('created_at', { ascending: false })
-        .limit(25),
-      supabase.from("wallets")
-        .select(`coins_balance, profiles(username)`)
-        .gt('coins_balance', 0)
-        .order('coins_balance', { ascending: false })
-    ]);
+    try {
+      const [uCount, lCount, transData, walletsData, systemData] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("posts").select("id", { count: "exact", head: true }),
+        supabase.from("gift_transactions")
+          .select("id, coins_amount, created_at, sender_id, profiles!gift_transactions_sender_id_fkey(username)")
+          .order('created_at', { ascending: false })
+          .limit(25),
+        supabase.from("wallets")
+          .select(`coins_balance, profiles(username)`)
+          .gt('coins_balance', 0)
+          .order('coins_balance', { ascending: false }),
+        supabase.from("system_control").select("*").eq('id', 1).single()
+      ]);
 
-    setTotalUsers(uCount.count ?? 0);
-    setActiveLives(lCount.count ?? 0);
-    
-    if (transData.data) {
-      setRecentTrans(transData.data);
-      setLiveRevenue(transData.data.reduce((a, b) => a + (b.coins_amount ?? 0), 0));
+      setTotalUsers(uCount.count ?? 0);
+      setActiveLives(lCount.count ?? 0);
+      if (systemData.data) setSysControl(systemData.data);
+      
+      if (transData.data) {
+        setRecentTrans(transData.data);
+        setLiveRevenue(transData.data.reduce((a, b) => a + (b.coins_amount ?? 0), 0));
+      }
+      
+      if (walletsData.data) {
+        setCoinsSupply(walletsData.data.reduce((a, b) => a + (b.coins_balance ?? 0), 0));
+        setTopHolders(walletsData.data.map(w => ({
+          name: (w.profiles as any)?.username || "User",
+          value: w.coins_balance
+        })));
+      }
+    } catch (err) {
+      console.error("Error fetching stats:", err);
     }
-    
-    if (walletsData.data) {
-      setCoinsSupply(walletsData.data.reduce((a, b) => a + (b.coins_balance ?? 0), 0));
-      setTopHolders(walletsData.data.map(w => ({
-        name: (w.profiles as any)?.username || "User",
-        value: w.coins_balance
-      })));
+  };
+
+  const updateSystem = async (updates: any) => {
+    const { error } = await supabase.from("system_control").update(updates).eq('id', 1);
+    if (!error) {
+      setSysControl((prev: any) => ({ ...prev, ...updates }));
+      addNotify("Setări sistem actualizate", "success");
     }
   };
 
@@ -350,53 +370,18 @@ export function OverviewTab() {
 
     const channel = supabase
       .channel('admin_realtime_v2')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'gift_transactions' },
-        async (payload) => {
-          // Fetch rapid pentru username deoarece Realtime nu trimite relații (joins)
-          const { data: user } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', payload.new.sender_id)
-            .single();
-
-          const enriched = {
-            ...payload.new,
-            profiles: { username: user?.username || 'User' }
-          };
-
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gift_transactions' }, async (payload) => {
+          const { data: user } = await supabase.from('profiles').select('username').eq('id', payload.new.sender_id).single();
+          const enriched = { ...payload.new, profiles: { username: user?.username || 'User' } };
           setRecentTrans(prev => [enriched, ...prev].slice(0, 25));
           setLiveRevenue(prev => prev + (payload.new.coins_amount || 0));
-          
-          if (payload.new.coins_amount > 500) {
-            addNotify(`High Volume: +${payload.new.coins_amount} 🪙 de la @${user?.username}`, 'info');
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'wallets' },
-        () => {
-          // Update top holders instant când se schimbă balanțele
-          fetchStats();
-        }
-      )
-      .subscribe((status) => {
-        console.log("Realtime status:", status);
-      });
+          if (payload.new.coins_amount > 500) addNotify(`High Volume: +${payload.new.coins_amount} 🪙`, 'info');
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets' }, () => fetchStats())
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
-
-  const metrics = useMemo(() => {
-    const last24h = recentTrans.filter(t => new Date(t.created_at) > new Date(Date.now() - 86400000));
-    const vol24h = last24h.reduce((a, b) => a + (b.coins_amount || 0), 0);
-    return {
-      vol24h,
-      velocity: coinsSupply > 0 ? ((vol24h / coinsSupply) * 100).toFixed(2) : "0.00"
-    };
-  }, [recentTrans, coinsSupply]);
 
   const exportCSV = () => {
     setIsExporting(true);
@@ -410,10 +395,11 @@ export function OverviewTab() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 py-6 px-4 relative animate-in fade-in duration-700">
+      
       {/* NOTIFICATIONS */}
       <div className="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none">
         {notifications.map(n => (
-          <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl animate-in slide-in-from-right-10 duration-500 flex items-center gap-3 ${
+          <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl flex items-center gap-3 ${
             n.type === 'success' ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-zinc-950 border-zinc-800 text-indigo-400'
           }`}>
             <div className={`w-2 h-2 rounded-full ${n.type === 'success' ? 'bg-white' : 'bg-indigo-500 animate-pulse'}`} />
@@ -422,15 +408,57 @@ export function OverviewTab() {
         ))}
       </div>
 
+      {/* KPI SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-         <KPIBox 
-    label="Total Users platform"  value={`${totalUsers.toLocaleString()} 👤`} />
-        <KPIBox label="Net Revenue " value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
-         <KPIBox    label="Live Creators"   value={`${activeLives} 🎥`}  />
-          <KPIBox  label="Total Golden Coins supply" value={`${coinsSupply.toLocaleString()} 🪙`} />
+        <KPIBox label="Total Users platform" value={`${totalUsers.toLocaleString()} 👤`} />
+        <KPIBox label="Net Revenue" value={`${liveRevenue.toLocaleString()} 🪙`} highlight />
+        <KPIBox label="Live Creators" value={`${activeLives} 🎥`} />
+        <KPIBox label="Total Golden Coins supply" value={`${coinsSupply.toLocaleString()} 🪙`} />
       </div>
 
+      {/* SELECTIVE MAINTENANCE CONTROL */}
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-8">
+            {['web', 'android', 'ios'].map((platform) => (
+              <div key={platform} className="flex flex-col items-center gap-2">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">{platform}</span>
+                <button 
+                  onClick={() => updateSystem({ [`is_maintenance_${platform}`]: !sysControl?.[`is_maintenance_${platform}`] })}
+                  className={`w-10 h-5 rounded-full relative transition-all ${sysControl?.[`is_maintenance_${platform}`] ? 'bg-rose-600 shadow-lg' : 'bg-zinc-200 dark:bg-zinc-800'}`}
+                >
+                  <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${sysControl?.[`is_maintenance_${platform}`] ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex-1 min-w-[300px]">
+            <span className="text-[9px] font-black text-zinc-500 uppercase block mb-1">Mesaj Public Revizie</span>
+            <input 
+              type="text"
+              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-[11px] outline-none focus:ring-1 ring-indigo-500"
+              defaultValue={sysControl?.maintenance_message}
+              onBlur={(e) => updateSystem({ maintenance_message: e.target.value })}
+            />
+          </div>
+
+          <div className="flex gap-4 border-l dark:border-zinc-800 pl-6">
+              <div className="flex flex-col text-center">
+                <span className="text-[8px] font-black text-zinc-400 uppercase">Ver iOS</span>
+                <input type="text" defaultValue={sysControl?.min_ios_version} onBlur={(e) => updateSystem({ min_ios_version: e.target.value })} className="w-12 bg-zinc-100 dark:bg-zinc-900 rounded text-[10px] text-center py-1" />
+              </div>
+              <div className="flex flex-col text-center">
+                <span className="text-[8px] font-black text-zinc-400 uppercase">Ver Android</span>
+                <input type="text" defaultValue={sysControl?.min_android_version} onBlur={(e) => updateSystem({ min_android_version: e.target.value })} className="w-12 bg-zinc-100 dark:bg-zinc-900 rounded text-[10px] text-center py-1" />
+              </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TABLES SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* LIVE GIFT TRANSFER */}
         <div className="lg:col-span-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col h-[600px] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
              <div className="flex items-center gap-2">
@@ -440,10 +468,10 @@ export function OverviewTab() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
             {recentTrans.map((t) => (
-              <div key={t.id} className="flex justify-between items-center p-4 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800 animate-in slide-in-from-top-1">
+              <div key={t.id} className="flex justify-between items-center p-4 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-800">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-mono text-zinc-400">{new Date(t.created_at).toLocaleTimeString()}</span>
-                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100 italic">@{t.profiles?.username || 'User'}</span>
+                  <span className="text-sm font-bold italic">@{t.profiles?.username || 'User'}</span>
                 </div>
                 <span className="font-mono font-black text-indigo-600">+{t.coins_amount} 🪙</span>
               </div>
@@ -451,16 +479,19 @@ export function OverviewTab() {
           </div>
         </div>
 
+        {/* ASSET CONCENTRATION */}
         <div className="lg:col-span-8 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl h-[600px] flex flex-col shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
             <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Asset Concentration</h3>
-            <button onClick={exportCSV} className="text-[10px] font-bold uppercase border px-3 py-1.5 rounded-lg hover:bg-zinc-50">Export CSV</button>
+            <button onClick={exportCSV} className="text-[10px] font-bold uppercase border px-3 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors">
+              {isExporting ? 'Exporting...' : 'Export CSV'}
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto">
             <table className="w-full text-left font-mono text-[11px]">
               <tbody className="divide-y divide-zinc-50 dark:divide-zinc-900/50">
                 {topHolders.map((holder, i) => (
-                  <tr key={i} className="hover:bg-zinc-50/50">
+                  <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
                     <td className="px-6 py-4 text-zinc-400">#{(i+1).toString().padStart(2, '0')}</td>
                     <td className="px-6 py-4 font-bold uppercase italic">@{holder.name}</td>
                     <td className="px-6 py-4 text-right font-black text-indigo-600">{holder.value.toLocaleString()}</td>
@@ -474,17 +505,14 @@ export function OverviewTab() {
     </div>
   );
 }
-
-function KPIBox({ label, value, highlight = false }: { label: string, value: any, highlight?: boolean }) {
+function KPIBox({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) {
   return (
-    <div className={`p-6 rounded-2xl border ${highlight ? 'bg-amber-500 border-amber-400 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800'}`}>
-      <p className={`text-[10px] font-black uppercase tracking-widest ${highlight ? 'text-amber-950' : 'text-zinc-400'}`}>{label}</p>
-      <p className={`text-2xl font-black mt-1 ${highlight ? 'text-white' : 'text-zinc-900 dark:text-white'}`}>{value}</p>
+    <div className={`p-6 rounded-2xl border ${highlight ? 'bg-indigo-600 border-indigo-400 shadow-lg shadow-indigo-900/20' : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800'}`}>
+      <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${highlight ? 'text-indigo-100' : 'text-zinc-500'}`}>{label}</p>
+      <p className={`text-2xl font-black italic ${highlight ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>{value}</p>
     </div>
   );
 }
-
-
 /**
  * user tab -display a paginated list of users with search functionality, 
  * fetching data from Supabase and auto-refreshing every 30 seconds for real-time updates.

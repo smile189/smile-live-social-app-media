@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, memo, useCallback, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import SidebarActions from "@/components/ActionButton";
 import BottomNav from "@/components/BottomNav";
@@ -22,7 +22,7 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   ];
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 flex justify-center pt-8 pointer-events-none">
+    <header className="fixed top-0 left-0 w-full z-50 flex justify-center pt-8 pointer-events-none text-white">
       <nav className="flex items-center bg-black/40 backdrop-blur-2xl p-1 rounded-[22px] border border-white/10 pointer-events-auto shadow-2xl">
         {tabs.map((tab) => (
           <button
@@ -49,13 +49,18 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     const v = videoRef.current;
     if (!v) return;
     if (isActive && !isPaused) v.play().catch(() => {});
-    else { v.pause(); if (!isNear) v.src = ""; }
+    else { 
+      v.pause(); 
+      if (!isNear) v.src = ""; 
+    }
   }, [isActive, isNear, isPaused]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !isActive) return;
-    const sync = () => onProgress((v.currentTime / v.duration) * 100);
+    const sync = () => {
+      if (v.duration) onProgress((v.currentTime / v.duration) * 100);
+    };
     v.addEventListener("timeupdate", sync);
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
@@ -89,19 +94,18 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 
 MediaRenderer.displayName = "MediaRenderer";
 
-// --- FEED CONTENT: LOGICA DE FILTRARE ȘI ALGORITM ---
+// --- FEED CONTENT: COMPONENTA PRINCIPALĂ ---
 export default function FeedContent() {
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState<Post[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [globalProgress, setGlobalProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [maintenance, setMaintenance] = useState<{ active: boolean; title: string; msg: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isFetching = useRef(false);
 
-  // --- LOGICA BLOCK REVISION ---
-  const [maintenance, setMaintenance] = useState<{ active: boolean; title: string; msg: string } | null>(null);
-
+  // --- LOGICA DE MENTENANȚĂ (BLOCK REVISION) ---
   useEffect(() => {
     const checkMaintenance = async () => {
       const { data } = await supabase
@@ -169,11 +173,7 @@ export default function FeedContent() {
       } 
       else {
         let query = supabase.from("posts").select(`*, profiles!inner(*), likes(id), comments(count)`);
-        
-        if (activeTab === "live") {
-          query = query.eq('profiles.is_live', true);
-        }
-
+        if (activeTab === "live") query = query.eq('profiles.is_live', true);
         const { data } = await query.range(from, from + 9);
         dataToSort = data || [];
       }
@@ -223,28 +223,22 @@ export default function FeedContent() {
 
   const activeIndex = useMemo(() => posts.findIndex(p => p.id === activePostId), [posts, activePostId]);
 
-  // --- RENDERING CONDITIONAT PENTRU MENTENANȚĂ (FIX PENTRU BUILD ERROR) ---
+  // --- ECRAN MENTENANȚĂ ---
   if (maintenance?.active) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
-        <h1 className="text-yellow-500 font-black text-6xl italic uppercase mb-12 tracking-tighter drop-shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-          Smile
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center">
+        
+        <h1 className="text-3xl font-black text-yellow-400 uppercase italic mb-2 tracking-tighter">
+          {maintenance.title || "Revizie Tehnică"}
         </h1>
-        <div className="max-w-md w-full p-8 rounded-[40px] bg-white/5 border border-white/10 backdrop-blur-3xl shadow-2xl space-y-6">
-          <div className="w-16 h-1.5 bg-yellow-500 mx-auto rounded-full animate-pulse" />
-          <div className="space-y-2">
-            <h2 className="text-white font-black text-sm uppercase tracking-[0.3em] leading-tight">
-              {maintenance.title}
-            </h2>
-            <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-widest leading-loose italic">
-              {maintenance.msg}
-            </p>
-          </div>
-        </div>
+        <p className="text-white/60 max-w-sm font-medium">
+          {maintenance.msg || "Revenim imediat cu noutăți pe Smile!"}
+        </p>
       </div>
     );
   }
 
+  // --- ECRAN LOADING INITIAL ---
   if (loading && posts.length === 0) return (
     <div className="h-screen bg-black flex items-center justify-center">
       <div className="text-yellow-400 font-black text-2xl italic animate-pulse uppercase tracking-[0.2em]">Smile</div>
@@ -254,22 +248,27 @@ export default function FeedContent() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none flex flex-col items-center">
       <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {posts.length > 0 ? posts.map((post, index) => (
+
+      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10">
+        {posts.map((post, index) => (
           <section key={post.id} data-id={post.id} className="h-full w-full snap-start snap-always relative flex justify-center bg-zinc-950">
-            <div className="relative h-full w-full md:max-w-[calc(100vh*9/16)] bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
-                <div className="absolute inset-0 z-0">
-                  <MediaRenderer 
-                    post={post} 
-                    isActive={activePostId === post.id} 
-                    isNear={Math.abs(index - activeIndex) <= 2} 
-                    onProgress={setGlobalProgress} 
-                  />
-                </div>
+            <div className="relative h-full w-full md:max-w-[calc(100vh*9/16)] bg-black overflow-hidden">
+                <MediaRenderer 
+                  post={post} 
+                  isActive={activePostId === post.id} 
+                  isNear={Math.abs(index - activeIndex) <= 2} 
+                  onProgress={setGlobalProgress} 
+                />
+                <SidebarActions post={post} />
+                
+                {activePostId === post.id && (
+                  <div className="absolute bottom-0 left-0 h-[2px] bg-yellow-400 transition-all duration-100 z-50" style={{ width: `${globalProgress}%` }} />
+                )}
             </div>
           </section>
-        )) : null}
+        ))}
       </div>
+      <BottomNav />
     </div>
   );
 }

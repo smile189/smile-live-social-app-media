@@ -83,12 +83,12 @@ export default function AgencyStripeCommand() {
     <div className="min-h-screen bg-[#F6F9FC] text-[#1A1F36] font-sans antialiased">
       {/* HEADER */}
       <div className="bg-white border-b border-[#E3E8EE] px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-        <h1 className="text-lg font-bold italic tracking-tighter uppercase text-[#635BFF]">Smile_Pro Nodes</h1>
+        <h1 className="text-lg font-bold italic tracking-tighter uppercase text-[#635BFF]">Agency Management</h1>
         <button 
           onClick={() => (document.getElementById('deploy_modal') as any).showModal()}
           className="bg-[#635BFF] text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-[#5851E0] transition-all flex items-center gap-2"
         >
-          <Plus size={16} /> Deploy Node
+          <Plus size={16} /> New agency
         </button>
       </div>
 

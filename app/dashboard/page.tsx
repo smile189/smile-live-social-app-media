@@ -27,6 +27,8 @@ import Money from "./money/Money"; // Import real Money component
 import ModerateSmile from './moderate/ModerateSmile'; 
 import MusicRequestsDashboard from './neuromusic/ai_music';
 import ContentSmile from './content/ContentSmile';
+import AgencySmile from './agencies/AgencySmile'; //agencies creator ID
+
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +38,7 @@ const supabase = createBrowserClient(
 type NavItemType =
   | "overview"
   | "money"
+  | "agency"
   | "users"
   | "content"
   | "finances"
@@ -125,6 +128,7 @@ export default function SuperAdminDashboard() {
           {[
             { icon: "📊", label: "Overview", key: "overview" },
             { icon: "📈", label: "Money", key: "money" },
+            { icon: "🏢", label: "Agency", key: "agency" },
             { icon: "👥", label: "Users List", key: "users" },
             { icon: "🎬", label: "Content Hub", key: "content" },
             { icon: "💰", label: "Financials", key: "finances" },
@@ -228,9 +232,8 @@ export default function SuperAdminDashboard() {
               >
                 {activeTab === "overview" && <OverviewTab />}
                 {activeTab === "money" && <Money supabase={supabase} />}
-
+                {activeTab === "agency" && <AgencySmile />}
                 {activeTab === "users" && <UsersTab />}
-
                 {activeTab === "content" && <ContentSmile />}
                 {activeTab === "finances" && <FinancesTab />}
                 {activeTab === "gifts" && <GiftsTab />}

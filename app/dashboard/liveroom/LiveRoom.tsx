@@ -16,7 +16,8 @@ const supabase = createBrowserClient(
 
 const PAGE_SIZE = 5;
 
-export default function LiveRoom() {
+export default function LiveRoom({ profileId }: { profileId?: any }) {
+
   const [streamers, setStreamers] = useState<any[]>([]);
   const [gifts, setGifts] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);

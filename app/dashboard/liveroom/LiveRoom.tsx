@@ -85,7 +85,7 @@ export default function LiveRoom() {
     const channel = supabase.channel('terminal-v6')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchLive(true))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gifts' }, (p) => {
-        if (p.new.receiver_id === selectedId) fetchGifts(selectedId);
+        if (selectedId && p.new.receiver_id === selectedId) fetchGifts(selectedId);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -179,6 +179,7 @@ export default function LiveRoom() {
                  <button className="flex items-center justify-center gap-3 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl font-black uppercase text-[10px] tracking-widest italic text-zinc-500 hover:text-indigo-600 transition-all shadow-sm"><RefreshCw size={16}/> Reset</button>
               </div>
             </div>
+
 
             {/* GIFT FEED */}
             <div className="w-full lg:w-96 lg:border-l border-t lg:border-t-0 border-zinc-200 dark:border-zinc-800 bg-zinc-50/10 dark:bg-zinc-950 flex flex-col shrink-0 min-h-[350px]">

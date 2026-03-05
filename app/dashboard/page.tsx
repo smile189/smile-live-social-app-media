@@ -182,7 +182,7 @@ export default function SuperAdminDashboard() {
             { icon: "🚩", label: "Moderation", key: "moderation" },
             { icon: "🎵✨", label: "AI Music demand", key: "ai_music" },
             { icon: "💬", label: "Live Support", key: "chat" }, 
-            { icon: "📟", label: "OTA Update", key: "update control" },
+             {icon: "⚙️", label: "OTA Update Control", key: "update control" },
           ].map((item) => (
             <button
               key={item.key}

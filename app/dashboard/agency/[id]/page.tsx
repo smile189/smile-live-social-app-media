@@ -3,10 +3,33 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { SettingsTab } from "../../../../components/SettingsAgencyDash"; // saeet
+import { AgencyTeam } from "../../../../components/AgencyTeam"; //agerncy team component 
+import { Settings } from "lucide-react";
+
 import { 
-  LayoutDashboard, Users, Coins, Settings, RefreshCw, 
-  ArrowUpRight, ShieldCheck, Search, Bell, ChevronRight, 
-  Activity, Wallet, Globe, CreditCard, Menu, X, Sun, Moon, Send, LogOut, Copy, Check
+  LayoutDashboard,
+  Users,
+  Coins,
+  Settings as SettingsIcon,
+  RefreshCw,
+  ArrowUpRight,
+  ShieldCheck,
+  Search,
+  Bell,
+  ChevronRight,
+  Activity,
+  Wallet,
+  Globe,
+  CreditCard,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Send,
+  LogOut,
+  Copy,
+  Check
 } from "lucide-react";
 
 const supabase = createBrowserClient(
@@ -14,7 +37,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// --- COMPONENTĂ HELPER: STRIPE CARD ---
+// --- COMPONENTĂ HELPER:  ---
 const StripeCard = ({ label, value, icon, trend }: any) => (
   <div className="bg-white dark:bg-[#121214] border border-[#E3E8EE] dark:border-zinc-800 p-6 rounded-2xl shadow-sm transition-all hover:shadow-md">
     <div className="flex justify-between items-start mb-4">
@@ -57,7 +80,7 @@ const OverviewTab = ({ agency, metrics }: any) => (
                 <p className="text-xs font-bold dark:text-zinc-300">{s.wallet?.coins_balance || 0} COINS</p>
               </div>
               <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase italic tracking-widest ${s.is_live ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10' : 'bg-gray-50 text-gray-400 dark:bg-zinc-800'}`}>
-                {s.is_live ? '● Live Now' : 'Offline'}
+                {s.is_live ? '● RUN' : 'Offline'}
               </div>
               <ChevronRight size={18} className="text-[#E3E8EE] group-hover:text-[#635BFF]" />
             </div>
@@ -162,7 +185,7 @@ export default function AgencyStripeDashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("login");
   };
 
   const copyId = () => {
@@ -212,7 +235,7 @@ export default function AgencyStripeDashboard() {
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
         <aside className={`absolute top-0 left-0 bottom-0 w-72 bg-white dark:bg-[#0C0C0E] transition-transform duration-300 flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-6 flex justify-between items-center border-b dark:border-zinc-800">
-             <div className="flex items-center gap-2"><Globe className="text-[#635BFF]" size={20} /><span className="font-black italic uppercase dark:text-white tracking-tighter">Smile_Node</span></div>
+             <div className="flex items-center gap-2"><Globe className="text-[#635BFF]" size={20} /><span className="font-black italic uppercase dark:text-white tracking-tighter">dashboard</span></div>
              <button onClick={() => setIsMobileMenuOpen(false)} className="dark:text-white"><X size={24} /></button>
           </div>
           <NavItems />
@@ -237,13 +260,13 @@ export default function AgencyStripeDashboard() {
           
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#F6F9FC] dark:bg-zinc-900 border dark:border-zinc-800 rounded-lg">
-               <span className="text-[9px] font-black text-zinc-400 uppercase leading-none">Node_UID:</span>
+               <span className="text-[9px] font-black text-zinc-400 uppercase leading-none">AGENCY SMILE:</span>
                <code className="text-[10px] font-mono font-bold dark:text-zinc-300 leading-none">{agencyId.slice(0, 12)}...</code>
                <button onClick={copyId} className="text-zinc-400 hover:text-[#635BFF] transition-colors">
                  {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                </button>
             </div>
-            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">Live</div>
+            <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">run</div>
           </div>
         </header>
 
@@ -256,8 +279,11 @@ export default function AgencyStripeDashboard() {
           <div className="transition-all duration-500">
             {activeTab === "overview" && <OverviewTab agency={agency} metrics={metrics} />}
             {activeTab === "wallet" && <FinancialsTab agency={agency} refresh={loadData} />}
-            {activeTab === "talents" && <div className="p-20 border-2 border-dashed dark:border-zinc-800 rounded-3xl text-center font-black uppercase italic opacity-20 dark:text-white">Talent Roster Interface Pending...</div>}
-            {activeTab === "settings" && <div className="p-20 border-2 border-dashed dark:border-zinc-800 rounded-3xl text-center font-black uppercase italic opacity-20 dark:text-white">Node Configuration Pending...</div>}
+             {activeTab === "team" && agency?.id && (
+    <AgencyTeam agencyId={agency.id} refresh={loadData} />
+  )}
+  
+            {activeTab === "settings" && <SettingsTab agency={agency} refresh={loadData} />}
           </div>
         </div>
       </main>

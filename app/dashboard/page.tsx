@@ -29,6 +29,7 @@ import MusicRequestsDashboard from './neuromusic/ai_music';
 import ContentSmile from './content/ContentSmile';
 import AgencySmile from './agencies/AgencySmile'; //agencies creator ID
 import { OTAUpdateControl } from './system/OTAUpdateControl';
+import LiveRoom from './liveroom/LiveRoom'; //live room component
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +40,7 @@ type NavItemType =
   | "overview"
   | "money"
   | "agency"
+  | "liveroom"
   | "users"
   | "content"
   | "finances"
@@ -136,6 +138,19 @@ export default function SuperAdminDashboard() {
   };
 
   
+const [user, setUser] = useState<any>(null);
+
+useEffect(() => {
+  const getUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
+  getUser();
+}, []);
+
+
+
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#030303] text-slate-900 dark:text-zinc-300 flex font-sans perspective-[2000px] overflow-hidden">
       
@@ -172,17 +187,18 @@ export default function SuperAdminDashboard() {
  
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           {[
-            { icon: "📊", label: "Overview", key: "overview" },
-            { icon: "📈", label: "Money", key: "money" },
-            { icon: "🏢", label: "Agency", key: "agency" },
-            { icon: "👥", label: "Users List", key: "users" },
-            { icon: "🎬", label: "Content Hub", key: "content" },
-            { icon: "💰", label: "Financials", key: "finances" },
-            { icon: "🎁", label: "Gifts System", key: "gifts" },
-            { icon: "🚩", label: "Moderation", key: "moderation" },
-            { icon: "🎵✨", label: "AI Music demand", key: "ai_music" },
-            { icon: "💬", label: "Live Support", key: "chat" }, 
-             {icon: "⚙️", label: "OTA Update Control", key: "update control" },
+            { icon: "📊", label: "1. Overview", key: "overview" },
+            { icon: "📈", label: "2. Money", key: "money" },
+            { icon: "🏢", label: "3. Agency", key: "agency" },
+            { icon: "🔴", label: "4. Live room", key: "liveroom" },
+            { icon: "👥", label: "5. Users List", key: "users" },
+            { icon: "🎬", label: "6. Content Hub", key: "content" },
+            { icon: "💰", label: "7. Financials", key: "finances" },
+            { icon: "🎁", label: "8. Gifts System", key: "gifts" },
+            { icon: "🚩", label: "9. Moderation", key: "moderation" },
+            { icon: "🎵✨", label: "10. Neuromusic", key: "ai_music" },
+            { icon: "💬", label: "11. Live Support", key: "chat" }, 
+             {icon: "⚙️", label: "12. OTA Update Control", key: "update control" },
           ].map((item) => (
             <button
               key={item.key}
@@ -280,6 +296,10 @@ export default function SuperAdminDashboard() {
                 {activeTab === "overview" && <OverviewTab />}
                 {activeTab === "money" && <Money supabase={supabase} />}
                 {activeTab === "agency" && <AgencySmile />}
+                {activeTab === "liveroom" && (
+  <LiveRoom profileId={user?.id} /> 
+)}
+                
                 {activeTab === "users" && <UsersTab />}
                 {activeTab === "content" && <ContentSmile />}
                 {activeTab === "finances" && <FinancesTab />}

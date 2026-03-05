@@ -28,7 +28,7 @@ import ModerateSmile from './moderate/ModerateSmile';
 import MusicRequestsDashboard from './neuromusic/ai_music';
 import ContentSmile from './content/ContentSmile';
 import AgencySmile from './agencies/AgencySmile'; //agencies creator ID
-
+import { OTAUpdateControl } from './system/OTAUpdateControl';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,7 +45,8 @@ type NavItemType =
   | "moderation"
   | "gifts"
   |  "ai_music"
-  | "chat";
+  | "chat"
+  | "update control";
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
@@ -87,7 +88,52 @@ export default function SuperAdminDashboard() {
     router.push("/dashboard/admin");
   };
 
-  
+  //OTA 
+  // --- OTA LOGIC ---
+  const [sysControl, setSysControl] = useState<any>(null);
+
+  // Notificări simple în consolă (le poți lega la un sistem de Toast mai târziu)
+  const addNotify = useCallback((msg: string, type: string) => {
+    console.log(`[${type.toUpperCase()}]: ${msg}`);
+  }, []);
+
+  // Fetch date din tabelul sys_control
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const { data, error } = await supabase
+        .from('sys_control')
+        .select('*')
+        .single();
+      
+      if (data) setSysControl(data);
+      if (error) console.error("Eroare la încărcarea setărilor OTA:", error.message);
+    };
+
+    if (activeTab === "update control") {
+      fetchConfig();
+    }
+  }, [activeTab]);
+
+  // Funcția de salvare în baza de date
+  const updateSysConfig = async (newData: any) => {
+    if (!sysControl?.id) {
+       // Dacă nu avem ID, încercăm să salvăm direct pe ID 1 (standard pentru config)
+       const { error } = await supabase.from('sys_control').update(newData).eq('id', 1);
+       if (!error) setSysControl((prev: any) => ({ ...prev, ...newData }));
+       return;
+    }
+
+    const { error } = await supabase
+      .from('sys_control')
+      .update(newData)
+      .eq('id', sysControl.id);
+
+    if (!error) {
+      setSysControl((prev: any) => ({ ...prev, ...newData }));
+    } else {
+      addNotify("Eroare la salvarea în DB", "error");
+    }
+  };
 
   
   return (
@@ -136,6 +182,7 @@ export default function SuperAdminDashboard() {
             { icon: "🚩", label: "Moderation", key: "moderation" },
             { icon: "🎵✨", label: "AI Music demand", key: "ai_music" },
             { icon: "💬", label: "Live Support", key: "chat" }, 
+            { icon: "📟", label: "OTA Update", key: "update control" },
           ].map((item) => (
             <button
               key={item.key}
@@ -240,6 +287,17 @@ export default function SuperAdminDashboard() {
                 {activeTab === "moderation" && <ModerateSmile />}
                 {activeTab === "ai_music" && <MusicRequestsDashboard/>}
                 {activeTab === "chat" && <Chat />}
+                {activeTab === "update control" && (
+  <div className="p-6 flex justify-center">
+    <OTAUpdateControl 
+      sysControl={sysControl} 
+      updateSystem={updateSysConfig} 
+      addNotify={addNotify} 
+    />
+  </div>
+)}
+
+               
               </motion.div>
             </AnimatePresence>
           </div>

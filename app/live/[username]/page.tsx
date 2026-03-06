@@ -47,10 +47,7 @@ export default function MainLive() {
         </div>
       </div>
 
-      {/* 2. COMPONENTA DE CONTROL (Magazin & HUD) - TREBUIE SA AIBA Z-INDEX CEL MAI MARE */}
-      <div className="relative z-[200] w-full pointer-events-none">
-         <FLive streamerName={username} />
-      </div>
+
 
       {/* 3. COMPONENTA DE CHAT (Z-INDEX MAI MIC CA MAGAZINUL) */}
       <div className="relative z-[50] mt-auto w-full flex flex-col items-center pointer-events-none">

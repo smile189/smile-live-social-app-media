@@ -1,183 +1,152 @@
 "use client";
-
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Gift as GiftIcon, Flame } from 'lucide-react';
+import { Send, Gift as GiftIcon, X, Wallet } from 'lucide-react';
 
-interface ChatLiveProps {
-  streamerId: string;
-}
-
-export default function ChatLive({ streamerId }: ChatLiveProps) {
+export default function ChatLiveGlas({ streamerId }: { streamerId: string }) {
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
-
-  const [giftTypes, setGiftTypes] = useState<any[]>([]);
+  
   const [messages, setMessages] = useState<any[]>([]);
-  const [showGifts, setShowGifts] = useState(false);
+  const [giftTypes, setGiftTypes] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [activeGifts, setActiveGifts] = useState<any[]>([]);
-  const [combo, setCombo] = useState({ count: 0, lastId: '', user: '' });
+  const [showGifts, setShowGifts] = useState(false);
+  const [userCoins, setUserCoins] = useState<number>(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch initial gifts & messages
+  // 1. Initial Load: Mesaje, Cadouri si Balanta
   useEffect(() => {
     const loadData = async () => {
+      // Load Gifts
       const { data: gifts } = await supabase.from('gift_types').select('*').order('coin_price', { ascending: true });
       if (gifts) setGiftTypes(gifts);
 
+      // Load Wallet
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: w } = await supabase.from('wallets').select('coins_balance').eq('user_id', session.user.id).maybeSingle();
+        if (w) setUserCoins(w.coins_balance);
+      }
+
+      // Load Chat History (din View-ul tau v_stream_messages)
       if (streamerId) {
-        const { data: msgs } = await supabase
-          .from('live_messages')
-          .select('*')
-          .eq('receiver_id', streamerId)
-          .order('created_at', { ascending: false })
-          .limit(30);
+        const { data: msgs } = await supabase.from('v_stream_messages')
+          .select('*').eq('streamer_id', streamerId)
+          .order('created_at', { ascending: false }).limit(25);
         if (msgs) setMessages(msgs.reverse());
       }
     };
     loadData();
-  }, [supabase, streamerId]);
+  }, [streamerId, supabase]);
 
-  // 2. Realtime
+  // 2. REAL-TIME: Ascultam schimbarile
   useEffect(() => {
     if (!streamerId) return;
-    const channel = supabase.channel(`room_${streamerId}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'live_messages', filter: `receiver_id=eq.${streamerId}` }, 
-        (payload) => {
-          const newMsg = payload.new as any;
-          setMessages(prev => [...prev.filter(m => m.id !== newMsg.id), newMsg].slice(-50));
-          if (newMsg.is_gift) {
-            const animId = Date.now();
-            setActiveGifts(prev => [...prev, { id: animId, content: newMsg.gift_emoji, user: newMsg.username_cache }]);
-            setCombo(prev => ({
-              count: (prev.lastId === newMsg.gift_emoji && prev.user === newMsg.username_cache) ? prev.count + 1 : 1,
-              lastId: newMsg.gift_emoji,
-              user: newMsg.username_cache
-            }));
-            setTimeout(() => setActiveGifts(prev => prev.filter(g => g.id !== animId)), 4000);
-          }
-        }
-      ).subscribe();
+    const channel = supabase.channel(`live_room_${streamerId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_chat', filter: `streamer_id=eq.${streamerId}` }, 
+      async (p) => {
+        // Tragem datele complete din View pentru orice insert nou
+        const { data: full } = await supabase.from('v_stream_messages').select('*').eq('id', p.new.id).single();
+        if (full) setMessages(prev => [...prev, full].slice(-50));
+      }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, streamerId]);
+  }, [streamerId, supabase]);
 
-  // 3. Auto-scroll
+  // Auto-scroll TikTok Style
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const handleAction = async (gift?: any) => {
-    // Luăm sesiunea curentă direct
+  // 3. ACTIUNEA DE CUMPARARE (Din Shop)
+  const buyGift = async (gift: any) => {
     const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
+    if (!session || userCoins < gift.coin_price) return alert("Bani putini!");
 
-    if (!user) {
-        console.error("No session found");
-        return alert("Please log in again!");
-    }
+    setShowGifts(false); 
+    
+    // RPC-ul care face magia: scade banii si face INSERT in live_chat
+    const { error } = await supabase.rpc('send_live_gift', {
+      p_sender_id: session.user.id,
+      p_streamer_id: streamerId,
+      p_gift_id: gift.id,
+      p_message: `a trimis un ${gift.name}`
+    });
 
-    if (!streamerId) return;
+    if (!error) setUserCoins(prev => prev - gift.coin_price);
+  };
 
-    // Generăm un username temporar dacă profilul nu e încărcat
-    const displayName = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
-
-    const payload = gift ? {
-      user_id: user.id,
-      receiver_id: streamerId,
-      content: `sent a gift`,
-      username_cache: displayName,
-      is_gift: true,
-      gift_emoji: gift.image_url
-    } : {
-      user_id: user.id,
-      receiver_id: streamerId,
-      content: inputValue,
-      username_cache: displayName,
-      is_gift: false
-    };
-
-    if (!gift && !inputValue.trim()) return;
-    if (!gift) setInputValue('');
-
-    const { error } = await supabase.from('live_messages').insert([payload]);
-    if (error) {
-        console.error("Insert error:", error);
-        alert(error.message);
-    }
-    if (gift) setShowGifts(false);
+  // Trimitere mesaj text normal
+  const sendMsg = async () => {
+    if (!inputValue.trim()) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const content = inputValue; setInputValue(''); 
+    await supabase.from('live_chat').insert([{ streamer_id: streamerId, sender_id: session.user.id, content, type: 'text' }]);
   };
 
   return (
-    <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-end p-4 pb-10 pointer-events-none overflow-hidden text-white font-sans">
+    <div className="w-full h-full relative flex flex-col justify-end p-4 overflow-hidden">
       
-      {/* GIFT ANIMATIONS */}
-      <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-        <AnimatePresence>
-          {activeGifts.map((g) => (
-            <motion.div key={g.id} initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="absolute flex flex-col items-center">
-              <img src={g.content} className="w-40 h-40 object-contain drop-shadow-2xl" alt="gift" />
-              <div className="mt-2 font-black text-xl italic drop-shadow-lg uppercase text-center">{g.user} SENT A GIFT!</div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* CHAT MESSAGES - FARA BARA LATERA (no-scrollbar) */}
+      <div 
+        ref={scrollRef} 
+        className="flex flex-col gap-2 overflow-y-auto max-h-[300px] mb-4 no-scrollbar pointer-events-auto z-10"
+        style={{ maskImage: 'linear-gradient(to top, black 85%, transparent 100%)', scrollbarWidth: 'none' }}
+      >
+        {messages.map((m) => (
+          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={m.id} className="flex items-start">
+            <div className={`p-2 px-4 rounded-2xl rounded-tl-none border shadow-md ${m.type === 'gift' ? 'bg-yellow-500/20 border-yellow-500/30' : 'bg-black/30 border-white/5'}`}>
+              <span className={`text-[10px] font-bold uppercase mr-2 ${m.type === 'gift' ? 'text-yellow-500' : 'text-white/40'}`}>{m.sender_name}</span>
+              <div className="text-[14px] text-white flex items-center gap-2">
+                {m.type === 'gift' ? (
+                  <span className="font-bold italic flex items-center gap-2 text-yellow-500">
+                    {m.content} <img src={m.gift_image} className="w-6 h-6 object-contain" />
+                  </span>
+                ) : m.content}
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="relative z-20 w-full max-w-[450px] pointer-events-auto flex flex-col items-center gap-4">
-        
-        {/* COMBO */}
+      {/* INPUT BAR + GIFT SHOP BUTTON */}
+      <div className="relative z-50 pointer-events-auto">
         <AnimatePresence>
-          {combo.count > 1 && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-orange-500 flex items-center gap-2">
-              <Flame size={28} className="fill-current animate-bounce" />
-              <span className="font-black italic text-4xl">X{combo.count}</span>
+          {showGifts && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} 
+              className="bg-zinc-950/95 backdrop-blur-2xl border border-white/10 rounded-[30px] p-5 mb-3 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Alege Cadoul</span>
+                <div className="flex items-center gap-2 text-yellow-500 font-bold text-sm">
+                  <Wallet size={14}/> <span>{userCoins}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3 max-h-[200px] overflow-y-auto no-scrollbar">
+                {giftTypes.map(gt => (
+                  <button key={gt.id} onClick={() => buyGift(gt)} className="flex flex-col items-center p-2 bg-white/5 rounded-2xl border border-transparent hover:border-yellow-500/50 transition-all">
+                    <img src={gt.image_url} className="w-10 h-10 object-contain mb-1" />
+                    <span className="text-[9px] font-bold text-yellow-500">{gt.coin_price}</span>
+                  </button>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* MESSAGES */}
-        <div ref={scrollRef} className="w-full flex flex-col gap-2 overflow-y-auto max-h-[35vh] px-4 overflow-x-hidden scroll-smooth" style={{ maskImage: 'linear-gradient(to top, black 85%, transparent 100%)' }}>
-          {messages.map((msg) => (
-            <div key={msg.id} className="flex flex-col items-start drop-shadow-md">
-              <div className="bg-black/30 backdrop-blur-md rounded-xl px-3 py-1.5 flex items-baseline gap-2 border border-white/10">
-                <span className="text-[12px] font-bold text-yellow-400 uppercase tracking-tighter">{msg.username_cache}:</span>
-                <span className="text-[15px] leading-tight">
-                  {msg.is_gift ? (
-                    <span className="flex items-center gap-2 text-blue-400 font-bold italic">sent <img src={msg.gift_emoji} className="w-6 h-6 object-contain" /></span>
-                  ) : msg.content}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* INPUT */}
-        <div className="w-full flex items-center gap-2 bg-black/50 backdrop-blur-2xl border border-white/20 rounded-full p-1.5 px-4 shadow-xl">
-          <button onClick={() => setShowGifts(!showGifts)} className="p-2 text-white/60 hover:text-pink-400 transition-colors"><GiftIcon size={22} /></button>
-          <input value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAction()} placeholder="Send a message..." className="flex-1 bg-transparent border-none outline-none text-white text-[15px] placeholder:text-white/30" />
-          <button onClick={() => handleAction()} className="p-2 text-blue-500 hover:scale-110 active:scale-90 transition-transform"><Send size={22} /></button>
+        <div className="flex gap-2 bg-white/10 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 shadow-xl">
+          <button onClick={() => setShowGifts(!showGifts)} className="p-3 bg-yellow-500 rounded-full text-black shadow-lg hover:scale-105 transition-transform"><GiftIcon size={20} /></button>
+          <input value={inputValue} onChange={e=>setInputValue(e.target.value)} onKeyDown={e=>e.key==='Enter' && sendMsg()} placeholder="Scrie ceva..." className="flex-1 bg-transparent px-2 text-white text-sm outline-none" />
+          <button onClick={sendMsg} className="bg-white p-3 rounded-full text-black hover:bg-yellow-500 transition-all"><Send size={18}/></button>
         </div>
       </div>
 
-      {/* GIFTS SELECTOR */}
-      <AnimatePresence>
-        {showGifts && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="absolute bottom-28 w-[90%] max-w-xs bg-slate-900/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-4 z-50 pointer-events-auto shadow-2xl">
-            <div className="grid grid-cols-4 gap-4">
-              {giftTypes.map((gt) => (
-                <button key={gt.id} onClick={() => handleAction(gt)} className="flex flex-col items-center p-2 hover:bg-white/10 rounded-2xl transition-all active:scale-90">
-                  <img src={gt.image_url} className="w-10 h-10 object-contain" alt="gift icon" />
-                  <span className="text-[10px] mt-1 text-yellow-500 font-bold">{gt.coin_price}</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }

@@ -1,3 +1,9 @@
+/**
+ * 
+ * about: live stream comp0onent - include chat + gift shop
+ * author: BM 
+ */
+
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -47,6 +53,14 @@ export default function MainLive() {
         </div>
       </div>
 
+       
+   {/* STRAT 0: FUNDAL & TAP-TAP (Cel mai de jos) */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#020005] via-[#0d011a] to-[#05000a] pointer-events-none" />
+        
+        {/* Componenta FLive (Tap-Tap) trebuie să aibă pointer-events-auto pe div-ul ei de fundal */}
+        <FLive streamerName={username} />
+      </div>
 
 
       {/* 3. COMPONENTA DE CHAT (Z-INDEX MAI MIC CA MAGAZINUL) */}

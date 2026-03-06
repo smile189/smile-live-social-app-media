@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift as GiftIcon, Users, ShieldCheck, X, Wallet } from 'lucide-react';
+import { ShieldCheck, Heart, Share2, Plus, Users, Flame, Crown } from 'lucide-react';
 
 export default function FLive({ streamerName }: { streamerName: string }) {
   const supabase = useMemo(() => createBrowserClient(
@@ -11,133 +11,142 @@ export default function FLive({ streamerName }: { streamerName: string }) {
   ), []);
 
   const [streamer, setStreamer] = useState<any>(null);
-  const [giftTypes, setGiftTypes] = useState<any[]>([]);
-  const [showGifts, setShowGifts] = useState(false);
-  const [userCoins, setUserCoins] = useState<number>(0);
+  const [likes, setLikes] = useState(0);
+  const [topGifters, setTopGifters] = useState<any[]>([]);
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [tapHearts, setTapHearts] = useState<{ id: number; x: number; y: number }[]>([]);
 
   useEffect(() => {
     const init = async () => {
-      // 1. Luăm profilul streamerului
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', streamerName).maybeSingle();
-      if (prof) setStreamer(prof);
+      if (prof) {
+        setStreamer(prof);
+        setLikes(prof.likes_count || 0);
 
-      // 2. Luăm cadourile
-      const { data: gifts } = await supabase.from('gift_types').select('*').order('coin_price', { ascending: true });
-      if (gifts) setGiftTypes(gifts);
-
-      // 3. Luăm balanța userului logat
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: w } = await supabase.from('wallets').select('coins_balance').eq('user_id', session.user.id).maybeSingle();
-        if (w) setUserCoins(w.coins_balance);
-        
-        // Sync REALTIME pentru monede
-        const channel = supabase.channel(`wallet_sync_${session.user.id}`)
-          .on('postgres_changes', 
-            { event: 'UPDATE', schema: 'public', table: 'wallets', filter: `user_id=eq.${session.user.id}` }, 
-            (payload) => setUserCoins(payload.new.coins_balance)
-          ).subscribe();
-
-        return () => { supabase.removeChannel(channel); };
+        // FETCH TOP 3 DONATORI (DIN VIEW-UL DE MESAJE)
+        const { data: gifters } = await supabase
+          .from('v_stream_messages')
+          .select('sender_name')
+          .eq('streamer_id', prof.id)
+          .eq('type', 'gift')
+          .limit(3);
+        if (gifters) setTopGifters(gifters);
       }
     };
     init();
+    
+    const channel = supabase.channel(`live_hud`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (p) => {
+        if (p.new.username === streamerName) setLikes(p.new.likes_count);
+    }).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [streamerName, supabase]);
 
-  const handlePurchase = async (gift: any) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) return alert("Loghează-te!");
-    
-    // Verificăm ID-ul streamerului direct din variabila de stare sau îl recăutăm dacă e null
-    let targetStreamerId = streamer?.id;
-    if (!targetStreamerId) {
-        const { data: s } = await supabase.from('profiles').select('id').eq('username', streamerName).single();
-        targetStreamerId = s?.id;
-    }
+  const handleTap = useCallback(async (e: React.MouseEvent) => {
+    const newHeart = { id: Date.now(), x: e.clientX, y: e.clientY };
+    setTapHearts(prev => [...prev, newHeart]);
+    setLikes(prev => prev + 1);
+    if (streamer) supabase.rpc('increment_likes', { streamer_id: streamer.id });
+    setTimeout(() => setTapHearts(prev => prev.filter(h => h.id !== newHeart.id)), 800);
+  }, [streamer, supabase]);
 
-    if (!targetStreamerId) return alert("Streamer-ul nu a fost găsit!");
-    if (userCoins < gift.coin_price) return alert("Bani puțini! Pune monede în Dashboard.");
-
-    const { error } = await supabase.rpc('send_live_gift', {
-      p_sender_id: session.user.id,
-      p_streamer_id: targetStreamerId,
-      p_gift_id: gift.id,
-      p_message: `a trimis un ${gift.name}`
-    });
-
-    if (error) {
-        console.error(error);
-        alert("Eroare: " + error.message);
+  // FUNCTIA PROFESIONALA DE SHARE (NATIVE URL)
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `SMILE LIVE - ${streamerName}`,
+          text: `Uită-te la @${streamerName} LIVE acum pe Smile!`,
+          url: window.location.href,
+        });
+      } catch (err) { console.log(err); }
     } else {
-        setShowGifts(false);
+      // Fallback daca browserul nu suporta Native Share
+      navigator.clipboard.writeText(window.location.href);
+      alert("URL Copiat!");
     }
   };
 
   return (
     <>
-      {/* BUTONUL ROZ */}
-      <div className="fixed bottom-10 right-6 z-[100] pointer-events-auto">
-        <button 
-          onClick={() => setShowGifts(true)}
-          className="w-16 h-16 bg-gradient-to-tr from-pink-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white/20 text-white cursor-pointer active:scale-90 transition-transform"
-        >
-          <GiftIcon size={32} />
-        </button>
-      </div>
+      <div className="fixed inset-0 z-0 cursor-pointer pointer-events-auto" onClick={handleTap} />
 
-      {/* MAGAZINUL */}
+      {/* YELLOW HEARTS */}
       <AnimatePresence>
-        {showGifts && (
-          <div className="fixed inset-0 z-[300] pointer-events-auto">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowGifts(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="absolute top-0 right-0 h-full w-[320px] bg-[#0a0a12] border-l border-white/10 p-6 flex flex-col shadow-2xl">
-              
-              <div className="flex justify-between items-center text-white mb-8">
-                <h2 className="font-black text-xl italic uppercase tracking-widest">Smile Shop</h2>
-                <button onClick={() => setShowGifts(false)} className="p-2 hover:bg-white/10 rounded-full text-white/50 hover:text-white"><X size={24}/></button>
-              </div>
-
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 mb-8 flex justify-between items-center text-white">
-                <Wallet className="text-yellow-500" />
-                <span className="font-black text-xl text-yellow-500">{userCoins} 🪙</span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 overflow-y-auto no-scrollbar flex-1 pb-10">
-                {giftTypes.map(gt => (
-                  <button 
-                    key={gt.id} 
-                    onClick={() => handlePurchase(gt)}
-                    className={`flex flex-col items-center p-3 rounded-2xl border transition-all active:scale-95 ${
-                      userCoins >= gt.coin_price 
-                      ? 'bg-white/5 border-white/10 hover:border-pink-500/50' 
-                      : 'opacity-20 grayscale border-transparent cursor-not-allowed'
-                    }`}
-                  >
-                    <img src={gt.image_url} className="w-12 h-12 object-contain mb-2" alt={gt.name} />
-                    <span className="text-[10px] font-black text-yellow-500 italic">{gt.coin_price} 🪙</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
+        {tapHearts.map((h) => (
+          <motion.div key={h.id} initial={{ opacity: 1, scale: 0.5, y: h.y, x: h.x - 20 }} animate={{ opacity: 0, scale: 2, y: h.y - 180, x: h.x + (Math.random() * 80 - 40) }} exit={{ opacity: 0 }} className="fixed pointer-events-none z-10 text-yellow-400">
+            <Heart size={45} fill="currentColor" />
+          </motion.div>
+        ))}
       </AnimatePresence>
 
-      {/* TOP HUD */}
-      <div className="fixed top-4 left-4 right-4 flex justify-between items-start z-[100] pointer-events-none">
-        <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-1.5 pr-4 rounded-full border border-white/10 pointer-events-auto">
-          <div className="w-10 h-10 rounded-full border border-white/20 bg-slate-900 overflow-hidden">
-            <img src={streamer?.avatar_url || `https://api.dicebear.com{streamerName}`} className="w-full h-full object-cover" alt="" />
+      <div className="fixed inset-0 z-50 pointer-events-none p-4 flex flex-col justify-between">
+        
+        {/* TOP SECTION: HUD MARE CU TOP 3 DONATORI */}
+        <div className="flex flex-col gap-4 w-full">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-3 bg-black/40 backdrop-blur-2xl p-1.5 pr-5 rounded-full border border-white/20 pointer-events-auto shadow-2xl">
+              <div className="relative">
+                <img src={streamer?.avatar_url || `https://api.dicebear.com{streamerName}`} className="w-12 h-12 rounded-full border-2 border-yellow-500 object-cover" />
+                <AnimatePresence>
+                  {!isFollowed && (
+                    <motion.button 
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      onClick={(e) => { e.stopPropagation(); setIsFollowed(true); }}
+                      className="absolute -bottom-1 -right-1 bg-yellow-500 rounded-full p-1.5 text-black border-2 border-black"
+                    >
+                      <Plus size={14} strokeWidth={4} />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-white text-sm font-black flex items-center gap-1 uppercase italic">{streamerName} <ShieldCheck size={14} className="text-blue-400" /></span>
+                <div className="flex items-center gap-3 font-black italic">
+                   <div className="flex items-center gap-1 text-xs text-yellow-400"><Heart size={12} fill="currentColor"/> {likes.toLocaleString()}</div>
+                   <div className="flex items-center gap-1 text-xs text-white/70"><Users size={12}/> {streamer?.viewer_count || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 pointer-events-auto">
+               <div className="bg-red-600 px-4 py-1.5 rounded-full text-white font-black text-xs uppercase italic tracking-widest border border-white/30 animate-pulse">LIVE</div>
+               <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] text-yellow-500 font-black flex items-center gap-1 uppercase italic">
+                  <Flame size={12} fill="currentColor" /> Rank #1
+               </div>
+            </div>
           </div>
-          <div className="text-white text-sm font-bold flex flex-col text-left">
-            <span className="flex items-center gap-1">{streamerName} <ShieldCheck size={14} className="text-blue-400" /></span>
-            <span className="text-[10px] text-red-500 font-black animate-pulse">Live 4K</span>
+
+          {/* TOP 3 DONATORI (NUME & RANK) */}
+          <div className="flex gap-2 ml-2 pointer-events-auto">
+             {topGifters.length > 0 ? topGifters.map((g, i) => (
+               <div key={i} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 backdrop-blur-xl shadow-lg ${i === 0 ? 'border-yellow-500 bg-yellow-500/20 text-yellow-500' : 'border-white/20 bg-black/40 text-white/80'}`}>
+                 <span className="text-[10px] font-black italic uppercase tracking-tighter">#{i+1} {g.sender_name}</span>
+                 {i === 0 && <Crown size={12} fill="currentColor" />}
+               </div>
+             )) : (
+               <div className="bg-black/20 px-3 py-1.5 rounded-full border border-white/10 text-[9px] text-white/40 font-bold uppercase italic">Așteptând donatori...</div>
+             )}
           </div>
         </div>
-        <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 pointer-events-auto text-white flex items-center gap-2">
-          <Users size={16} /> <span className="font-bold">{streamer?.viewer_count || 0}</span>
+
+        {/* SIDEBAR MIC SI FAIN (TIKTOK STYLE) */}
+        <div className="absolute right-4 bottom-32 flex flex-col gap-6 items-center pointer-events-auto">
+          <button className="flex flex-col items-center gap-1 group opacity-80 hover:opacity-100 transition-opacity">
+            <div className="p-2.5 rounded-full bg-black/30 backdrop-blur-lg text-white border border-white/10 hover:bg-red-500/20 hover:text-red-500 transition-all">
+              <Heart size={24} strokeWidth={2.5} />
+            </div>
+            <span className="text-[9px] font-black text-white/70 uppercase italic tracking-tighter">Like</span>
+          </button>
+
+          <button onClick={handleShare} className="flex flex-col items-center gap-1 group opacity-80 hover:opacity-100 transition-opacity">
+            <div className="p-2.5 rounded-full bg-black/30 backdrop-blur-lg text-white border border-white/10 hover:bg-white/20 transition-all">
+              <Share2 size={24} strokeWidth={2.5} />
+            </div>
+            <span className="text-[9px] font-black text-white/70 uppercase italic tracking-tighter">Share</span>
+          </button>
         </div>
+
       </div>
     </>
   );

@@ -7,7 +7,6 @@
  * with smooth animations and a focus on user experience.
  */
 
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";

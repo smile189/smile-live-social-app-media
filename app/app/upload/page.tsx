@@ -1,3 +1,13 @@
+/**
+ * author@ BM 
+ * project@ smile live upload story page 
+ * description@ This is the upload page for the Smile Live app, where users can record or upload videos, apply filters,
+ *  add captions with @tags, and share their stories. It features a TikTok-style recording interface with an audio visualizer,
+ *  real-time tag search, and a confirmation modal before posting. The page is designed to be mobile-first and visually engaging, 
+ * with smooth animations and a focus on user experience.
+ */
+
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";

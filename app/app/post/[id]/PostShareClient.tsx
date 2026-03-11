@@ -63,7 +63,7 @@ const shareUrl = typeof window !== "undefined"
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Smile Live | @${post.profiles?.username}`,
+          title: `Smile Live app | @${post.profiles?.username}`,
           text: post.caption,
           url: shareUrl,
         });
@@ -111,7 +111,7 @@ const shareUrl = typeof window !== "undefined"
 
         {isSharing && (
           <span className="absolute -top-10 right-0 bg-yellow-400 text-black text-[10px] px-2 py-1 rounded font-black uppercase">
-            Copiat!
+            Copy!
           </span>
         )}
       </button>
@@ -150,7 +150,7 @@ export default function PostShareClient({ id }: { id: string }) {
   if (loading)
     return (
       <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black uppercase">
-        Smile Loading...
+        smileliveapp.com ...
       </div>
     );
 

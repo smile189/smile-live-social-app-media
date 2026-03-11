@@ -8,22 +8,22 @@
 import { Post } from "./ml-algorithm";
 
 export const prefetchVideos = async (posts: Post[], limit: number = 10) => {
-  // 1. Verificăm dacă suntem pe client 
+  // 1. Verify is on client side
   if (typeof document === "undefined") return;
 
-  // 2. Curățare agresivă pentru RAM 
+  // 2. Clean DDRAM 
   const oldLinks = document.querySelectorAll('link[data-smile-prefetch="true"]');
   if (oldLinks.length > 15) {
     oldLinks.forEach(link => link.remove());
   }
 
-  // 3. Set pentru verificare instantanee a duplicatelor
+  // 3. Verify of duplicat elinks to avoid redundant prefetching
   const existingLinks = new Set(
     Array.from(document.querySelectorAll('link[rel="prefetch"]'))
       .map(link => (link as HTMLLinkElement).href)
   );
 
-  // 4. Luăm cele mai bune postări conform ML
+  // 4. Take post targets based on viral score, limit to top N
   const targets = posts.slice(0, limit);
 
   for (let i = 0; i < targets.length; i++) {
@@ -43,8 +43,7 @@ export const prefetchVideos = async (posts: Post[], limit: number = 10) => {
       document.head.appendChild(link);
 
       // -
-      // Primele 2 clipuri sunt critice: le lăsăm să se bată pe bandă.
-      // 
+      // Primele first 2 videos was prefetched immediately, rest with a delay to avoid network congestion
       if (i >= 2) {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }

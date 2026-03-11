@@ -1,6 +1,7 @@
 /**
  * author@ BM 
  * project@ smile live upload story page 
+ * watermark@ SM-LIVE-APP-2024-PROD-FULL-CODE
  * description@ This is the upload page for the Smile Live app, where users can record or upload videos, apply filters,
  *  add captions with @tags, and share their stories. It features a TikTok-style recording interface with an audio visualizer,
  *  real-time tag search, and a confirmation modal before posting. The page is designed to be mobile-first and visually engaging, 
@@ -17,7 +18,7 @@ import {
   Music, Type, Trash2, Hash, AtSign, Sliders, Plus, 
   Volume2, VolumeX, Check, ShieldAlert, Globe, Lock, Users,
   Smile, AlertCircle, Camera, Image as ImageIcon, Circle, RefreshCw,
-  Mic, MicOff
+  Mic, MicOff, Send
 } from "lucide-react";
 
 const FILTERS = [
@@ -212,163 +213,228 @@ export default function CreatePostPage() {
       {/* ProgressBar */}
       {isRecording && (
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-white/10 z-50 overflow-hidden">
-          <div className="h-full bg-red-600 transition-all duration-1000 ease-linear" style={{ width: `${(recordTime / 120) * 100}%` }} />
+          <div className="h-full bg-red-600 transition-all duration-1000" style={{ width: `${(recordTime / 120) * 100}%` }} />
         </div>
       )}
 
-      <div className="relative w-full h-full lg:max-w-[400px] lg:h-[85vh] lg:rounded-[2.5rem] lg:border-[8px] lg:border-zinc-900 bg-black overflow-hidden shadow-2xl flex flex-col">
+      {/* Main Container */}
+      <div className="w-full max-w-md h-full flex flex-col relative bg-zinc-950 shadow-2xl">
         
-        {/* VIEWPORT */}
-        <div className="absolute inset-0 z-0 bg-black">
+        {/* Top Navigation */}
+        <div className="absolute top-4 left-0 right-0 flex justify-between items-center px-6 z-50">
+          <button onClick={() => router.back()} className="p-2.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 hover:bg-black/60 transition-all">
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            {preview && (
+              <button onClick={() => setShowFilters(!showFilters)} className={`p-2.5 rounded-full border border-white/10 transition-all ${showFilters ? 'bg-white text-black' : 'bg-black/40 backdrop-blur-xl text-white'}`}>
+                <Sliders className="w-6 h-6" />
+              </button>
+            )}
+            <button onClick={() => setPreview(null)} className="p-2.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Media Preview / Viewport */}
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden">
           {!preview ? (
-            <div className="relative w-full h-full flex items-center justify-center bg-[#111]">
+            <div className="w-full h-full relative">
               <video 
                 ref={liveVideoRef} 
                 autoPlay 
                 muted 
                 playsInline 
-                className={`w-full h-full object-cover scale-x-[-1] ${recordingStream ? 'opacity-100' : 'opacity-0'}`} 
+                className="w-full h-full object-cover mirror transform scale-x-[-1]" 
               />
-              {!recordingStream && (
-                <div className="absolute flex flex-col items-center gap-4 text-center opacity-40">
-                  <Camera size={48} strokeWidth={1} />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Camera Off</p>
-                </div>
-              )}
+              
+              {/* Recording Overlay */}
+              <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center gap-6 px-8">
+                <div className="flex items-center gap-12">
+                  <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-2 group">
+                    <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border border-white/20 group-hover:scale-110 transition-all">
+                      <ImageIcon className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/70">Galerie</span>
+                  </button>
 
-              {/* Audio Visualizer Bubbles */}
-              {isRecording && (
-                <div className="absolute bottom-32 flex items-end gap-1 h-12">
-                  {[...Array(6)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1.5 bg-red-500 rounded-full transition-all duration-75" 
-                      style={{ height: `${Math.max(10, audioLevel * (0.5 + Math.random()))}%` }} 
-                    />
-                  ))}
+                  <button 
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`relative w-24 h-24 rounded-full border-[6px] flex items-center justify-center transition-all duration-300 ${isRecording ? 'border-red-500 scale-110' : 'border-white hover:scale-105'}`}
+                  >
+                    <div className={`transition-all duration-300 ${isRecording ? 'w-10 h-10 bg-red-500 rounded-lg shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'w-18 h-18 bg-white rounded-full'}`} />
+                    {isRecording && (
+                      <div className="absolute -top-12 px-4 py-1.5 bg-red-600 rounded-full text-xs font-bold animate-pulse">
+                        {Math.floor(recordTime / 60)}:{(recordTime % 60).toString().padStart(2, '0')}
+                      </div>
+                    )}
+                  </button>
+
+                  <button className="flex flex-col items-center gap-2 opacity-40 cursor-not-allowed">
+                    <div className="p-4 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                      <Music className="w-7 h-7 text-white" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/70">Sunet</span>
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           ) : (
-            <div className="w-full h-full relative" style={{ filter: activeFilter.class }}>
+            <div className="w-full h-full relative group">
               {fileType === "video" ? (
-                <video ref={videoRef} src={preview} poster={preview} className="w-full h-full object-cover" autoPlay loop muted={isMuted} playsInline />
-              ) : ( <img src={preview} className="w-full h-full object-cover" alt="preview" /> )}
-            </div>
-          )}
-        </div>
-
-        {/* UI OVERLAY */}
-        <div className="absolute inset-0 z-20 flex flex-col p-6 pointer-events-none justify-between">
-          <header className="flex items-center justify-between pointer-events-auto">
-            <button onClick={() => router.back()} className="p-2 bg-black/40 backdrop-blur-xl rounded-full border border-white/10"><X size={24} /></button>
-            {isRecording && <div className="bg-red-600 px-3 py-1 rounded-full text-[10px] font-black animate-pulse uppercase">Recording {recordTime}s</div>}
-            {preview && <button onClick={() => setShowConfirmModal(true)} className="px-6 py-2 bg-yellow-500 text-black rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl">Next</button>}
-          </header>
-
-          {/* Record Button START/STOP (TikTok Style) */}
-          {!preview && (
-            <div className="flex flex-col items-center gap-6 mb-8 pointer-events-auto w-full">
-              <div className="flex justify-around items-center w-full">
-                 <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 opacity-80">
-                    <div className="w-10 h-10 rounded-lg border-2 border-white/40 bg-black/40 flex items-center justify-center"><ImageIcon size={20} /></div>
-                    <span className="text-[9px] font-bold">Import</span>
-                    <input type="file" ref={fileInputRef} onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if(f) { setFile(f); setFileType(f.type.startsWith("video") ? "video" : "image"); setPreview(URL.createObjectURL(f)); }
-                    }} hidden accept="video/*,image/*" />
-                 </button>
-
-                 <div className="relative flex items-center justify-center">
-                    <button 
-                      onClick={isRecording ? stopRecording : startRecording}
-                      className={`w-20 h-20 rounded-full border-[6px] flex items-center justify-center transition-all duration-300 ${isRecording ? 'border-white' : 'border-white/50'}`}
-                    >
-                      <div className={`transition-all duration-300 ${isRecording ? 'w-8 h-8 rounded-sm bg-red-600' : 'w-14 h-14 rounded-full bg-red-600'}`} />
-                    </button>
-                 </div>
-
-                 <button className="flex flex-col items-center gap-1 opacity-80">
-                    <div className="w-10 h-10 flex items-center justify-center"><RefreshCw size={24} /></div>
-                    <span className="text-[9px] font-bold">Flip</span>
-                 </button>
+                <video 
+                  src={preview} 
+                  autoPlay 
+                  loop 
+                  playsInline
+                  muted={isMuted}
+                  className="w-full h-full object-cover transition-all duration-500" 
+                  style={{ filter: activeFilter.class }} 
+                />
+              ) : (
+                <img 
+                  src={preview} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover transition-all duration-500" 
+                  style={{ filter: activeFilter.class }} 
+                />
+              )}
+              
+              {/* Preview Actions */}
+              <div className="absolute bottom-8 right-6 flex flex-col gap-4">
+                <button onClick={() => setIsMuted(!isMuted)} className="p-3 bg-black/50 backdrop-blur-md rounded-full border border-white/10 shadow-xl">
+                  {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                </button>
               </div>
             </div>
           )}
-
-          {preview && (
-            <div className="flex flex-col gap-4 items-end pointer-events-auto">
-              <button onClick={() => setIsMuted(!isMuted)} className="p-3 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10">{isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}</button>
-              <button onClick={() => setShowFilters(!showFilters)} className={`p-3 backdrop-blur-md rounded-2xl border border-white/10 ${showFilters ? 'bg-yellow-500 text-black' : 'bg-black/40'}`}><Sliders size={20} /></button>
-              <button onClick={() => {setPreview(null); setFile(null);}} className="p-3 bg-red-500/20 backdrop-blur-md rounded-2xl border border-red-500/20 text-red-500"><Trash2 size={20} /></button>
-            </div>
-          )}
         </div>
 
-        {/* MODAL POSTARE */}
-        {showConfirmModal && (
-          <div className="absolute inset-0 z-50 animate-in slide-in-from-bottom duration-500 flex flex-col pointer-events-auto bg-black">
-             <div className="absolute inset-0 -z-10">
-                {preview && <div className="absolute inset-0 opacity-40 blur-3xl scale-150" style={{ backgroundImage: `url(${preview})`, backgroundSize: 'cover' }} />}
-             </div>
-             <header className="p-6 flex items-center justify-between">
-                <button onClick={() => setShowConfirmModal(false)} className="p-2 bg-white/10 rounded-full border border-white/10"><ChevronLeft size={24} /></button>
-                <h2 className="text-[10px] font-black uppercase tracking-widest">Details</h2>
-                <div className="w-10" />
-             </header>
-             <div className="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar relative">
-                <div className="flex flex-col gap-4 bg-white/[0.03] p-4 rounded-[2.5rem] border border-white/10 backdrop-blur-2xl">
-                  <div className="flex gap-4">
-                    <div className="w-24 h-32 rounded-2xl overflow-hidden shrink-0 border border-white/10 shadow-2xl">
-                       <div className="w-full h-full" style={{ filter: activeFilter.class, backgroundImage: `url(${preview})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        {/* Bottom Editor Section */}
+        <div className="bg-zinc-950 px-6 pt-6 pb-10 border-t border-white/5">
+          <div className="relative mb-6">
+            <textarea
+              ref={captionRef}
+              value={caption}
+              onChange={(e) => handleCaptionChange(e.target.value)}
+              placeholder="Scrie o descriere... @etichetează #hashtags"
+              className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl p-5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 ring-white/10 transition-all min-h-[100px] resize-none"
+            />
+            
+            {/* Tag Search Popover */}
+            {showTagSearch && searchResults.length > 0 && (
+              <div className="absolute bottom-full left-0 w-full mb-3 bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50">
+                {searchResults.map((user) => (
+                  <button 
+                    key={user.id} 
+                    onClick={() => applyTag(user.username)}
+                    className="w-full flex items-center gap-3 p-4 hover:bg-white/5 border-b border-white/5 last:border-none transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
+                      {user.avatar_url && <img src={user.avatar_url} className="w-full h-full object-cover" />}
                     </div>
-                    <textarea 
-                      ref={captionRef}
-                      placeholder="Add caption... use @tag" 
-                      className="flex-1 bg-transparent border-none focus:ring-0 text-sm h-32 resize-none text-white pt-2"
-                      value={caption}
-                      onChange={(e) => handleCaptionChange(e.target.value)}
-                    />
-                  </div>
-                  {showTagSearch && (
-                    <div className="w-full bg-zinc-900 border border-white/10 rounded-3xl mt-2 overflow-hidden shadow-2xl animate-in slide-in-from-top-2">
-                      {searchResults.map((u) => (
-                        <button key={u.id} onClick={() => applyTag(u.username)} className="w-full flex items-center gap-3 p-4 hover:bg-white/10 border-b border-white/5 last:border-0 transition-colors">
-                          <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden">{u.avatar_url && <img src={u.avatar_url} className="w-full h-full object-cover" />}</div>
-                          <p className="text-sm font-bold text-white">@{u.username}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <label className="flex items-start gap-4 p-3 cursor-pointer">
-                  <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${agreedToTerms ? 'bg-yellow-500 border-yellow-500 text-black' : 'border-white/20'}`}>
-                    {agreedToTerms && <Check size={14} strokeWidth={4} />}
-                    <input type="checkbox" className="hidden" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} />
-                  </div>
-                  <p className="text-[11px] text-zinc-500 leading-tight">Accept Community Rules.</p>
-                </label>
-             </div>
-             <div className="p-8 mt-auto"><button onClick={handlePost} disabled={!agreedToTerms || loading} className={`w-full py-5 rounded-[2.5rem] font-black text-[10px] uppercase tracking-[0.3em] transition-all transform active:scale-[0.97] ${agreedToTerms ? 'bg-yellow-500 text-black shadow-2xl shadow-yellow-500/20' : 'bg-white/5 text-zinc-600 border border-white/5'}`}>Share Story</button></div>
+                    <span className="font-bold text-sm">@{user.username}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Loader Upload */}
-        {loading && (
-          <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
-             <Loader2 className="animate-spin text-yellow-500 mb-4" size={48} />
-             <p className="text-xs font-black uppercase tracking-[0.3em] text-yellow-500">{uploadProgress}%</p>
+          <div className="flex gap-4">
+            <button 
+              disabled={!file || loading}
+              onClick={() => setShowConfirmModal(true)}
+              className="flex-1 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all shadow-[0_8px_30px_rgb(255,255,255,0.2)]"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Postează Povestea <Send className="w-4 h-4" /></>}
+            </button>
           </div>
-        )}
+        </div>
       </div>
-      
-      {/* Toast Notification */}
-      {errorToast && (
-        <div className="absolute top-10 z-[110] animate-in slide-in-from-top duration-500 w-[90%] max-w-[400px] pointer-events-none text-center">
-          <div className="bg-black/80 backdrop-blur-2xl border border-white/10 p-4 rounded-[2rem] flex items-center gap-3 shadow-2xl">
-            <AlertCircle className="text-yellow-500 shrink-0" size={20} />
-            <p className="text-sm font-bold text-zinc-200">{errorToast}</p>
+
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        hidden 
+        accept="video/*,image/*" 
+        onChange={(e) => {
+          const f = e.target.files?.[0]; // FIXED: Accessing the first file
+          if(f) { 
+            setFile(f); 
+            setFileType(f.type.startsWith("video") ? "video" : "image"); 
+            setPreview(URL.createObjectURL(f)); 
+          }
+        }} 
+      />
+
+      {/* Filters Drawer */}
+      {showFilters && preview && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end">
+          <div className="w-full bg-zinc-900 rounded-t-[40px] p-8 border-t border-white/10 animate-slide-up">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-black uppercase tracking-widest">Filtre Vizuale</h3>
+              <button onClick={() => setShowFilters(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+              {FILTERS.map((f) => (
+                <button 
+                  key={f.name} 
+                  onClick={() => setActiveFilter(f)}
+                  className="flex flex-col items-center gap-3 min-w-[80px]"
+                >
+                  <div className={`w-16 h-16 rounded-2xl border-2 transition-all ${activeFilter.name === f.name ? 'border-white scale-110' : 'border-transparent'}`} style={{ filter: f.class, background: '#333' }} />
+                  <span className={`text-[10px] font-bold ${activeFilter.name === f.name ? 'text-white' : 'text-zinc-500'}`}>{f.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+          <div className="bg-zinc-900 border border-white/10 rounded-[40px] p-10 w-full max-w-sm text-center shadow-3xl">
+            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShieldAlert className="w-10 h-10 text-blue-500" />
+            </div>
+            <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Ești sigur?</h2>
+            <p className="text-zinc-400 text-sm mb-8 leading-relaxed">Asigură-te că materialul respectă regulile Smile Live.</p>
+            
+            <label className="flex items-center gap-4 p-5 bg-white/5 rounded-2xl border border-white/5 cursor-pointer mb-8 hover:bg-white/10 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={agreedToTerms} 
+                onChange={(e) => setAgreedToTerms(e.target.checked)} 
+                className="w-6 h-6 rounded-lg accent-white" 
+              />
+              <span className="text-xs font-medium text-zinc-300 text-left">Confirm că am drepturi de autor pentru acest conținut.</span>
+            </label>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handlePost} 
+                disabled={!agreedToTerms || loading}
+                className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase tracking-widest text-xs disabled:opacity-30 transition-all"
+              >
+                Publică Acum
+              </button>
+              <button onClick={() => setShowConfirmModal(false)} className="w-full py-4 text-zinc-500 font-bold text-xs uppercase tracking-widest">
+                Mai Modifică
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorToast && (
+        <div className="fixed top-24 left-6 right-6 bg-red-600 text-white p-4 rounded-2xl flex items-center gap-4 shadow-2xl z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+          <AlertCircle className="w-6 h-6" />
+          <p className="text-sm font-bold">{errorToast}</p>
         </div>
       )}
     </div>

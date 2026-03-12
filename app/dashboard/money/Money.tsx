@@ -1,3 +1,8 @@
+/**
+ * 
+ * SMILE LIVE - DASHBOARD - MONEY MANAGEMENT
+ */
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,16 +18,16 @@ export default function Money({ supabase }: MoneyProps) {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userWallet, setUserWallet] = useState<{ coins: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, count: 0, platform_profit: 0 });
-  const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // ECONOMY CONFIG (1 COIN = 0.01€ | 35% RETENTION)
+  // ECONOMY CONFIG - SINCRONIZAT CU DB (ID: 1)
   const [economy, setEconomy] = useState<any>({
-    coin_to_euro: 0.01,
-    platform_retention_percent: 35,
-    vault_total_cap: 1000000,
-    vault_emitted: 0
+    coin_to_euro: 0,
+    platform_retention_percent: 0,
+    vault_total_cap: 0,
+    vault_emitted: 0,
+    platform_revenue: 0 
   });
 
   const [inputCoins, setInputCoins] = useState(0);
@@ -32,72 +37,87 @@ export default function Money({ supabase }: MoneyProps) {
     const fetchData = async () => {
       setLoading(true);
       
-      // Stripe Transactions
-      const { data: stripeData } = await supabase
-        .from("stripe_payments")
-        .select(`*, profiles:user_id (username, avatar_url, full_name)`)
-        .order("created_at", { ascending: false });
-      
-      if (stripeData) {
-        setTransactions(stripeData);
-        setStats(prev => ({
-          ...prev,
-          total: stripeData.reduce((acc: number, t: any) => acc + (t.amount || 0), 0),
-          count: stripeData.length
-        }));
+      try {
+        // Stripe Transactions
+        const { data: stripeData } = await supabase
+          .from("stripe_payments")
+          .select(`*, profiles:user_id (username, avatar_url, full_name)`)
+          .order("created_at", { ascending: false });
+        
+        if (stripeData) setTransactions(stripeData);
+
+        // Economy Config - Citim rândul unic cu ID 1
+        const { data: ecoData } = await supabase
+          .from('app_economy')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (ecoData) {
+          setEconomy({
+            ...ecoData,
+            platform_revenue: ecoData.platform_revenue ?? 0
+          });
+        }
+
+        // Profiles for Selection
+        const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url');
+        if (profiles) setUsers(profiles);
+      } catch (err) {
+        console.error("Fetch error:", err);
       }
-
-      // Economy Config
-      const { data: ecoData } = await supabase.from('app_economy').select('*').single();
-      if (ecoData) setEconomy(ecoData);
-
-      // Profiles for Selection
-      const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url');
-      if (profiles) setUsers(profiles);
       
       setLoading(false);
     };
     fetchData();
   }, [supabase]);
 
-  // 2. FETCH WALLET BALANCES (FIXED EFFECT ORDER)
+  // 2. FETCH WALLET BALANCES
   const fetchSelectedUserWallet = async (userId: string) => {
-    const { data } = await supabase.from('wallets').select('coins_balance').eq('user_id', userId).single();
+    const { data } = await supabase.from('wallets').select('coins_balance').eq('user_id', userId).maybeSingle();
     if (data) setUserWallet({ coins: data.coins_balance });
   };
 
   useEffect(() => {
-    if (selectedUser) {
-      fetchSelectedUserWallet(selectedUser.id);
-    } else {
-      setUserWallet(null);
-    }
+    if (selectedUser) fetchSelectedUserWallet(selectedUser.id);
+    else setUserWallet(null);
   }, [selectedUser]);
 
-  // CALCULATIONS
-  const userPayoutPercent = 100 - economy.platform_retention_percent; 
-  const totalInternalCapitalEUR = economy.vault_emitted * economy.coin_to_euro;
-  const grossEuro = inputCoins * economy.coin_to_euro;
-  const retentionEuro = grossEuro * (economy.platform_retention_percent / 100);
+  // CALCULATIONS (Design Stripe Style)
+  const safeCoinToEuro = economy.coin_to_euro || 0;
+  const safeRetention = economy.platform_retention_percent || 0;
+
+  const grossEuro = inputCoins * safeCoinToEuro;
+  const retentionEuro = grossEuro * (safeRetention / 100);
   const netEuro = grossEuro - retentionEuro;
+  const totalInternalCapitalEUR = (economy.vault_emitted || 0) * safeCoinToEuro;
 
   const showStatus = (text: string, type: 'success' | 'error') => {
     setStatusMsg({ text, type });
     setTimeout(() => setStatusMsg(null), 3000);
   };
 
+  // SALVARE PERMANENTĂ ÎN DB (UPSERT PE ID: 1)
   const saveEconomy = async () => {
     setSaving(true);
-    const { error } = await supabase.from('app_economy').update(economy).eq('id', 1);
+    const { error } = await supabase
+      .from('app_economy')
+      .upsert({ ...economy, id: 1, updated_at: new Date().toISOString() })
+      .select();
+
     setSaving(false);
     if (!error) showStatus("Vault constants synced", "success");
+    else showStatus(`DB Error: ${error.message}`, "error");
   };
 
+  // LOGICA DE PAYOUT CU ARDERE (BURN) DIN TOTAL ISSUED
   const handleFinalPayout = async () => {
     if (!selectedUser || inputCoins <= 0) return showStatus("Select account and amount", "error");
     if (!userWallet || inputCoins > userWallet.coins) return showStatus("Insufficient balance", "error");
 
     setLoading(true);
+
+    // 1. Scădem din portofelul utilizatorului (User Burn)
     const { error: walletError } = await supabase
       .from('wallets')
       .update({ 
@@ -109,8 +129,36 @@ export default function Money({ supabase }: MoneyProps) {
     if (walletError) {
       showStatus(walletError.message, "error");
     } else {
-      setStats(prev => ({ ...prev, platform_profit: prev.platform_profit + retentionEuro }));
-      showStatus(`Burned ${inputCoins} coins. Profit: €${retentionEuro.toFixed(2)}`, "success");
+      // 2. Audit in Liquidations Table
+      await supabase.from('liquidations').insert({
+        user_id: selectedUser.id,
+        coins_burned: inputCoins,
+        payout_net: netEuro,
+        platform_profit: retentionEuro
+      });
+
+      // 3. ARDERE GLOBALĂ: Scădem din vault_emitted ȘI adunăm profitul în platform_revenue
+      const newEmitted = (economy.vault_emitted || 0) - inputCoins;
+      const newRevenue = (economy.platform_revenue || 0) + retentionEuro;
+
+      const { error: ecoError } = await supabase
+        .from('app_economy')
+        .update({ 
+          vault_emitted: newEmitted, 
+          platform_revenue: newRevenue 
+        })
+        .eq('id', 1);
+
+      if (!ecoError) {
+        // Actualizăm starea locală pentru a reflecta arderea imediat pe UI
+        setEconomy((prev: any) => ({ 
+          ...prev, 
+          vault_emitted: newEmitted, 
+          platform_revenue: newRevenue 
+        }));
+        showStatus(`Burned ${inputCoins} globally. Profit: €${retentionEuro.toFixed(2)}`, "success");
+      }
+      
       setInputCoins(0);
       fetchSelectedUserWallet(selectedUser.id);
     }
@@ -128,7 +176,14 @@ export default function Money({ supabase }: MoneyProps) {
       `€${t.amount}`,
       t.status.toUpperCase()
     ]);
-   autoTable(doc, { head: [['Date', 'User', 'Amount', 'Status']], body: tableRows, startY: 25, theme: 'striped' });
+    
+    autoTable(doc, { 
+      head: [['Date', 'User', 'Amount', 'Status']], 
+      body: tableRows, 
+      startY: 25, 
+      theme: 'striped' 
+    });
+
     doc.save(`Smile_Audit_${new Date().getTime()}.pdf`);
   };
 
@@ -141,120 +196,137 @@ export default function Money({ supabase }: MoneyProps) {
         </div>
       )}
 
-      {/* 1. TOP STATUS - REAL TIME CAPITAL & REVENUE */}
+      {/* 1. TOP STATUS - REAL TIME FROM DB */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded overflow-hidden shadow-2xl font-mono italic">
         <div className="bg-white dark:bg-[#0c0c0e] p-4">
           <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest leading-none mb-1">Exposure (EUR)</p>
           <p className="text-2xl font-black italic tracking-tighter tabular-nums leading-none">€{totalInternalCapitalEUR.toLocaleString()}</p>
         </div>
         <div className="bg-white dark:bg-[#0c0c0e] p-4 border-l border-zinc-100 dark:border-zinc-800 text-zinc-400">
-          <p className="text-[8px] font-black uppercase tracking-widest leading-none mb-1 italic">Issued Diamonds</p>
-          <p className="text-2xl font-black italic tracking-tighter leading-none">{economy.vault_emitted.toLocaleString()} 💎</p>
+          <p className="text-[8px] font-black uppercase tracking-widest leading-none mb-1 italic">Issued Diamonds (Live Supply)</p>
+          <p className="text-2xl font-black italic tracking-tighter leading-none">{(economy.vault_emitted || 0).toLocaleString()} 💎</p>
         </div>
         <div className="bg-white dark:bg-[#0c0c0e] p-4 border-l border-zinc-100 dark:border-zinc-800 text-indigo-500">
           <p className="text-[8px] font-black uppercase tracking-widest leading-none mb-1 italic">Platform Revenue</p>
-          <p className="text-2xl font-black italic tracking-tighter leading-none">€{stats.platform_profit.toFixed(2)}</p>
+          <p className="text-2xl font-black italic tracking-tighter leading-none">€{(economy.platform_revenue || 0).toFixed(2)}</p>
         </div>
         <div className="bg-white dark:bg-[#0c0c0e] p-4 flex items-center justify-center border-l border-zinc-100 dark:border-zinc-800">
            <button onClick={saveEconomy} className="w-full h-full text-[9px] font-black uppercase italic bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded hover:bg-indigo-600 transition-all">
-             {saving ? "Syncing..." : "Update Vault"}
+             {saving ? "Syncing..." : "Update Vault Settings"}
            </button>
         </div>
       </div>
 
       {/* 2. ADMIN CONFIG TILES */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded shadow-sm overflow-hidden mb-10 font-mono italic">
-        <ConfigTile label="Retention % (35%)" value={economy.platform_retention_percent} onChange={(v:any) => setEconomy({...economy, platform_retention_percent: v})} />
+        <ConfigTile label={`Retention % (${economy.platform_retention_percent}%)`} value={economy.platform_retention_percent} onChange={(v:any) => setEconomy({...economy, platform_retention_percent: v})} />
         <ConfigTile label="Coin Base (€)" value={economy.coin_to_euro} step="0.001" onChange={(v:any) => setEconomy({...economy, coin_to_euro: v})} />
-        <ConfigTile label="Manual Issued 💎" value={economy.vault_emitted} onChange={(v:any) => setEconomy({...economy, vault_emitted: v})} />
+        <ConfigTile label="Manual Supply Adjust" value={economy.vault_emitted} onChange={(v:any) => setEconomy({...economy, vault_emitted: v})} />
         <ConfigTile label="Vault Max Supply" value={economy.vault_total_cap} onChange={(v:any) => setEconomy({...economy, vault_total_cap: v})} />
       </div>
 
       {/* 3. TARGET USER SELECTION & DIRECT CASHOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl flex flex-col justify-center space-y-4">
-          <div className="flex items-center gap-3">
-             <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-indigo-500/20 overflow-hidden">
-                {selectedUser?.avatar_url && <img src={selectedUser.avatar_url} className="w-full h-full object-cover" />}
-             </div>
-             <div className="flex-1">
-                <span className="text-[8px] font-black uppercase text-zinc-400 font-mono italic block tracking-widest leading-none">Target Account</span>
-                <select 
-                  onChange={(e) => setSelectedUser(users.find(u => u.id === e.target.value))}
-                  className="bg-transparent text-[11px] font-black outline-none w-full italic font-mono uppercase mt-1"
-                >
-                  <option value="">Select User...</option>
-                  {users.map(u => <option key={u.id} value={u.id}>@{u.username}</option>)}
-                </select>
-             </div>
-          </div>
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-             <span className="text-[8px] font-black uppercase text-indigo-400 font-mono italic block tracking-widest mb-1">Account Liquidity:</span>
-             <span className="text-3xl font-mono font-black italic tracking-tighter tabular-nums italic">🪙 {userWallet?.coins ?? 0}</span>
+        <div className="bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-6 rounded shadow-sm">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-zinc-400 italic">Select Beneficiary</h3>
+          <div className="max-h-[300px] overflow-y-auto space-y-1 pr-2">
+            {users.map(u => (
+              <button 
+                key={u.id}
+                onClick={() => setSelectedUser(u)}
+                className={`w-full flex items-center gap-3 p-2 rounded transition-all ${selectedUser?.id === u.id ? 'bg-indigo-500 text-white' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+              >
+                <img src={u.avatar_url} className="w-6 h-6 rounded-full object-cover grayscale" />
+                <span className="text-[11px] font-bold italic">{u.username}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="lg:col-span-2 p-6 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/30 dark:bg-white/[0.02] relative group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 text-4xl italic font-black text-emerald-500 uppercase tracking-tighter">Liquidate</div>
-          <h4 className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-6 italic font-mono text-emerald-500 font-black tracking-widest">Manual Asset Liquidation</h4>
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex-1 text-emerald-600">
-              <label className="text-[7px] font-bold text-zinc-500 block mb-1 uppercase italic tracking-tighter">Coins to Burn</label>
-              <input type="number" value={inputCoins} onChange={(e) => setInputCoins(Number(e.target.value))} className="bg-transparent text-4xl font-mono font-black outline-none w-full italic tracking-tighter italic" placeholder="0" />
+        <div className="lg:col-span-2 bg-zinc-900 text-white p-8 rounded-xl shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex justify-between items-start mb-10">
+               <div>
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-2 italic">Burn & Cashout Processor</h2>
+                  <p className="text-3xl font-black italic tracking-tighter">
+                    {selectedUser ? selectedUser.username : "---"}
+                  </p>
+               </div>
+               <div className="text-right">
+                  <p className="text-[10px] font-black text-zinc-500 uppercase italic">User Balance</p>
+                  <p className="text-2xl font-black italic tabular-nums text-emerald-400">{userWallet?.coins || 0} 💎</p>
+               </div>
             </div>
-            <div className="text-right">
-              <span className="text-[7px] block uppercase font-mono italic text-emerald-500 font-black tracking-widest leading-none">Net EUR Payout</span>
-              <span className="text-4xl font-mono font-black italic tracking-tighter leading-none italic tabular-nums italic">€{netEuro.toFixed(2)}</span>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+               <div>
+                  <label className="text-[9px] font-black uppercase text-zinc-500 block mb-4 italic">Amount to Burn</label>
+                  <input 
+                    type="number"
+                    value={inputCoins}
+                    onChange={(e) => setInputCoins(parseInt(e.target.value) || 0)}
+                    className="bg-transparent border-b-2 border-zinc-800 text-5xl font-black w-full outline-none focus:border-indigo-500 transition-all italic tabular-nums"
+                  />
+               </div>
+               <div className="space-y-4 bg-zinc-800/30 p-6 rounded-lg border border-zinc-800 font-mono text-[11px] italic">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Gross Value:</span>
+                    <span>€{grossEuro.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-400">
+                    <span>Platform Fee ({economy.platform_retention_percent}%):</span>
+                    <span>-€{retentionEuro.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-zinc-800 pt-4 flex justify-between text-xl font-black text-emerald-400 tracking-tighter">
+                    <span>NET PAYOUT:</span>
+                    <span>€{netEuro.toFixed(2)}</span>
+                  </div>
+               </div>
             </div>
+
+            <button 
+              onClick={handleFinalPayout}
+              disabled={loading || !selectedUser || inputCoins <= 0}
+              className="mt-10 w-full py-5 bg-indigo-600 hover:bg-white hover:text-black transition-all rounded-lg font-black uppercase italic tracking-widest text-[11px] disabled:opacity-20"
+            >
+              {loading ? "Processing..." : "Authorize Payout & Burn"}
+            </button>
           </div>
-          <div className="flex justify-between text-[8px] font-mono text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 pt-3 uppercase font-bold italic tracking-tighter">
-              <span>Gross: €{grossEuro.toFixed(2)}</span>
-              <span className="text-indigo-500 font-black">Retention Profit ({economy.platform_retention_percent}%): +€{retentionEuro.toFixed(2)}</span>
-          </div>
-          <button 
-            onClick={handleFinalPayout}
-            className="w-full mt-6 py-3 bg-emerald-600 text-white rounded text-[10px] font-black uppercase italic tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all"
-          >
-            Execute Liquidation & Issue Credit
+        </div>
+      </div>
+
+      {/* 4. STRIPE INFLOW HISTORY */}
+      <div className="pt-10 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex justify-between items-end mb-6">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] italic text-zinc-500">Stripe Inflow History</h3>
+          <button onClick={handleExportPDF} className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 text-[9px] font-black uppercase hover:bg-zinc-900 hover:text-white transition-all italic">
+            Download Audit PDF
           </button>
         </div>
-      </div>
-
-      {/* 4. KPI GRID (ORIGINAL) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Fiat Gross" value={`€${stats.total.toLocaleString()}`} />
-        <StatCard label="Internal Exposure" value={`€${totalInternalCapitalEUR.toLocaleString()}`} />
-        <StatCard label="Platform Revenue" value={`€${stats.platform_profit.toFixed(2)}`} />
-      </div>
-
-      {/* 5. STRIPE LEDGER (ORIGINAL) */}
-      <div className="bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 rounded shadow-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center text-[10px] font-black text-zinc-400 uppercase italic tracking-widest font-mono italic font-bold">
-          Platform Activity Ledger
-          <button onClick={handleExportPDF} className="text-[8px] bg-zinc-900 px-2 py-1 rounded text-white italic font-black">Generate Audit PDF</button>
-        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-zinc-50/50 dark:bg-zinc-900/40 text-[8px] font-black text-zinc-500 uppercase tracking-widest font-mono italic font-bold">
-                <th className="px-6 py-4 uppercase italic">User Identity</th>
-                <th className="px-6 py-4 text-center uppercase italic">Gross Amount</th>
-                <th className="px-6 py-4 uppercase italic">Status</th>
-                <th className="px-6 py-4 text-right uppercase italic tracking-tighter">Ref</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {transactions.map((t) => (
-                <tr key={t.id} className="hover:bg-indigo-500/5 transition-colors group">
-                  <td className="px-6 py-4 flex items-center gap-2">
-                    <span className="text-[11px] font-mono font-black italic tracking-tighter">@{t.profiles?.username}</span>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-black font-mono italic tracking-tighter tabular-nums text-center italic">€{t.amount}</td>
-                  <td className="px-6 py-4"><span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 italic font-black">{t.status}</span></td>
-                  <td className="px-6 py-4 text-right text-[9px] font-mono text-zinc-500 italic tracking-tighter italic uppercase leading-none">{t.id?.slice(-8)} ↗</td>
+          <table className="w-full text-left font-mono italic text-[10px]">
+             <thead>
+                <tr className="text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="pb-4 font-black">DATE</th>
+                  <th className="pb-4 font-black">USER</th>
+                  <th className="pb-4 font-black">AMOUNT</th>
+                  <th className="pb-4 font-black">STATUS</th>
                 </tr>
-              ))}
-            </tbody>
+             </thead>
+             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {transactions.map((t, i) => (
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-[#0c0c0e] transition-colors">
+                    <td className="py-4 text-zinc-500">{new Date(t.created_at).toLocaleDateString()}</td>
+                    <td className="py-4 font-bold">{t.profiles?.username || "Guest"}</td>
+                    <td className="py-4 font-black text-indigo-500">€{t.amount}</td>
+                    <td className="py-4">
+                      <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase ${t.status === 'succeeded' ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                        {t.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+             </tbody>
           </table>
         </div>
       </div>
@@ -262,22 +334,23 @@ export default function Money({ supabase }: MoneyProps) {
   );
 }
 
-// SUPPORT COMPONENTS
+// ConfigTile Component
 function ConfigTile({ label, value, onChange, step = "1" }: any) {
-  return (
-    <div className="bg-white dark:bg-[#0c0c0e] p-3 flex flex-col gap-1 border-r last:border-0 border-zinc-100 dark:border-zinc-800 group transition-all leading-none">
-      <label className="text-[7px] font-black text-zinc-400 uppercase tracking-widest font-mono italic font-bold leading-none">{label}</label>
-      <input type="number" step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="bg-transparent text-[11px] font-mono font-black outline-none text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-500 transition-colors italic tracking-tighter tabular-nums leading-none" />
-    </div>
-  );
-}
+  const displayValue = (value === undefined || value === null || isNaN(value)) ? 0 : value;
 
-function StatCard({ label, value }: any) {
   return (
-    <div className="bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-6 rounded shadow-sm relative overflow-hidden group font-mono italic">
-      <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
-      <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest italic font-bold leading-none">{label}</p>
-      <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-2 tracking-tighter italic leading-none tabular-nums italic">{value}</p>
+    <div className="bg-white dark:bg-[#0c0c0e] p-4">
+      <p className="text-[8px] font-black uppercase mb-2 text-zinc-500 italic">{label}</p>
+      <input 
+        type="number" 
+        step={step}
+        value={displayValue} 
+        onChange={(e) => {
+          const val = parseFloat(e.target.value);
+          onChange(isNaN(val) ? 0 : val);
+        }}
+        className="bg-transparent text-xl font-black w-full outline-none focus:text-indigo-500 transition-colors italic tabular-nums"
+      />
     </div>
   );
 }

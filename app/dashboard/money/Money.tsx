@@ -128,7 +128,7 @@ export default function Money({ supabase }: MoneyProps) {
       `€${t.amount}`,
       t.status.toUpperCase()
     ]);
-    autoTable({ doc, head: [['Date', 'User', 'Amount', 'Status']], body: tableRows, startY: 25, theme: 'striped' });
+   autoTable(doc, { head: [['Date', 'User', 'Amount', 'Status']], body: tableRows, startY: 25, theme: 'striped' });
     doc.save(`Smile_Audit_${new Date().getTime()}.pdf`);
   };
 

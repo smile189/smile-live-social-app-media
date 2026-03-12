@@ -192,7 +192,7 @@ useEffect(() => {
             { icon: "🏢", label: "3. Agency", key: "agency" },
             { icon: "🔴", label: "4. Live room", key: "liveroom" },
             { icon: "👥", label: "5. Users List", key: "users" },
-            { icon: "🎬", label: "6. Content Hub", key: "content" },
+            { icon: "🎬", label: "6. Content posts", key: "content" },
             { icon: "💰", label: "7. Financials", key: "finances" },
             { icon: "🎁", label: "8. Gifts System", key: "gifts" },
             { icon: "🚩", label: "9. Moderation", key: "moderation" },

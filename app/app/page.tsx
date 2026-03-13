@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import SidebarActions from "@/components/ActionButton";
 import BottomNav from "@/components/BottomNav";
-import { Play, Sparkles, Users, Radio } from "lucide-react";
+import { Play, Sparkles, Users, Radio, Music } from "lucide-react";
 import { sortPostsByViralScore, Post } from "@/lib/ml-algorithm";
 import { prefetchVideos } from "@/lib/prefetch-utils";
 
@@ -73,6 +73,24 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
         </span>
       </div>
 
+      {/* --- OVERLAY INFO (STÂNGA JOS) --- */}
+      <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
+        <div className="flex flex-col gap-1.5 text-white">
+          <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
+            @{post.profiles?.username || 'user'}
+          </h3>
+          <p className="text-sm font-medium leading-snug line-clamp-2 overflow-hidden max-w-[85%] pointer-events-auto">
+            {post.description || post.caption || ""}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <Music size={12} className="animate-[spin_4s_linear_infinite]" />
+            <span className="text-[11px] font-bold tracking-wide truncate max-w-[180px]">
+              Original Audio - {post.profiles?.username}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {(isActive || isNear) && (
         <video
           ref={videoRef}
@@ -105,7 +123,16 @@ export default function FeedContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isFetching = useRef(false);
 
-  // --- LOGICA DE MENTENANȚĂ (BLOCK REVISION) ---
+  // --- LOGICA INCREMENTARE VIEWS ---
+  useEffect(() => {
+    if (!activePostId) return;
+    const timer = setTimeout(async () => {
+      await supabase.rpc('increment_post_views', { post_id: activePostId });
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [activePostId]);
+
+  // --- LOGICA DE MENTENANȚĂ (ORIGINALĂ) ---
   useEffect(() => {
     const checkMaintenance = async () => {
       const { data } = await supabase
@@ -113,66 +140,57 @@ export default function FeedContent() {
         .select("is_maintenance_web, maintenance_title, maintenance_message")
         .eq("id", 1)
         .single();
-
       if (data?.is_maintenance_web) {
         setMaintenance({ active: true, title: data.maintenance_title, msg: data.maintenance_message });
       }
     };
-
     checkMaintenance();
-
     const channel = supabase
       .channel('maintenance_sync')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_control' }, (payload) => {
         if (payload.new.id === 1) {
           setMaintenance(payload.new.is_maintenance_web ? {
-            active: true,
-            title: payload.new.maintenance_title,
-            msg: payload.new.maintenance_message
+            active: true, title: payload.new.maintenance_title, msg: payload.new.maintenance_message
           } : null);
         }
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadContent = useCallback(async (isInitial = false) => {
     if (isFetching.current) return;
     isFetching.current = true;
-    
     const from = isInitial ? 0 : posts.length;
     const { data: { user } } = await supabase.auth.getUser();
-
     let dataToSort: any[] = [];
+
+    // Query reparat pentru a aduce și datele comentariilor
+    const queryStr = `
+      *,
+      profiles!inner(*),
+      likes(id),
+      views_count,
+      comments(
+        id,
+        content,
+        created_at,
+        profiles(username, avatar_url)
+      )
+    `;
 
     try {
       if (activeTab === "friends") {
-        if (!user) {
-          setPosts([]); 
-          setLoading(false);
-          isFetching.current = false;
-          return;
-        }
-
-        const { data: follows } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', user.id);
-
+        if (!user) { setPosts([]); setLoading(false); isFetching.current = false; return; }
+        const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
         const followingIds = follows?.map(f => f.following_id) || [];
-
         if (followingIds.length > 0) {
-          const { data } = await supabase
-            .from("posts")
-            .select(`*, profiles!inner(*), likes(id), comments(count)`)
-            .in('user_id', followingIds)
-            .range(from, from + 9);
+          const { data } = await supabase.from("posts").select(queryStr).in('user_id', followingIds).range(from, from + 9);
           dataToSort = data || [];
         }
       } 
       else {
-        let query = supabase.from("posts").select(`*, profiles!inner(*), likes(id), comments(count)`);
+        let query = supabase.from("posts").select(queryStr);
         if (activeTab === "live") query = query.eq('profiles.is_live', true);
         const { data } = await query.range(from, from + 9);
         dataToSort = data || [];
@@ -188,10 +206,7 @@ export default function FeedContent() {
       } else if (isInitial) {
         setPosts([]);
       }
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
-
+    } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
     isFetching.current = false;
   }, [posts.length, activeTab]);
@@ -221,54 +236,34 @@ export default function FeedContent() {
     return () => observer.disconnect();
   }, [posts, loadContent]);
 
-  const activeIndex = useMemo(() => posts.findIndex(p => p.id === activePostId), [posts, activePostId]);
-
-  // --- ECRAN MENTENANȚĂ ---
   if (maintenance?.active) {
     return (
       <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center">
-        
-        <h1 className="text-3xl font-black text-yellow-400 uppercase italic mb-2 tracking-tighter">
-          {maintenance.title || "Revizie Tehnică"}
-        </h1>
-        <p className="text-white/60 max-w-sm font-medium">
-          {maintenance.msg || "Revenim imediat cu noutăți pe Smile!"}
-        </p>
+        <h1 className="text-3xl font-black text-yellow-400 mb-4">{maintenance.title}</h1>
+        <p className="text-white opacity-80">{maintenance.msg}</p>
       </div>
     );
   }
 
-  // --- ECRAN LOADING INITIAL ---
-  if (loading && posts.length === 0) return (
-    <div className="h-screen bg-black flex items-center justify-center">
-      <div className="text-yellow-400 font-black text-2xl italic animate-pulse uppercase tracking-[0.2em]">Smile</div>
-    </div>
-  );
-
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden select-none flex flex-col items-center">
+    <div className="h-screen w-full bg-black overflow-hidden relative">
       <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10">
-        {posts.map((post, index) => (
-          <section key={post.id} data-id={post.id} className="h-full w-full snap-start snap-always relative flex justify-center bg-zinc-950">
-            <div className="relative h-full w-full md:max-w-[calc(100vh*9/16)] bg-black overflow-hidden">
-                <MediaRenderer 
-                  post={post} 
-                  isActive={activePostId === post.id} 
-                  isNear={Math.abs(index - activeIndex) <= 2} 
-                  onProgress={setGlobalProgress} 
-                />
-                <SidebarActions post={post} />
-                
-                {activePostId === post.id && (
-                  <div className="absolute bottom-0 left-0 h-[2px] bg-yellow-400 transition-all duration-100 z-50" style={{ width: `${globalProgress}%` }} />
-                )}
-            </div>
+      
+      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar">
+        {posts.map((post) => (
+          <section key={post.id} data-id={post.id} className="h-full w-full snap-start relative">
+            <MediaRenderer 
+              post={post} 
+              isActive={activePostId === post.id} 
+              isNear={true}
+              onProgress={setGlobalProgress}
+            />
+            <SidebarActions post={post} />
           </section>
         ))}
       </div>
-      <BottomNav />
+
+      <BottomNav activePostId={activePostId} progress={globalProgress} />
     </div>
   );
 }

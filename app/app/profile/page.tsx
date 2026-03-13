@@ -30,6 +30,9 @@ const VideoPreview = memo(({ src, views, likesCount, commentsCount }: any) => {
     }
   };
 
+
+
+
   const handleStop = () => {
     if (videoRef.current) {
       videoRef.current.pause();
@@ -198,6 +201,14 @@ export default function ProfilePage() {
     <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black animate-pulse uppercase tracking-tighter italic">Smile Syncing...</div>
   );
 
+const formatCount = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return num?.toString() || "0";
+};
+
+
+
   return (
     <div className="min-h-screen bg-[#050505] text-white pb-32 font-sans selection:bg-yellow-400">
       <header className="p-4 flex items-center justify-between sticky top-0 bg-black/80 backdrop-blur-xl z-50 border-b border-white/5">
@@ -278,16 +289,16 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          {posts.map((post) => (
-            <div key={post.id} onClick={() => openPost(post)}>
-              <VideoPreview 
-                src={post.video_url} 
-                views={post.views_count || 0}
-                likesCount={post.likes?.[0]?.count || 0}
-                commentsCount={post.comments?.[0]?.count || 0}
-              />
-            </div>
-          ))}
+{posts.map((post) => (
+  <VideoPreview 
+    key={post.id} 
+    src={post.video_url} 
+    views={formatCount(post.views_count || 0)} // Adăugat formatare K/M
+    likesCount={formatCount(post.likes?.[0]?.count || 0)} // Fix la ?.?.
+    commentsCount={formatCount(post.comments?.[0]?.count || 0)} // Fix la ?.?.
+  />
+))}
+
         </div>
       </div>
     </div>

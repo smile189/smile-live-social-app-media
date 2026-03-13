@@ -73,7 +73,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
         </span>
       </div>
 
-      {/* --- OVERLAY INFO (STÂNGA JOS) --- */}
+      {/* --- ADAUGAT: OVERLAY INFO (STÂNGA JOS) --- */}
       <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
         <div className="flex flex-col gap-1.5 text-white">
           <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
@@ -123,7 +123,7 @@ export default function FeedContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isFetching = useRef(false);
 
-  // --- LOGICA INCREMENTARE VIEWS ---
+  // --- LOGICA INCREMENTARE VIEWS (RPC) ---
   useEffect(() => {
     if (!activePostId) return;
     const timer = setTimeout(async () => {
@@ -132,7 +132,7 @@ export default function FeedContent() {
     return () => clearTimeout(timer);
   }, [activePostId]);
 
-  // --- LOGICA DE MENTENANȚĂ (ORIGINALĂ) ---
+  // --- LOGICA DE MENTENANȚĂ (PĂSTRATĂ INTEGRAL) ---
   useEffect(() => {
     const checkMaintenance = async () => {
       const { data } = await supabase
@@ -140,32 +140,40 @@ export default function FeedContent() {
         .select("is_maintenance_web, maintenance_title, maintenance_message")
         .eq("id", 1)
         .single();
+
       if (data?.is_maintenance_web) {
         setMaintenance({ active: true, title: data.maintenance_title, msg: data.maintenance_message });
       }
     };
+
     checkMaintenance();
+
     const channel = supabase
       .channel('maintenance_sync')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_control' }, (payload) => {
         if (payload.new.id === 1) {
           setMaintenance(payload.new.is_maintenance_web ? {
-            active: true, title: payload.new.maintenance_title, msg: payload.new.maintenance_message
+            active: true,
+            title: payload.new.maintenance_title,
+            msg: payload.new.maintenance_message
           } : null);
         }
       })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadContent = useCallback(async (isInitial = false) => {
     if (isFetching.current) return;
     isFetching.current = true;
+    
     const from = isInitial ? 0 : posts.length;
     const { data: { user } } = await supabase.auth.getUser();
+
     let dataToSort: any[] = [];
 
-    // Query reparat pentru a aduce și datele comentariilor
+    // Query reparat pentru a aduce și datele comentariilor + views
     const queryStr = `
       *,
       profiles!inner(*),
@@ -181,11 +189,26 @@ export default function FeedContent() {
 
     try {
       if (activeTab === "friends") {
-        if (!user) { setPosts([]); setLoading(false); isFetching.current = false; return; }
-        const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+        if (!user) {
+          setPosts([]); 
+          setLoading(false);
+          isFetching.current = false;
+          return;
+        }
+
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+
         const followingIds = follows?.map(f => f.following_id) || [];
+
         if (followingIds.length > 0) {
-          const { data } = await supabase.from("posts").select(queryStr).in('user_id', followingIds).range(from, from + 9);
+          const { data } = await supabase
+            .from("posts")
+            .select(queryStr)
+            .in('user_id', followingIds)
+            .range(from, from + 9);
           dataToSort = data || [];
         }
       } 
@@ -206,7 +229,10 @@ export default function FeedContent() {
       } else if (isInitial) {
         setPosts([]);
       }
-    } catch (err) { console.error("Fetch error:", err); }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+
     setLoading(false);
     isFetching.current = false;
   }, [posts.length, activeTab]);
@@ -238,9 +264,9 @@ export default function FeedContent() {
 
   if (maintenance?.active) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-3xl font-black text-yellow-400 mb-4">{maintenance.title}</h1>
-        <p className="text-white opacity-80">{maintenance.msg}</p>
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center text-white">
+        <h1 className="text-3xl font-black mb-4">{maintenance.title}</h1>
+        <p className="opacity-70">{maintenance.msg}</p>
       </div>
     );
   }
@@ -249,9 +275,18 @@ export default function FeedContent() {
     <div className="h-screen w-full bg-black overflow-hidden relative">
       <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <div ref={containerRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar">
+      {/* SNAP MANDATORY: Forțează oprirea la fiecare video (one by one) */}
+      <div 
+        ref={containerRef} 
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth"
+        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+      >
         {posts.map((post) => (
-          <section key={post.id} data-id={post.id} className="h-full w-full snap-start relative">
+          <section 
+            key={post.id} 
+            data-id={post.id} 
+            className="h-full w-full snap-start snap-always relative overflow-hidden"
+          >
             <MediaRenderer 
               post={post} 
               isActive={activePostId === post.id} 

@@ -128,7 +128,7 @@ export default function FeedContent() {
     if (!activePostId) return;
     const timer = setTimeout(async () => {
       await supabase.rpc('increment_post_views', { post_id: activePostId });
-    }, 913); //913 ms retention scroll
+    }, 2513); //2513 ms retention scroll
     return () => clearTimeout(timer);
   }, [activePostId]);
 

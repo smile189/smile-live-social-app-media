@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { Home, Compass, MessageSquare, Plus, User } from "lucide-react";
+
+import { Home, Flame, MessageSquare, Plus, User } from "lucide-react";
+
 
 // --- FIX: Am adăugat interfața pentru Props ---
 interface BottomNavProps {
@@ -72,13 +74,14 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const navItems = [
-    { id: "feed", label: "Home", icon: Home, path: "/app" },
-    { id: "hot", label: "Hot", icon: Compass, path: "/app" },
-    { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
-    { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
-    { id: "connect", label: "Connect", icon: User, path: "/app/profile" },
-  ];
+const navItems = [
+  { id: "feed", label: "Home", icon: Home, path: "/app" },
+  { id: "hot", label: "Hot", icon: Flame, path: "/app" }, // Aici am pus Flame
+  { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
+  { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
+  { id: "connect", label: "Profile", icon: User, path: "/app/profile" },
+];
+
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-[999] pointer-events-none flex flex-col items-center">

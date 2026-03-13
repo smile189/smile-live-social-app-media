@@ -1,5 +1,5 @@
 /**
- * SMILE LIVE - PROFILE MANAGEMENT (YELLOW EDITION)
+ * SMILE LIVE - PROFILE MANAGEMENT 
  * FULL INTEGRAL - FIX STATS (LIKES/COMMENTS/VIEWS)
  */
 
@@ -198,7 +198,7 @@ export default function ProfilePage() {
   };
 
   if (loading && !profile) return (
-    <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black animate-pulse uppercase tracking-tighter italic">Smile Syncing...</div>
+    <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black animate-pulse uppercase tracking-tighter italic">Please moment...</div>
   );
 
 const formatCount = (num: number) => {

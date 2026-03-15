@@ -40,24 +40,36 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-// --- MEDIA RENDERER: MOTORUL VIDEO (FIX PENTRU IOS AUTOPLAY) ---
+// --- MEDIA RENDERER: MOTORUL VIDEO (SMART AUTOPLAY IOS/ANDROID) ---
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // OBLIGATORIU: iOS cere muted pentru autoplay
+  const [isMuted, setIsMuted] = useState(false); // Încercăm direct cu sunet
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+
     if (isActive && !isPaused) {
-      v.muted = isMuted; // Sync cu starea noastră
-      v.play().catch((e) => console.log("Safari block prevention:", e));
+      // Încercăm redarea cu sunet (standard Android/Desktop)
+      const playPromise = v.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Dacă iOS/Safari blochează sunetul, forțăm MUTE și dăm play iar
+          // Astfel imaginea pornește oricum, nu rămâne blocată
+          v.muted = true;
+          setIsMuted(true);
+          v.play().catch(err => console.log("Final block:", err));
+        });
+      }
     } else { 
       v.pause(); 
       if (!isNear) v.src = ""; 
     }
-  }, [isActive, isNear, isPaused, isMuted]);
+  }, [isActive, isNear, isPaused]);
 
+  // Sincronizare progres bară jos
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !isActive) return;
@@ -68,9 +80,10 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
 
-  // Funcție hibrid: la primul click dă UNMUTE, apoi funcționează ca Play/Pause
-  const handleInteraction = () => {
-    if (isMuted) {
+  // Interaction: Unmute la primul click, apoi Play/Pause
+  const handleTap = () => {
+    if (videoRef.current?.muted) {
+      videoRef.current.muted = false;
       setIsMuted(false);
     } else {
       setIsPaused(!isPaused);
@@ -78,13 +91,15 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   };
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleInteraction}>
+    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleTap}>
+      {/* Branding SMILE */}
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
         <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           smile
         </span>
       </div>
 
+      {/* OVERLAY INFO (STÂNGA JOS) */}
       <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
         <div className="flex flex-col gap-1.5 text-white">
           <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
@@ -102,6 +117,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
         </div>
       </div>
 
+      {/* VIDEO ENGINE */}
       {(isActive || isNear) && (
         <video
           ref={videoRef}
@@ -109,21 +125,19 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
           className="h-full w-auto max-w-full object-contain transform-gpu"
           loop 
           playsInline 
-          muted={isMuted} // Aici era buba pe iOS
+          muted={isMuted}
           autoPlay
         />
       )}
 
-      {/* Mesaj vizual pentru Unmute (specific iOS/Safari) */}
+      {/* Indicator vizual pentru Unmute (doar dacă e blocat pe mut) */}
       {isMuted && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-            <Music size={14} className="text-white animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white">Tap for Sound</span>
-          </div>
+        <div className="absolute top-1/2 right-4 z-50 bg-black/40 p-3 rounded-full backdrop-blur-md border border-white/10 animate-bounce">
+          <Music size={20} className="text-yellow-400" />
         </div>
       )}
 
+      {/* Iconiță PAUZĂ */}
       {isPaused && isActive && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
           <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">
@@ -134,6 +148,8 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     </div>
   );
 });
+
+MediaRenderer.displayName = "MediaRenderer";
 
 MediaRenderer.displayName = "MediaRenderer";
 

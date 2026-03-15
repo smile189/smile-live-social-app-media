@@ -38,7 +38,8 @@ export const viewport: Viewport = {
 // Configurare Metadata pentru SEO, WhatsApp, Facebook și Twitter
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.smileliveapp.com'), 
-  
+  manifest: "/manifest.json", // <-- ACTIVARE PWA (ANDROID/IOS)
+
   title: {
     default: "Smile Live App - Redefine Entertainment",
     template: "%s | Smile Live"
@@ -48,6 +49,13 @@ export const metadata: Metadata = {
   keywords: ["Smile Live", "Social Media App", "4K Streaming", "Alexandra Storyteller", "Live Connection"],
   authors: [{ name: "Smile Live Team" }],
   
+  // ACTIVARE MOD NATIV IOS (Fără bare de browser)
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Smile Live",
+  },
+
   // OpenGraph (WhatsApp, Facebook, Instagram)
   openGraph: {
     title: "Smile Live | The Future of Social Connection",
@@ -78,7 +86,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logosmile.ico",         
     shortcut: "/logosmile.ico",     
-    apple: "/logosmile.jpeg",       
+    apple: "/logosmile.jpeg", // Aceasta devine iconița de pe ecranul iPhone-ului     
     other: [
       {
         rel: 'icon',
@@ -101,6 +109,7 @@ export const metadata: Metadata = {
     },
   },
 };
+
 
 export default function RootLayout({
   children,

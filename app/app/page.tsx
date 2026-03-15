@@ -40,20 +40,23 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-// --- MEDIA RENDERER: MOTORUL VIDEO ---
+// --- MEDIA RENDERER: MOTORUL VIDEO (FIX PENTRU IOS AUTOPLAY) ---
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // OBLIGATORIU: iOS cere muted pentru autoplay
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (isActive && !isPaused) v.play().catch(() => {});
-    else { 
+    if (isActive && !isPaused) {
+      v.muted = isMuted; // Sync cu starea noastră
+      v.play().catch((e) => console.log("Safari block prevention:", e));
+    } else { 
       v.pause(); 
       if (!isNear) v.src = ""; 
     }
-  }, [isActive, isNear, isPaused]);
+  }, [isActive, isNear, isPaused, isMuted]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -65,15 +68,23 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
 
+  // Funcție hibrid: la primul click dă UNMUTE, apoi funcționează ca Play/Pause
+  const handleInteraction = () => {
+    if (isMuted) {
+      setIsMuted(false);
+    } else {
+      setIsPaused(!isPaused);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
+    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleInteraction}>
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
         <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           smile
         </span>
       </div>
 
-      {/* --- ADAUGAT: OVERLAY INFO (STÂNGA JOS) --- */}
       <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
         <div className="flex flex-col gap-1.5 text-white">
           <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
@@ -83,7 +94,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
             {post.description || post.caption || ""}
           </p>
           <div className="flex items-center gap-2 mt-1">
-            <Music size={12} className="animate-[spin_4s_linear_infinite]" />
+            <Music size={12} className={!isPaused ? "animate-[spin_4s_linear_infinite]" : ""} />
             <span className="text-[11px] font-bold tracking-wide truncate max-w-[180px]">
               Original Audio - {post.profiles?.username}
             </span>
@@ -96,9 +107,23 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
           ref={videoRef}
           src={post.video_url}
           className="h-full w-auto max-w-full object-contain transform-gpu"
-          loop playsInline muted={!isActive}
+          loop 
+          playsInline 
+          muted={isMuted} // Aici era buba pe iOS
+          autoPlay
         />
       )}
+
+      {/* Mesaj vizual pentru Unmute (specific iOS/Safari) */}
+      {isMuted && isActive && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+            <Music size={14} className="text-white animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white">Tap for Sound</span>
+          </div>
+        </div>
+      )}
+
       {isPaused && isActive && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
           <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">

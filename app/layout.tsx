@@ -118,8 +118,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ro" className="scroll-smooth">
+      <head>
+        {/* FORȚARE MOD NATIV PENTRU IOS */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Smile Live" />
+        <link rel="apple-touch-icon" href="/logosmile.jpeg" />
+      </head>
       <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
-        {/* Main Content Area */}
         <main className="min-h-screen">
           {children}
         </main>

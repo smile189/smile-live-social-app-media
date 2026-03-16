@@ -25,7 +25,7 @@
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
+import InstallButton from "@/components/InstallBut";
 // Configurare Viewport pentru experiență imersivă pe mobil
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -127,6 +127,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logosmile.jpeg" />
       </head>
       <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
+             {/* COMPONENTA DE INSTALARE - POZIȚIONATĂ STRATEGIC */}
+        <div className="fixed top-28 right-4 z-40">
+          <InstallButton />
+        </div>
         <main className="min-h-screen">
           {children}
         </main>

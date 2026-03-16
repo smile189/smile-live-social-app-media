@@ -164,7 +164,6 @@ export default function FeedContent() {
     return () => { supabase.removeChannel(channel); };
   }, []);
   
-  
 
   const loadContent = useCallback(async (isInitial = false) => {
     if (isFetching.current) return;
@@ -266,7 +265,7 @@ export default function FeedContent() {
 
   if (maintenance?.active) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center text-yellow-400">
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center text-white">
         <h1 className="text-3xl font-black mb-4">{maintenance.title}</h1>
         <p className="opacity-70">{maintenance.msg}</p>
       </div>

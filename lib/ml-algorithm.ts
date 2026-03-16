@@ -73,7 +73,7 @@ export const calculateViralScore = (post: Post): number => {
     (epsilon * decay) +
     (zeta * freshnessBoost) +
     popularityBoost +
-    agencyBoost //promotional 
+    (agencyBoost || 0) //promotional index 
   );
 
   return isNaN(finalScore) ? 0 : finalScore;

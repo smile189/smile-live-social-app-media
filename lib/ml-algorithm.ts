@@ -51,6 +51,11 @@ export const calculateViralScore = (post: Post): number => {
   // B. Time Decay: Gravity  
   const decay = 1 / Math.pow(hoursOld + 2, 1.8);
 
+
+  // advertise scor   
+  const agencyBoost = post.is_promoted ? 100 : 0;//
+
+
   // 4. COMPONENTE SCOR 
   
   // Quality Ratio: 
@@ -67,7 +72,8 @@ export const calculateViralScore = (post: Post): number => {
     (delta * (isLive ? 1 : 0)) + 
     (epsilon * decay) +
     (zeta * freshnessBoost) +
-    popularityBoost
+    popularityBoost +
+    agencyBoost //promotional 
   );
 
   return isNaN(finalScore) ? 0 : finalScore;

@@ -175,18 +175,22 @@ export default function FeedContent() {
     let dataToSort: any[] = [];
 
     // Query reparat pentru a aduce și datele comentariilor + views
-    const queryStr = `
-      *,
-      profiles!inner(*),
-      likes(id),
-      views_count,
-      comments(
-        id,
-        content,
-        created_at,
-        profiles(username, avatar_url)
-      )
-    `;
+const queryStr = `
+  *,
+  is_promoted,
+  promo_budget,
+  agency_id,
+  profiles!inner(*),
+  likes(id),
+  views_count,
+  comments(
+    id,
+    content,
+    created_at,
+    profiles(username, avatar_url)
+  )
+`;
+
 
     try {
       if (activeTab === "friends") {

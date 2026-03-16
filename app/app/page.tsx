@@ -41,26 +41,19 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
 };
 
 // --- MEDIA RENDERER: MOTORUL VIDEO ---
-// ADAUGAT: isGlobalMuted si setIsGlobalMuted pentru control iOS/Android
-const MediaRenderer = memo(({ post, isActive, isNear, onProgress, isGlobalMuted, setIsGlobalMuted }: any) => {
+const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (isActive && !isPaused) {
-      v.muted = isGlobalMuted; // Sincronizare cu alegerea userului
-      v.play().catch(() => {
-        v.muted = true; // Fallback obligatoriu pentru iPhone
-        v.play();
-      });
-    }
+    if (isActive && !isPaused) v.play().catch(() => {});
     else { 
       v.pause(); 
       if (!isNear) v.src = ""; 
     }
-  }, [isActive, isNear, isPaused, isGlobalMuted]);
+  }, [isActive, isNear, isPaused]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -72,23 +65,15 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress, isGlobalMuted,
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
 
-  // ADAUGAT: La tap, daca e mut, il pornim. Daca nu, e pauza normala.
-  const handleInteraction = () => {
-    if (isGlobalMuted) {
-      setIsGlobalMuted(false);
-    } else {
-      setIsPaused(!isPaused);
-    }
-  };
-
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleInteraction}>
+    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
         <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           smile
         </span>
       </div>
 
+      {/* --- ADAUGAT: OVERLAY INFO (STÂNGA JOS) --- */}
       <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
         <div className="flex flex-col gap-1.5 text-white">
           <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
@@ -111,17 +96,9 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress, isGlobalMuted,
           ref={videoRef}
           src={post.video_url}
           className="h-full w-auto max-w-full object-contain transform-gpu"
-          loop playsInline muted={isGlobalMuted} autoPlay
+          loop playsInline muted={!isActive}
         />
       )}
-
-      {/* Indicator vizual pentru UNMUTE */}
-      {isGlobalMuted && isActive && (
-        <div className="absolute top-1/2 right-6 z-50 bg-black/40 p-3 rounded-full animate-bounce">
-          <Music size={20} className="text-white opacity-80" />
-        </div>
-      )}
-
       {isPaused && isActive && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
           <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">
@@ -140,7 +117,6 @@ export default function FeedContent() {
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState<Post[]>([]);
   const [activePostId, setActivePostId] = useState<string | null>(null);
-  const [isGlobalMuted, setIsGlobalMuted] = useState(true); // <--- ADAUGAT pentru sunet global
   const [globalProgress, setGlobalProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [maintenance, setMaintenance] = useState<{ active: boolean; title: string; msg: string } | null>(null);
@@ -152,7 +128,7 @@ export default function FeedContent() {
     if (!activePostId) return;
     const timer = setTimeout(async () => {
       await supabase.rpc('increment_post_views', { post_id: activePostId });
-    }, 2513); 
+    }, 2513); //2513 ms retention scroll
     return () => clearTimeout(timer);
   }, [activePostId]);
 
@@ -188,6 +164,8 @@ export default function FeedContent() {
     return () => { supabase.removeChannel(channel); };
   }, []);
   
+  
+
   const loadContent = useCallback(async (isInitial = false) => {
     if (isFetching.current) return;
     isFetching.current = true;
@@ -196,15 +174,43 @@ export default function FeedContent() {
     const { data: { user } } = await supabase.auth.getUser();
 
     let dataToSort: any[] = [];
-    const queryStr = `*, profiles!inner(*), likes(id), views_count, comments(id, content, created_at, profiles(username, avatar_url))`;
+
+    // Query reparat pentru a aduce și datele comentariilor + views
+    const queryStr = `
+      *,
+      profiles!inner(*),
+      likes(id),
+      views_count,
+      comments(
+        id,
+        content,
+        created_at,
+        profiles(username, avatar_url)
+      )
+    `;
 
     try {
       if (activeTab === "friends") {
-        if (!user) { setPosts([]); setLoading(false); isFetching.current = false; return; }
-        const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id);
+        if (!user) {
+          setPosts([]); 
+          setLoading(false);
+          isFetching.current = false;
+          return;
+        }
+
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+
         const followingIds = follows?.map(f => f.following_id) || [];
+
         if (followingIds.length > 0) {
-          const { data } = await supabase.from("posts").select(queryStr).in('user_id', followingIds).range(from, from + 9);
+          const { data } = await supabase
+            .from("posts")
+            .select(queryStr)
+            .in('user_id', followingIds)
+            .range(from, from + 9);
           dataToSort = data || [];
         }
       } 
@@ -218,51 +224,83 @@ export default function FeedContent() {
       if (dataToSort.length > 0) {
         const sorted = sortPostsByViralScore(dataToSort as Post[]);
         setPosts(prev => isInitial ? sorted : [...prev, ...sorted]);
-        if (isInitial && sorted.length > 0) setActivePostId(sorted[0].id);
+        if (isInitial && sorted.length > 0) {
+          setActivePostId(sorted[0].id);
+          prefetchVideos(sorted, 3);
+        }
+      } else if (isInitial) {
+        setPosts([]);
       }
-    } finally {
-      setLoading(false);
-      isFetching.current = false;
+    } catch (err) {
+      console.error("Fetch error:", err);
     }
-  }, [activeTab, posts.length]);
 
-  useEffect(() => { loadContent(true); }, [activeTab]);
+    setLoading(false);
+    isFetching.current = false;
+  }, [posts.length, activeTab]);
 
-  // ADAUGAT: Observer pentru a seta postul activ la scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActivePostId(entry.target.id);
-        });
-      },
-      { threshold: 0.6 }
-    );
-    document.querySelectorAll(".post-item").forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [posts]);
+    setLoading(true);
+    setPosts([]);
+    loadContent(true);
+  }, [activeTab]);
 
-  if (maintenance?.active) return <div className="h-screen bg-black flex items-center justify-center text-white">{maintenance.msg}</div>;
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+          const id = entry.target.getAttribute("data-id");
+          if (id) {
+            setActivePostId(id);
+            const idx = posts.findIndex(p => p.id === id);
+            if (idx !== -1 && idx >= posts.length - 4) loadContent();
+          }
+        }
+      });
+    }, { threshold: 0.6 });
+    
+    const sections = containerRef.current?.querySelectorAll("section");
+    sections?.forEach(s => observer.observe(s));
+    return () => observer.disconnect();
+  }, [posts, loadContent]);
+
+  if (maintenance?.active) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center text-yellow-400">
+        <h1 className="text-3xl font-black mb-4">{maintenance.title}</h1>
+        <p className="opacity-70">{maintenance.msg}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-screen w-full bg-black snap-y snap-mandatory overflow-y-scroll overflow-x-hidden scrollbar-hide" ref={containerRef}>
+    <div className="h-screen w-full bg-black overflow-hidden relative">
       <TopNav activeTab={activeTab} onTabChange={setActiveTab} />
       
-      {posts.map((post) => (
-        <div key={post.id} id={post.id} className="post-item h-screen w-full snap-start relative">
-             <MediaRenderer 
-                post={post} 
-                isActive={activePostId === post.id} 
-                isNear={true} 
-                onProgress={setGlobalProgress}
-                isGlobalMuted={isGlobalMuted} // <--- TRANSMIS
-                setIsGlobalMuted={setIsGlobalMuted} // <--- TRANSMIS
-             />
-             <SidebarActions post={post} />
-        </div>
-      ))}
-      
-      <BottomNav activeTab="home" />
+      {/* SNAP MANDATORY: Forțează oprirea la fiecare video (one by one) */}
+      <div 
+        ref={containerRef} 
+        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth"
+        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+      >
+        {posts.map((post) => (
+          <section 
+            key={post.id} 
+            data-id={post.id} 
+            className="h-full w-full snap-start snap-always relative overflow-hidden"
+          >
+            <MediaRenderer 
+              post={post} 
+              isActive={activePostId === post.id} 
+              isNear={true}
+              onProgress={setGlobalProgress}
+            />
+            <SidebarActions post={post} />
+          </section>
+        ))}
+      </div>
+
+      <BottomNav activePostId={activePostId} progress={globalProgress} />
     </div>
   );
 }

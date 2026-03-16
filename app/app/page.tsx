@@ -40,32 +40,34 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-// --- MEDIA RENDERER: MOTORUL VIDEO (SUNET + IMAGINE DIRECT) ---
+// --- MEDIA RENDERER: MOTORUL VIDEO (FIXED IOS SOUND & IMAGE) ---
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // START PE TRUE: Pacălim iOS să dea drumul la imagine
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
     if (isActive && !isPaused) {
-      // Încercăm direct cu sunet (muted = false)
-      v.muted = false; 
+      // Încercăm să pornim. Pe iOS, fiind v.muted = true, imaginea pleacă instant.
+      v.muted = isMuted;
       const playPromise = v.play();
 
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Fallback extrem pentru iOS: dacă tot e blocat, dăm mute ca să vedem măcar imaginea
+        playPromise.catch((error) => {
+          // Fallback agresiv: dacă Safari tot refuză, forțăm Mute manual și play iar
           v.muted = true;
-          v.play();
+          setIsMuted(true);
+          v.play().catch(e => console.log("iOS Play Error:", e));
         });
       }
     } else { 
       v.pause(); 
       if (!isNear) v.src = ""; 
     }
-  }, [isActive, isNear, isPaused]);
+  }, [isActive, isNear, isPaused, isMuted]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -77,8 +79,18 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
 
+  // LOGICA DE DEBLOCARE: Primul tap scoate Mute-ul (permis de Apple), apoi merge Play/Pause
+  const handleInteraction = () => {
+    if (isMuted) {
+      setIsMuted(false);
+      if (videoRef.current) videoRef.current.muted = false;
+    } else {
+      setIsPaused(!isPaused);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black" onClick={() => setIsPaused(!isPaused)}>
+    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleInteraction}>
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
         <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase">smile</span>
       </div>
@@ -89,7 +101,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
           <h3 className="font-black text-base italic text-yellow-400">@{post.profiles?.username || 'user'}</h3>
           <p className="text-sm font-medium line-clamp-2">{post.description || ""}</p>
           <div className="flex items-center gap-2 mt-1">
-            <Music size={12} className="animate-spin-slow" />
+            <Music size={12} className={!isPaused ? "animate-[spin_4s_linear_infinite]" : ""} />
             <span className="text-[11px] font-bold">Original Audio - {post.profiles?.username}</span>
           </div>
         </div>
@@ -99,20 +111,35 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
         <video
           ref={videoRef}
           src={post.video_url}
-          className="h-full w-full object-contain"
-          loop playsInline
+          className="h-full w-full object-contain transform-gpu"
+          loop 
+          playsInline 
+          muted={isMuted} // Aici e cheia pentru iPhone
+          autoPlay
         />
       )}
 
+      {/* Indicator vizual pentru Unmute (Apare doar dacă e activ și pe mut) */}
+      {isMuted && isActive && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+          <div className="bg-black/40 backdrop-blur-md p-4 rounded-full border border-white/10 flex flex-col items-center">
+            <Music size={24} className="text-white animate-pulse" />
+            <p className="text-[10px] text-white font-black uppercase mt-2 tracking-widest text-center">Tap for sound</p>
+          </div>
+        </div>
+      )}
+
       {isPaused && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10">
           <Play size={60} className="text-white fill-white opacity-80" />
         </div>
       )}
     </div>
   );
 });
+
 MediaRenderer.displayName = "MediaRenderer";
+
 
 // --- FEED CONTENT: COMPONENTA PRINCIPALĂ ---
 export default function FeedContent() {

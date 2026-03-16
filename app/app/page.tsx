@@ -40,53 +40,18 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-// 1. ACEASTĂ VARIABILĂ TREBUIE SĂ FIE ÎN AFARA COMPONENTEI (GLOBALĂ)
-let isGlobalMuted = true; 
-
+// --- MEDIA RENDERER: MOTORUL VIDEO ---
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
-  const videoRef = useRef<HTMLHTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [, setForceUpdate] = useState({}); // Forțăm UI-ul să se actualizeze la unmute
-
-  // 2. FUNCȚIA DE CLICK CARE DEBLOCHEAZĂ AUDIO GLOBAL
-  const handleToggle = () => {
-    const v = videoRef.current;
-    if (!v) return;
-
-    if (isGlobalMuted) {
-      isGlobalMuted = false; // De acum, toate videourile noi vor porni cu sunet
-      v.muted = false;
-      setForceUpdate({}); // Re-randăm pentru a ascunde eventuale iconițe de mute
-    }
-
-    if (v.paused) {
-      v.play().catch(() => {});
-      setIsPaused(false);
-    } else {
-      v.pause();
-      setIsPaused(true);
-    }
-  };
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-
-    if (isActive && !isPaused) {
-      // 3. AICI E SECRETUL: Aplicăm setarea globală înainte de play
-      v.muted = isGlobalMuted;
-
-      v.play().catch(() => {
-        // Dacă iOS încă blochează (n-a existat niciun tap), dăm play MUTED obligatoriu
-        v.muted = true; 
-        v.play().catch(() => {});
-      });
-    } else {
-      v.pause();
-      if (!isNear && v.src) {
-        v.src = ""; // Eliberăm RAM-ul pe iPhone
-        v.load();
-      }
+    if (isActive && !isPaused) v.play().catch(() => {});
+    else { 
+      v.pause(); 
+      if (!isNear) v.src = ""; 
     }
   }, [isActive, isNear, isPaused]);
 
@@ -101,34 +66,44 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   }, [isActive, onProgress]);
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleToggle}>
-      {/* Indicator vizual opțional */}
-      {isGlobalMuted && isActive && (
-        <div className="absolute top-24 right-6 z-50 bg-black/40 px-3 py-1.5 rounded-full animate-pulse pointer-events-none">
-          <span className="text-white text-[10px] font-bold uppercase">Tap pt. sunet</span>
-        </div>
-      )}
-
-      {/* Restul de UI (smile, profile info) ... */}
+    <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
-        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase">smile</span>
+        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          smile
+        </span>
+      </div>
+
+      {/* --- ADAUGAT: OVERLAY INFO (STÂNGA JOS) --- */}
+      <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
+        <div className="flex flex-col gap-1.5 text-white">
+          <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
+            @{post.profiles?.username || 'user'}
+          </h3>
+          <p className="text-sm font-medium leading-snug line-clamp-2 overflow-hidden max-w-[85%] pointer-events-auto">
+            {post.description || post.caption || ""}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <Music size={12} className="animate-[spin_4s_linear_infinite]" />
+            <span className="text-[11px] font-bold tracking-wide truncate max-w-[180px]">
+              Original Audio - {post.profiles?.username}
+            </span>
+          </div>
+        </div>
       </div>
 
       {(isActive || isNear) && (
         <video
           ref={videoRef}
           src={post.video_url}
-          className="h-full w-auto max-w-full object-contain"
-          loop 
-          playsInline // OBLIGATORIU: Altfel iOS deschide playerul lui negru
-          autoPlay 
-          muted={isGlobalMuted} // React aplică starea globală la creare
+          className="h-full w-auto max-w-full object-contain transform-gpu"
+          loop playsInline muted={!isActive}
         />
       )}
-
       {isPaused && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
-          <Play size={40} className="text-white fill-white" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
+          <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">
+            <Play size={40} className="text-white fill-white opacity-80 ml-1" />
+          </div>
         </div>
       )}
     </div>
@@ -136,7 +111,6 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 });
 
 MediaRenderer.displayName = "MediaRenderer";
-
 
 // --- FEED CONTENT: COMPONENTA PRINCIPALĂ ---
 export default function FeedContent() {

@@ -40,27 +40,24 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-// --- MEDIA RENDERER: MOTORUL VIDEO (DIRECT SOUND & IMAGE) ---
+// --- MEDIA RENDERER: MOTORUL VIDEO (SUNET + IMAGINE DIRECT) ---
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Încercăm direct cu sunet
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
     if (isActive && !isPaused) {
-      // Încercăm redarea directă cu sunet
-      v.muted = isMuted; 
+      // Încercăm direct cu sunet (muted = false)
+      v.muted = false; 
       const playPromise = v.play();
 
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // FAILSAFE PENTRU IOS: Dacă sunetul e blocat, dăm MUTE automat 
-          // ca să pornească IMAGINEA imediat (să nu rămână negru)
+          // Fallback extrem pentru iOS: dacă tot e blocat, dăm mute ca să vedem măcar imaginea
           v.muted = true;
-          setIsMuted(true);
           v.play();
         });
       }
@@ -68,9 +65,8 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
       v.pause(); 
       if (!isNear) v.src = ""; 
     }
-  }, [isActive, isNear, isPaused, isMuted]);
+  }, [isActive, isNear, isPaused]);
 
-  // Sincronizare bară progres
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !isActive) return;
@@ -81,37 +77,20 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     return () => v.removeEventListener("timeupdate", sync);
   }, [isActive, onProgress]);
 
-  // Funcție care activează sunetul la prima atingere (Regulă Apple)
-  const handleTap = () => {
-    if (isMuted) {
-      setIsMuted(false);
-    } else {
-      setIsPaused(!isPaused);
-    }
-  };
-
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-black" onClick={handleTap}>
+    <div className="relative w-full h-full flex items-center justify-center bg-black" onClick={() => setIsPaused(!isPaused)}>
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
-        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-          smile
-        </span>
+        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase">smile</span>
       </div>
 
-      {/* OVERLAY INFO */}
-      <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
+      {/* INFO OVERLAY */}
+      <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none">
         <div className="flex flex-col gap-1.5 text-white">
-          <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
-            @{post.profiles?.username || 'user'}
-          </h3>
-          <p className="text-sm font-medium leading-snug line-clamp-2 overflow-hidden max-w-[85%] pointer-events-auto">
-            {post.description || post.caption || ""}
-          </p>
+          <h3 className="font-black text-base italic text-yellow-400">@{post.profiles?.username || 'user'}</h3>
+          <p className="text-sm font-medium line-clamp-2">{post.description || ""}</p>
           <div className="flex items-center gap-2 mt-1">
-            <Music size={12} className={!isPaused ? "animate-[spin_4s_linear_infinite]" : ""} />
-            <span className="text-[11px] font-bold tracking-wide truncate max-w-[180px]">
-              Original Audio - {post.profiles?.username}
-            </span>
+            <Music size={12} className="animate-spin-slow" />
+            <span className="text-[11px] font-bold">Original Audio - {post.profiles?.username}</span>
           </div>
         </div>
       </div>
@@ -120,34 +99,19 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
         <video
           ref={videoRef}
           src={post.video_url}
-          className="h-full w-auto max-w-full object-contain transform-gpu"
-          loop 
-          playsInline 
-          muted={isMuted}
-          autoPlay
+          className="h-full w-full object-contain"
+          loop playsInline
         />
       )}
 
-      {/* Indicator vizual discreat dacă sunetul e blocat (doar pe iOS la prima încărcare) */}
-      {isMuted && isActive && (
-        <div className="absolute bottom-32 right-6 z-50 bg-yellow-400 p-2 rounded-full animate-bounce">
-          <Music size={16} className="text-black" />
-        </div>
-      )}
-
       {isPaused && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
-          <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">
-            <Play size={40} className="text-white fill-white opacity-80 ml-1" />
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <Play size={60} className="text-white fill-white opacity-80" />
         </div>
       )}
     </div>
   );
 });
-
-
-
 MediaRenderer.displayName = "MediaRenderer";
 
 // --- FEED CONTENT: COMPONENTA PRINCIPALĂ ---

@@ -1,15 +1,13 @@
 // lib/ml-algorithm.ts
 
-// lib/ml-algorithm.ts
-
 export interface Post {
   id: string;
   created_at: string;
   likes?: any[] | { count: number };
   comments?: any[] | { count: number };
-  metadata?: { views?: number };
+  views_count?: number;
   views?: number;
-  // MODIFICARE AICI: Adăugăm câmpurile care lipseau
+  metadata?: { views?: number };
   profiles?: { 
     is_live: boolean; 
     avatar_url?: string; 
@@ -21,11 +19,8 @@ export interface Post {
   [key: string]: any;
 }
 
-
 export const calculateViralScore = (post: Post): number => {
-  // 1. EXTRACTIE CIFRE REALE DIN STRUCTURA SUPABASE (Mapping Automat)
-  // Dacă likes este array (select('likes(id)')), numărăm elementele. 
-  // Dacă este obiect (select('likes(count)')), luăm .count
+  // 1. EXTRACTIE DATE (Mapping fix pentru Supabase)
   const likesCount = Array.isArray(post.likes) 
     ? post.likes.length 
     : (typeof post.likes === 'object' ? (post.likes as any).count : 0);
@@ -34,40 +29,45 @@ export const calculateViralScore = (post: Post): number => {
     ? post.comments.length 
     : (typeof post.comments === 'object' ? (post.comments as any).count : 0);
 
-  const views = Number(post.views || post.metadata?.views || 0);
+  const views = Number(post.views_count || post.views || post.metadata?.views || 0);
   const isLive = post.profiles?.is_live || post.is_live || false;
 
-  // 2. CONSTANTE (Din .env sau Fallback)
-  const alpha = Number(process.env.NEXT_PUBLIC_ML_ALPHA) || 4;
-  const beta = Number(process.env.NEXT_PUBLIC_ML_BETA) || 2;
-  const gamma = Number(process.env.NEXT_PUBLIC_ML_GAMMA) || 1.5;
-  const delta = Number(process.env.NEXT_PUBLIC_ML_DELTA) || 2;
-  const epsilon = Number(process.env.NEXT_PUBLIC_ML_EPSILON) || 1;
-  const zeta = 3; // Coeficient fix pentru Freshness (0-60 min)
+  // 2. CONSTANTE (Ponderi de forță - Citite din ENV sau Fallback-uri "agresive")
+  const alpha = Number(process.env.NEXT_PUBLIC_ML_ALPHA) || 18;   // Quality (Engagement)
+  const beta = Number(process.env.NEXT_PUBLIC_ML_BETA) || 8;     // Friends/Followers
+  const gamma = Number(process.env.NEXT_PUBLIC_ML_GAMMA) || 12;   // Interest Match
+  const delta = Number(process.env.NEXT_PUBLIC_ML_DELTA) || 25;   // Live Boost (REGE)
+  const epsilon = Number(process.env.NEXT_PUBLIC_ML_EPSILON) || 5; // Decay/Stability
+  const zeta = Number(process.env.NEXT_PUBLIC_ML_ZETA) || 15;    // Freshness (Explozie clipuri noi)
 
   // 3. LOGICA TEMPORALĂ
   const now = new Date().getTime();
   const createdDate = new Date(post.created_at).getTime();
-  const hoursOld = (now - createdDate) / 3600000;
+  const hoursOld = Math.max(0, (now - createdDate) / 3600000);
 
-  // 4. COMPONENTE SCOR
-  // Engagement Rate (evităm împărțirea la 0)
-  const engagement = (likesCount + commentsCount) / (views + 1);
+  // A. Freshness Boost: Explozie în primele 3 ore
+  const freshnessBoost = Math.exp(-hoursOld * 1.5); 
+
+  // B. Time Decay: Gravitația (cum scade relevanța în timp după 24h)
+  const decay = 1 / Math.pow(hoursOld + 2, 1.8);
+
+  // 4. COMPONENTE SCOR (MATEMATICĂ TIKTOK)
   
-  // Decay Temporal (scade relevanța în timp)
-  const decay = 1 / Math.pow(Math.max(hoursOld, 0) + 1, 1.5);
+  // Quality Ratio: Adăugăm +15 la numitor ca să nu favorizăm clipuri cu 1 view/1 like
+  const qualityScore = (likesCount * 4 + commentsCount * 7) / (views + 15);
 
-  // Freshness Boost (Explozie în prima oră)
-  const freshnessBoost = hoursOld < 1 ? Math.exp(-hoursOld) : 0;
+  // Popularity Boost: Vizualizările acum ajută! (Log10 pentru progresie naturală)
+  const popularityBoost = Math.log10(views + 1) * 3;
 
-  // 5. ECUAȚIA FINALĂ SMILE
+  // 5. ECUAȚIA FINALĂ SMILE (V2 - "THE BEAST")
   const finalScore = (
-    (alpha * engagement) + 
+    (alpha * qualityScore) + 
     (beta * (post.is_follower ? 1 : 0)) + 
     (gamma * (post.interest_score || 0.5)) + 
     (delta * (isLive ? 1 : 0)) + 
     (epsilon * decay) +
-    (zeta * freshnessBoost)
+    (zeta * freshnessBoost) +
+    popularityBoost
   );
 
   return isNaN(finalScore) ? 0 : finalScore;

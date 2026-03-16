@@ -40,22 +40,23 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
   );
 };
 
-let isAudioUnlockedGlobal = false;
+// 1. ACEASTĂ VARIABILĂ TREBUIE SĂ FIE ÎN AFARA COMPONENTEI (GLOBALĂ)
+let isGlobalMuted = true; 
 
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLHTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [, setUpdate] = useState({}); // Forțează re-render când se deblochează sunetul
+  const [, setForceUpdate] = useState({}); // Forțăm UI-ul să se actualizeze la unmute
 
-  // FUNCȚIA DE CLICK: Singura care poate debloca sunetul pe iPhone
+  // 2. FUNCȚIA DE CLICK CARE DEBLOCHEAZĂ AUDIO GLOBAL
   const handleToggle = () => {
     const v = videoRef.current;
     if (!v) return;
 
-    if (!isAudioUnlockedGlobal) {
-      isAudioUnlockedGlobal = true; // Deblocăm sunetul pentru toată aplicația
-      v.muted = false; 
-      setUpdate({}); 
+    if (isGlobalMuted) {
+      isGlobalMuted = false; // De acum, toate videourile noi vor porni cu sunet
+      v.muted = false;
+      setForceUpdate({}); // Re-randăm pentru a ascunde eventuale iconițe de mute
     }
 
     if (v.paused) {
@@ -72,19 +73,18 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     if (!v) return;
 
     if (isActive && !isPaused) {
-      // Dacă am deblocat deja sunetul anterior, pornim direct cu sunet
-      v.muted = !isAudioUnlockedGlobal;
+      // 3. AICI E SECRETUL: Aplicăm setarea globală înainte de play
+      v.muted = isGlobalMuted;
 
       v.play().catch(() => {
-        // Fallback: Dacă browserul refuză sunetul (la prima rulare), 
-        // dăm play Muted (Autoplay garantat)
-        v.muted = true;
+        // Dacă iOS încă blochează (n-a existat niciun tap), dăm play MUTED obligatoriu
+        v.muted = true; 
         v.play().catch(() => {});
       });
     } else {
       v.pause();
       if (!isNear && v.src) {
-        v.src = ""; // Eliberează memoria
+        v.src = ""; // Eliberăm RAM-ul pe iPhone
         v.load();
       }
     }
@@ -102,53 +102,33 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={handleToggle}>
-      
-      {/* Indicator Mute - apare doar pe iOS până la primul tap */}
-      {!isAudioUnlockedGlobal && isActive && (
+      {/* Indicator vizual opțional */}
+      {isGlobalMuted && isActive && (
         <div className="absolute top-24 right-6 z-50 bg-black/40 px-3 py-1.5 rounded-full animate-pulse pointer-events-none">
-          <span className="text-white text-[10px] font-bold uppercase tracking-widest">Tap pt. sunet</span>
+          <span className="text-white text-[10px] font-bold uppercase">Tap pt. sunet</span>
         </div>
       )}
 
+      {/* Restul de UI (smile, profile info) ... */}
       <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
-        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-          smile
-        </span>
-      </div>
-
-      <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">
-        <div className="flex flex-col gap-1.5 text-white">
-          <h3 className="font-black text-base flex items-center gap-2 pointer-events-auto cursor-pointer hover:text-yellow-400 transition-colors">
-            @{post.profiles?.username || 'user'}
-          </h3>
-          <p className="text-sm font-medium leading-snug line-clamp-2 overflow-hidden max-w-[85%] pointer-events-auto">
-            {post.description || post.caption || ""}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <Music size={12} className="animate-[spin_4s_linear_infinite]" />
-            <span className="text-[11px] font-bold tracking-wide truncate max-w-[180px]">
-              Original Audio - {post.profiles?.username}
-            </span>
-          </div>
-        </div>
+        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase">smile</span>
       </div>
 
       {(isActive || isNear) && (
         <video
           ref={videoRef}
           src={post.video_url}
-          className="h-full w-auto max-w-full object-contain transform-gpu"
+          className="h-full w-auto max-w-full object-contain"
           loop 
-          playsInline // Critic pentru iOS
-          autoPlay
-          muted={!isAudioUnlockedGlobal} // Controlat de variabila globală
+          playsInline // OBLIGATORIU: Altfel iOS deschide playerul lui negru
+          autoPlay 
+          muted={isGlobalMuted} // React aplică starea globală la creare
         />
       )}
+
       {isPaused && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] z-10">
-          <div className="p-5 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl">
-            <Play size={40} className="text-white fill-white opacity-80 ml-1" />
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
+          <Play size={40} className="text-white fill-white" />
         </div>
       )}
     </div>
@@ -156,6 +136,7 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 });
 
 MediaRenderer.displayName = "MediaRenderer";
+
 
 // --- FEED CONTENT: COMPONENTA PRINCIPALĂ ---
 export default function FeedContent() {

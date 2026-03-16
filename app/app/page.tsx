@@ -41,27 +41,30 @@ const TopNav = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (i
 };
 
 // --- MEDIA RENDERER: MOTORUL VIDEO ---
-// 1. Definim o variabilă în afara componentei pentru a ține minte dacă sunetul a fost deblocat global
-let globalAudioUnlocked = false;
-
 const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  // Forțăm mute la început pentru a asigura autoplay pe iOS
-  const [isMuted, setIsMuted] = useState(!globalAudioUnlocked); 
 
+  // Funcția asta deblochează sunetul pe iOS la primul tap
   const handleInteraction = () => {
     const v = videoRef.current;
     if (!v) return;
 
-    // DEBLOCARE AUDIO: Prima interacțiune deblochează sunetul
-    if (!globalAudioUnlocked) {
-      globalAudioUnlocked = true;
-      setIsMuted(false);
-      v.muted = false; // Forțăm proprietatea nativă
+    // Pasul 1: Deblocăm sunetul în mod "brut" (esențial pentru Safari)
+    if (v.muted) {
+      v.muted = false;
+      // Salvăm preferința global, ca restul videourilor să știe că sunetul e permis
+      window.isAudioUnlocked = true; 
     }
 
-    setIsPaused(!isPaused);
+    // Pasul 2: Toggle Play/Pause
+    if (v.paused) {
+      v.play().catch(() => {});
+      setIsPaused(false);
+    } else {
+      v.pause();
+      setIsPaused(true);
+    }
   };
 
   useEffect(() => {
@@ -69,69 +72,55 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
     if (!v) return;
 
     if (isActive && !isPaused) {
-      // Pe iOS, promisiunea play() trebuie gestionată cu grijă
-      const playPromise = v.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Dacă e blocat (ex: userul n-a dat tap încă), forțăm mute și dăm play din nou
-          v.muted = true;
-          v.play();
-        });
+      // Verificăm dacă am deblocat deja sunetul anterior
+      if (window.isAudioUnlocked) {
+        v.muted = false;
       }
+
+      v.play().catch(() => {
+        // Dacă iOS tot blochează, forțăm muted ca să plece măcar imaginea (autoplay)
+        v.muted = true;
+        v.play();
+      });
     } else {
       v.pause();
-      if (!isNear) v.src = ""; 
+      if (!isNear) v.src = "";
     }
   }, [isActive, isNear, isPaused]);
 
-  // Actualizăm starea de mute dacă a fost deblocată global de alt video
-  useEffect(() => {
-    if (globalAudioUnlocked && isMuted) {
-      setIsMuted(false);
-    }
-  }, [isActive]);
-
   return (
-    <div 
-      className="relative w-full h-full flex items-center justify-center bg-black" 
-      onClick={handleInteraction}
-    >
-      {/* Overlay-urile tale... */}
-      <div className="absolute top-28 left-8 z-50 pointer-events-none">
-        <span className="text-white/40 font-black italic text-2xl uppercase">smile</span>
+    <div className="relative w-full h-full bg-black" onClick={handleInteraction}>
+      {/* Overlay-uri (username, descriere, etc.) */}
+      <div className="absolute bottom-24 left-4 z-50 pointer-events-none text-white">
+        <h3 className="font-black">@{post.profiles?.username}</h3>
+        <p className="text-sm">{post.description}</p>
       </div>
 
       {(isActive || isNear) && (
         <video
           ref={videoRef}
           src={post.video_url}
-          className="h-full w-auto max-w-full object-contain"
+          className="h-full w-full object-contain"
           loop
-          playsInline // OBLIGATORIU pentru iOS
-          webkit-playsinline="true" // Specific pentru versiuni vechi iOS
-          muted={isMuted} // Controlat de starea noastră
-          autoPlay // Ajută browserul să înțeleagă intenția
+          playsInline // OBLIGATORIU pentru iPhone
+          muted // Începe mereu muted pentru a permite Autoplay-ul
+          autoPlay
         />
       )}
 
-      {/* Indicator vizual pentru iOS - Userul trebuie să știe că e pe mute la început */}
-      {isMuted && isActive && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-           <div className="bg-black/50 px-4 py-2 rounded-full text-white text-xs animate-pulse">
-             tap for sound
-           </div>
-        </div>
-      )}
-
       {isPaused && isActive && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10">
-          <Play size={40} className="text-white fill-white opacity-80" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <Play size={50} className="text-white fill-white" />
         </div>
       )}
     </div>
   );
 });
+
+// Extindem obiectul window pentru a păstra starea sunetului între scroll-uri
+declare global {
+  interface Window { isAudioUnlocked: boolean; }
+}
 
 MediaRenderer.displayName = "MediaRenderer";
 

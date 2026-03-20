@@ -1,96 +1,69 @@
 "use client";
 
-import React, { useState } from 'react';
-import { X, Music, activity } from 'lucide-react';
+import React from 'react';
+import { X, Activity } from 'lucide-react';
 
+// Interfața obligatorie pentru TypeScript
 interface SynthProps {
-  isOpen: boolean; // Controlat de streamerId din MainLive
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export default function TS4XSynth({ isOpen: isStreamerActive }: SynthProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  if (!isStreamerActive) return null;
+export default function TS4XSynth({ isOpen, onClose }: SynthProps) {
+  // Dacă nu este deschis, nu randăm nimic
+  if (!isOpen) return null;
 
   return (
-    <>
-      {/* 1. BUTON CONTROL - DESIGN MINIMALIST STATIC */}
-      <div className="fixed top-6 right-6 z-[100]">
-        <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`group flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-200 
-            ${isExpanded 
-              ? 'bg-white text-black border-white shadow-xl' 
-              : 'bg-[#0d011a]/80 text-white border-white/10 hover:border-purple-500/50 hover:bg-[#1a0533]'}`}
-        >
-          <Music size={16} className={isExpanded ? 'text-black' : 'text-purple-400'} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
-            {isExpanded ? 'Close Studio' : 'Open Synth'}
-          </span>
-          
-          {/* Indicator status static */}
-          <div className={`w-1.5 h-1.5 rounded-full ${isExpanded ? 'bg-black/20' : 'bg-green-500'}`} />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in zoom-in duration-300">
+      {/* Fundal întunecat care închide la click */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto" 
+        onClick={onClose} 
+      />
 
-      {/* 2. MODAL SYNTH - DESIGN PROFESIONAL (HARDWARE LOOK) */}
-      <div className={`fixed inset-0 z-[90] flex items-center justify-center p-6 transition-all duration-300 
-        ${isExpanded ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-100 invisible pointer-events-none'}`}>
+      {/* Terminalul Synth-ului */}
+      <div className="relative w-full max-w-[420px] h-[600px] bg-[#0d011a] border border-purple-500/30 rounded-[40px] shadow-[0_0_100px_rgba(168,85,247,0.2)] overflow-hidden flex flex-col pointer-events-auto">
         
-        {/* Backdrop solid/întunecat */}
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsExpanded(false)} />
-
-        <div className="relative w-full max-w-[440px] h-[620px] bg-[#121212] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
-          
-          {/* Bara de titlu tip Rack-Mount */}
-          <div className="h-14 flex justify-between items-center px-6 bg-[#1a1a1a] border-b border-white/5">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <h3 className="text-[11px] font-bold text-white uppercase tracking-wider leading-none">
-                  TS4X Virtual Studio
-                </h3>
-
-              </div>
+        {/* Header PRO Static */}
+        <div className="p-6 flex justify-between items-center bg-gradient-to-b from-purple-900/40 to-transparent border-b border-purple-500/10">
+          <div className="flex items-center gap-3">
+            <Activity className="w-5 h-5 text-purple-400" />
+            <div>
+              <h3 className="text-[11px] font-black text-white tracking-[0.2em] uppercase leading-none">
+                SMILE SYNTH ENGINE
+              </h3>
+              <p className="text-[8px] text-purple-400/60 font-bold uppercase mt-1 tracking-tighter">
+                STATUS: CONNECTED // LATENCY: 10MS
+              </p>
             </div>
-            
-            <button 
-              onClick={() => setIsExpanded(false)}
-              className="p-1.5 hover:bg-white/5 rounded-md transition-colors"
-            >
-              <X size={18} className="text-white/40" />
-            </button>
           </div>
+          <button 
+            onClick={onClose}
+            className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-all border border-white/5"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-          {/* Zona Iframe - Integrată curat */}
-<div className="flex-1 bg-black relative">
-  <iframe
-    src="https://vi.imidi.ro/app_xyz2025magfshgXX/index.html"
-    className="w-full h-full border-none grayscale-[0.2] contrast-[1.1]"
-    allow="autoplay; midi; audio-capture"
-    referrerPolicy="no-referrer" // Aceasta linie poate "păcăli" protecția Vercel
-    loading="eager"
-  />
-  
-  <div className="absolute inset-0 pointer-events-none bg-white/[0.01]" />
-</div>
+        {/* Iframe-ul către engine */}
+        <div className="flex-1 relative bg-black">
+          <iframe
+            src="https://vi.imidi.ro/app_xyz2025magfshgXX/index.html"
+            className="w-full h-full border-none grayscale-[0.1] contrast-[1.1]"
+            allow="autoplay; midi; audio-capture"
+          />
+          
+          {/* Overlay textură discretă */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+        </div>
 
-
-          {/* Footer Tehnic */}
-          <div className="h-10 bg-[#1a1a1a] border-t border-white/5 flex items-center px-6 justify-between">
-             <div className="flex gap-4 items-center">
-                <span className="text-[7px] font-mono text-green-500/70 tracking-widest uppercase">
-                  Midi: Online
-                </span>
-                <span className="text-[7px] font-mono text-white/20 tracking-widest uppercase">
-                  Buffer: 128 spl
-                </span>
-             </div>
-             <p className="text-[7px] font-mono text-white/20 uppercase">
-                Smilesoft Audio Engine
-             </p>
-          </div>
+        {/* Footer Tehnic */}
+        <div className="py-4 text-center bg-purple-950/10 border-t border-purple-500/10">
+           <p className="text-[7px] font-black text-purple-400/30 uppercase tracking-[0.5em]">
+             TS4X PROTOCOL • SMILESOFT AUDIO
+           </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import { useParams } from 'next/navigation';
 import { createBrowserClient } from "@supabase/ssr";
 import ChatLive from '@/components/ChatLive';
 import FLive from '@/components/FLive';
+import TS4XSynth from '@/components/ts4xsynth';
 
 export default function MainLive() {
   const params = useParams();
@@ -62,6 +63,9 @@ export default function MainLive() {
         <FLive streamerName={username} />
       </div>
 
+
+         {/*  3. ts4x synth (z-20, peste tot) */}
+      <TS4XSynth isOpen={!!streamerId} onClose={() => setStreamerId(null)} />
 
       {/* 3. COMPONENTA DE CHAT (Z-INDEX MAI MIC CA MAGAZINUL) */}
       <div className="relative z-[50] mt-auto w-full flex flex-col items-center pointer-events-none">

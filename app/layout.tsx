@@ -25,6 +25,7 @@
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"  //data analytics Vercel global 
 // Configurare Viewport pentru experiență imersivă pe mobil
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -130,6 +131,7 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
+        <Analytics /> {/* Vercel Analytics for data globale */}
       </body>
     </html>
   );

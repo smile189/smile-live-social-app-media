@@ -592,7 +592,7 @@ useEffect(() => {
 
       </main>
         <GDPR /> {/* GDPR EU   */} 
-         <ChatWidget user={{ id: 'anonim', email: 'vizitator@smile.live' }} />
+         <ChatWidget user={{ id: 'anonim', email: 'contact@smileliveapp.com' }} />
       <Footer />
     </div>
   );

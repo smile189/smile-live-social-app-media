@@ -185,12 +185,13 @@ useEffect(() => {
       transition={{ delay: 0.4 }}
       className="mt-10 sm:mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6"
     >
-      <Link
-        href="/app"
-        className="w-full sm:w-auto px-10 py-5 sm:px-12 sm:py-6 bg-yellow-400 text-black font-black uppercase text-[10px] sm:text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl text-center"
-      >
-        acces Platform
-      </Link>
+<Link
+  href="/app"
+  className="w-full sm:w-auto px-10 py-5 sm:px-12 sm:py-6 bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-700 text-white font-black uppercase text-[10px] sm:text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(139,92,246,0.4)] hover:shadow-[0_15px_30px_rgba(139,92,246,0.6)] text-center"
+>
+  acces Platform
+</Link>
+
 
       <Link 
         href="/app/live" 

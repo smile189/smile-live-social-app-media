@@ -117,24 +117,30 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="ro" className="scroll-smooth">
-      <head>
-        {/* FORȚARE MOD NATIV PENTRU IOS */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Smile Live" />
-        <link rel="apple-touch-icon" href="/logosmile.jpeg" />
-      </head>
-      <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
-        
-        <main className="min-h-screen">
-          {children}
-        </main>
-        <Analytics /> {/* Vercel Analytics for data globale */}
-      </body>
-    </html>
-  );
+return (
+  <html lang="ro" className="scroll-smooth">
+    <head>
+      {/* PWA */}
+      <link rel="manifest" href="/manifest.json" />
+      <meta name="theme-color" content="#d63af9" />
+
+      {/* iOS */}
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      <meta name="apple-mobile-web-app-title" content="Smile Live" />
+      <link rel="apple-touch-icon" href="/icon-192x192.png" />
+
+      {/* Favicon */}
+      <link rel="icon" href="/favicon.ico" />
+    </head>
+    <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
+      <main className="min-h-screen">
+        {children}
+      </main>
+      <Analytics />
+    </body>
+  </html>
+);
 }
 
 //*************************************************  END OF STORY **************************************/

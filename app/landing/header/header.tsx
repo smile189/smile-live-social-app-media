@@ -70,7 +70,7 @@ export default function CyberIndustrialNav() {
           {/* LOGO SECTION */}
           <Link href="/" className="flex items-center gap-4 shrink-0 group">
             <div className="relative w-12 h-12 md:w-14 md:h-14 bg-white rounded-xl overflow-hidden border-2 border-yellow-500 group-hover:rotate-6 transition-transform duration-300">
-              <Image src="/smile_rebrand.png" alt="Logo" fill className="object-cover" />
+              <Image src="/smile_rebrand.jpeg" alt="Logo" fill className="object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-white text-xl md:text-3xl tracking-[-0.05em] uppercase italic leading-none transition-all">

@@ -18,8 +18,8 @@
  * -------------------------------------------------------------------------
  * 
  * GOVERNANCE & ATTRIBUTION:
- * - Vision & Storytelling: S Alexandra
- * - Integration Technology & Lead Writing: BM
+ * - Vision & Storytelling: S Alexandra and BM
+ * - Integration Technology & Lead Writing, stack develope : BM
  * * © 2026 Smile Live App. All rights reserved.
  * -------------------------------------------------------------------------
  */

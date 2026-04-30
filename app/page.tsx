@@ -2,10 +2,16 @@
 import { redirect } from "next/navigation";
 
 export default function RootPage() {
-  const userRole = "landing"; //
+  // app main
+  const userRole = "app"; 
 
-  if (userRole === "landing") redirect("/landing");
-  else if (userRole === "app") redirect("/app");
-  else redirect("/dashboard");
-} 
+  if (userRole === "app") {
+    redirect("/app");
+  } else if (userRole === "landing") {
+    redirect("/landing");
+  } else {
+    redirect("/dashboard");
+  }
+}
+
 //*************************************************  END OF STORY **************************************/

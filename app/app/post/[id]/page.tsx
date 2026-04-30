@@ -25,14 +25,18 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
    * 2. Dacă nu, folosește un proxy (wsrv.nl) care generează un JPG din video-ul tău.
    * 3. Fallback final la logo-ul tău dacă video-ul lipsește.
    */
-let previewImage = "https://www.smileliveapp.com/icon-512x512.png";
+  let previewImage = "https://www.smileliveapp.com"; // Fallback obligatoriu
 
-if (post?.thumbnail_url) {
-  previewImage = post.thumbnail_url;
-}
+  if (post?.thumbnail_url) {
+    previewImage = post.thumbnail_url;
+  } else if (post?.video_url) {
+    // Generăm un link de imagine JPG direct din video folosind un proxy gratuit
+    previewImage = `https://wsrv.nl{encodeURIComponent(post.video_url)}&output=jpg&n=-1`;
+  }
+
   return {
     title: `Smile Live | @${username}`,
-    description: post?.caption || "Watch this post Smile Live!",
+    description: post?.caption || "Uită-te la acest clip pe Smile Live!",
     openGraph: {
       title: `Smile Live - @${username}`,
       description: post?.caption || "Redefine entertainment with Smile Live.",

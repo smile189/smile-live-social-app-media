@@ -179,33 +179,61 @@ export default function CreatePostPage() {
     setShowTagSearch(false);
   };
 
-  const handlePost = async () => {
-    if (!file || !user || !agreedToTerms) return;
-    setLoading(true);
-    setUploadProgress(0);
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => (prev < 95 ? prev + 2 : prev));
-    }, 200);
+const handlePost = async () => {
+  if (!file || !user || !agreedToTerms) return;
+  setLoading(true);
+  setUploadProgress(0);
+  const progressInterval = setInterval(() => {
+    setUploadProgress(prev => (prev < 95 ? prev + 2 : prev));
+  }, 200);
 
-    try {
-      const fileName = `${crypto.randomUUID()}.${file.name.split('.').pop()}`;
-      const filePath = `${user.id}/${fileName}`;
-      await supabase.storage.from("posts").upload(filePath, file);
-      const { data: urlData } = supabase.storage.from("posts").getPublicUrl(filePath);
-      await supabase.from("posts").insert({
-        user_id: user.id, caption, type: fileType,
-        video_url: fileType === "video" ? urlData.publicUrl : null,
-        thumbnail_url: fileType === "image" ? urlData.publicUrl : null,
+  try {
+    const fileName = `${crypto.randomUUID()}.${file.name.split('.').pop()}`;
+    const filePath = `${user.id}/${fileName}`;
+    await supabase.storage.from("posts").upload(filePath, file);
+    const { data: urlData } = supabase.storage.from("posts").getPublicUrl(filePath);
+
+    // 👇 ADAUGĂ ASTA - generează thumbnail din video
+    let thumbnailUrl = null;
+    if (fileType === "video") {
+      thumbnailUrl = await new Promise<string | null>((resolve) => {
+        const video = document.createElement("video");
+        video.src = URL.createObjectURL(file);
+        video.currentTime = 1;
+        video.muted = true;
+        video.onloadeddata = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext("2d")?.drawImage(video, 0, 0);
+          canvas.toBlob(async (blob) => {
+            if (!blob) return resolve(null);
+            const thumbName = `${user.id}/thumb_${crypto.randomUUID()}.jpg`;
+            await supabase.storage.from("posts").upload(thumbName, blob, { contentType: "image/jpeg" });
+            const { data: thumbUrl } = supabase.storage.from("posts").getPublicUrl(thumbName);
+            resolve(thumbUrl.publicUrl);
+          }, "image/jpeg", 0.85);
+        };
+        video.onerror = () => resolve(null);
+        video.load();
       });
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      setTimeout(() => router.push("/app"), 600);
-    } catch (err: any) {
-      clearInterval(progressInterval);
-      setErrorToast(err.message);
-      setLoading(false);
     }
-  };
+
+    await supabase.from("posts").insert({
+      user_id: user.id, caption, type: fileType,
+      video_url: fileType === "video" ? urlData.publicUrl : null,
+      thumbnail_url: fileType === "image" ? urlData.publicUrl : thumbnailUrl, // 👈 modificat
+    });
+
+    clearInterval(progressInterval);
+    setUploadProgress(100);
+    setTimeout(() => router.push("/app"), 600);
+  } catch (err: any) {
+    clearInterval(progressInterval);
+    setErrorToast(err.message);
+    setLoading(false);
+  }
+};
 
   if (!user) return null;
 

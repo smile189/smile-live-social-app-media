@@ -77,46 +77,59 @@ const shareUrl = typeof window !== "undefined"
     }
   };
 
-  return (
-    <div className="flex flex-col items-center gap-6 pr-4">
-      <button
-        onClick={() => setLiked(!liked)}
-        className="flex flex-col items-center gap-1 text-white"
+return (
+  <div className="flex flex-col items-center gap-6 pr-4">
+    <button
+      onClick={() => setLiked(!liked)}
+      className="flex flex-col items-center gap-1 text-white"
+    >
+      <div
+        className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 transition-all ${
+          liked ? "text-red-500 scale-110" : ""
+        }`}
       >
-        <div
-          className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 transition-all ${
-            liked ? "text-red-500 scale-110" : ""
-          }`}
-        >
-          <Heart size={28} className={liked ? "fill-red-500" : ""} />
-        </div>
-        <span className="text-[10px] font-black">{likeCount}</span>
-      </button>
+        <Heart size={28} className={liked ? "fill-red-500" : ""} />
+      </div>
+      <span className="text-[10px] font-black">{likeCount}</span>
+    </button>
 
-      <button className="flex flex-col items-center gap-1 text-white">
-        <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
-          <MessageSquare size={28} />
-        </div>
-        <span className="text-[10px] font-black italic uppercase"> </span>
-      </button>
+    <button className="flex flex-col items-center gap-1 text-white">
+      <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+        <MessageSquare size={28} />
+      </div>
+      <span className="text-[10px] font-black italic uppercase"> </span>
+    </button>
 
-      <button
-        onClick={handleShare}
-        className="flex flex-col items-center gap-1 text-white relative"
-      >
-        <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 hover:bg-yellow-400 hover:text-black transition-all">
-          <Share2 size={28} />
-        </div>
-        <span className="text-[10px] font-black italic uppercase">Share</span>
+    <button
+      onClick={handleShare}
+      className="flex flex-col items-center gap-1 text-white relative"
+    >
+      <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 hover:bg-yellow-400 hover:text-black transition-all">
+        <Share2 size={28} />
+      </div>
+      <span className="text-[10px] font-black italic uppercase">Share</span>
 
-        {isSharing && (
-          <span className="absolute -top-10 right-0 bg-yellow-400 text-black text-[10px] px-2 py-1 rounded font-black uppercase">
-            Copy!
-          </span>
-        )}
-      </button>
+      {isSharing && (
+        <span className="absolute -top-10 right-0 bg-yellow-400 text-black text-[10px] px-2 py-1 rounded font-black uppercase">
+          Copy!
+        </span>
+      )}
+    </button>
+
+    {/* SMILE BRANDING ADDED BELOW */}
+    <div className="flex flex-col items-center mt-2 pointer-events-none select-none">
+      <img 
+        src="/smile_rebrand-app.png" 
+        alt="Smile Icon" 
+        className="w-7 h-7 object-contain mb-1" 
+      />
+      <span className="bg-gradient-to-br from-[#8B5CF6] to-[#FACC15] bg-clip-text text-transparent font-black italic tracking-tighter text-[10px] uppercase">
+        smile
+      </span>
     </div>
-  );
+  </div>
+);
+
 }
 
 /* ---------------- PAGE ---------------- */

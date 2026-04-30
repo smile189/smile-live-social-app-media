@@ -14,6 +14,7 @@
  * - v 0.13.270126 | 27-01-2026 | Initial creation (base version).
  * - v 0.13.270126 | 28-01-2026 | Updated metadata for SEO and social sharing.
  * - v 0.13.030326 | 03-03-2026 | Final refinement & mobile optimization.
+ * - v 0.13.030326 | 30-04-2026 | Rebrand smile icon and manifest for PWA activation.
  * -------------------------------------------------------------------------
  * 
  * GOVERNANCE & ATTRIBUTION:

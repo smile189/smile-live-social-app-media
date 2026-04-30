@@ -67,11 +67,17 @@ const MediaRenderer = memo(({ post, isActive, isNear, onProgress }: any) => {
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-black pointer-events-auto" onClick={() => setIsPaused(!isPaused)}>
-      <div className="absolute top-28 left-8 z-50 pointer-events-none select-none">
-        <span className="text-white/40 font-black italic tracking-tighter text-2xl uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-          smile
-        </span>
-      </div>
+<div className="absolute top-28 left-8 z-50 pointer-events-none select-none flex items-center gap-2">
+  <img 
+    src="/smile_rebrand-app.png" 
+    alt="Smile Icon" 
+    className="w-8 h-8 object-contain" 
+  />
+  <span className="bg-gradient-to-br from-[#8B5CF6] to-[#FACC15] bg-clip-text text-transparent font-black italic tracking-tighter text-2xl uppercase drop-shadow-sm">
+    smile
+  </span>
+</div>
+
 
       {/* --- ADAUGAT: OVERLAY INFO (STÂNGA JOS) --- */}
       <div className="absolute bottom-24 left-4 right-16 z-50 pointer-events-none drop-shadow-2xl">

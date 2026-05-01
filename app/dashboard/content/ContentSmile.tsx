@@ -420,8 +420,8 @@ export default function ContentSmile() {
                 </label>
                 <div className="flex gap-1">
                   {([
-                    { val: 'newest', label: 'Nou' },
-                    { val: 'oldest', label: 'Vechi' },
+                    { val: 'newest', label: 'New' },
+                    { val: 'oldest', label: 'Old' },
                     { val: 'views',  label: 'Views' },
                     { val: 'likes',  label: 'Likes' },
                   ] as const).map(s => (

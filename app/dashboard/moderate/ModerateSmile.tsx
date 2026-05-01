@@ -376,7 +376,7 @@ export default function ModerateSmile() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-2 font-black text-indigo-500 italic text-lg uppercase tracking-tighter shrink-0">
-              <ShieldAlert size={18} /> SMILE_OPS
+              <ShieldAlert size={18} /> SMILE MODERATION
               {/* Realtime indicator */}
               <span className={`w-2 h-2 rounded-full ml-1 ${realtimeActive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} title={realtimeActive ? 'Realtime ON' : 'Connecting...'} />
             </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
-import { Home, Flame, MessageSquare, Plus, User } from "lucide-react";
+import { Home, Flame, MessageSquare, Plus, User, Coins } from "lucide-react";
 
 
 // --- FIX: Am adăugat interfața pentru Props ---
@@ -76,7 +76,7 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
 
 const navItems = [
   { id: "feed", label: "Home", icon: Home, path: "/app" },
-  { id: "hot", label: "Hot", icon: Flame, path: "/app" }, // Aici am pus Flame
+  { id: "buy", label: "Buy", icon: Coins, path: "/app/coins" },
   { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
   { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
   { id: "connect", label: "Profile", icon: User, path: "/app/profile" },

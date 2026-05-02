@@ -24,28 +24,23 @@ export default function AdminLogin() {
     if (!isVerified) return;
     setError("");
     setLoading(true);
-    
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      setError("INVALID_CREDENTIALS");
+    // Citim datele de Master din .env.local / Vercel
+    const masterUser = process.env.NEXT_PUBLIC_MASTER_USER;
+    const masterPass = process.env.NEXT_PUBLIC_MASTER_PASS;
+
+    // Verificare directă pe text (Username + Pass)
+    if (email === masterUser && password === masterPass) {
+      // Creăm "cheia" de acces în cookie
+      document.cookie = "admin_access=true; path=/; max-age=86400; SameSite=Lax";
+      
+      // Te trimitem direct în Dashboard
+      window.location.href = "/dashboard";
+    } else {
+      setError("INVALID_ADMIN_CREDENTIALS");
       setLoading(false);
       setIsVerified(false);
-      return;
     }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id).single();
-
-    if (profile?.role !== "admin" && profile?.role !== "super_admin") {
-      await supabase.auth.signOut();
-      setError("ACCESS_DENIED");
-      setLoading(false);
-      setIsVerified(false);
-      return;
-    }
-
-    setTimeout(() => router.push("/dashboard"), 1000);
   };
 
   return (

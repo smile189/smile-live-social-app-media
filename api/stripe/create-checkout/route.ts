@@ -6,7 +6,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-04-10",
+  apiVersion: "2025-02-24.acacia",
+
 });
 
 // ─── PACHETE ──────────────────────────────────────────────────────────────────

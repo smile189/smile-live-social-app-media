@@ -61,10 +61,10 @@ function SuccessContent() {
 
       <div className="space-y-2">
         <h1 className="text-3xl font-black uppercase tracking-tighter italic text-white">
-          Plată <span className="text-yellow-400">reușită!</span>
+          Succes <span className="text-yellow-400">done!</span>
         </h1>
         <p className="text-zinc-500 text-sm font-medium">
-          Coins-urile tale au fost adăugate în cont
+          The golden coins have been added to your wallet. Thank you for supporting us!
         </p>
       </div>
 
@@ -72,7 +72,7 @@ function SuccessContent() {
       {loading ? (
         <div className="flex items-center justify-center gap-2 text-zinc-500">
           <Loader2 size={16} className="animate-spin" />
-          <span className="text-sm">Se actualizează balanța...</span>
+          <span className="text-sm">Updating balance...</span>
         </div>
       ) : (
         <motion.div
@@ -103,7 +103,7 @@ function SuccessContent() {
           href="/app/coins"
           className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
         >
-          <Coins size={16} /> Buy moore coins 
+          <Coins size={16} /> Buy more coins 
         </Link>
       </div>
     </motion.div>

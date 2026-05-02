@@ -344,7 +344,7 @@ export default function PublicProfilePage() {
     setPostComments([]);
 
     // Increment views
-    await supabase.rpc("increment_post_views", { post_id: post.id }).catch(() => {});
+await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () => {});
 
     const { data } = await supabase
       .from("comments")

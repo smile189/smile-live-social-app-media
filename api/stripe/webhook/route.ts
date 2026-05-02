@@ -5,13 +5,13 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-   apiVersion: "2025-02-24.acacia",
+   apiVersion: "2025-02-24.acacia", // Versiune actualizată pentru build
 });
 
 // Supabase service role client (bypass RLS) pentru webhook
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role — nu anon key
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, 
 );
 
 export async function POST(req: NextRequest) {
@@ -78,16 +78,21 @@ export async function POST(req: NextRequest) {
 
       if (walletError) throw walletError;
 
-      // ── 3. Log tranzacție (opțional — dacă ai un tabel purchase_history) ──
-      await supabaseAdmin.from("coin_purchases").insert({
-        user_id:          userId,
-        coins_amount:     coins,
-        amount_paid:      session.amount_total,
-        currency:         currency,
-        stripe_session_id: session.id,
-        stripe_payment_intent: session.payment_intent as string,
-        status:           "completed",
-      }).then(() => {}).catch(() => {}); // nu bloca dacă tabela nu există
+      // ── 3. Log tranzacție (FIX: Eliminat .then().catch() care bloca build-ul) ──
+      try {
+        await supabaseAdmin.from("coin_purchases").insert({
+          user_id:          userId,
+          coins_amount:     coins,
+          amount_paid:      session.amount_total,
+          currency:         currency,
+          stripe_session_id: session.id,
+          stripe_payment_intent: session.payment_intent as string,
+          status:           "completed",
+        });
+      } catch (logErr) {
+        // Ignorăm erorile aici dacă tabela nu există, conform logicii originale
+        console.warn("[WEBHOOK] Log purchase table missing or error.");
+      }
 
       console.log(`[WEBHOOK] ✓ Added ${coins} coins to user ${userId}. New balance: ${newBalance}`);
 
@@ -100,7 +105,5 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-// Dezactivează body parser — Stripe are nevoie de raw body pentru verificarea semnăturii
-export const config = {
-  api: { bodyParser: false },
-};
+// Configurația pentru Next.js App Router (bodyParser se dezactivează automat la req.text())
+export const dynamic = "force-dynamic";

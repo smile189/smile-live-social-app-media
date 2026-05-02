@@ -75,51 +75,20 @@ export default function SuperAdminDashboard() {
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
 
-  // --- 1. GĂRDIANUL DE ACCES (Verifică Master User din .env) ---
+  // --- Fetch current admin ---
   useEffect(() => {
-    const checkAccess = async () => {
-      // Verificăm dacă avem "permisul" de Master setat în pagina de Login
-      const hasMasterCookie = typeof document !== 'undefined' && document.cookie.includes("admin_access=true");
-      
-      // Luăm Username-ul din .env.local (ex: admin_smile)
-      const mUser = process.env.NEXT_PUBLIC_MASTER_USER || "SuperAdmin";
-
-      if (hasMasterCookie) {
-        // Dacă avem cookie, te lăsăm în dashboard și oprim orice redirect
-        setUserEmail(mUser);
-        return; 
-      }
-
-      // FALLBACK: Dacă nu ești Master, verificăm Supabase
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          // Dacă nu ești nici Master, nici logat în DB, abia atunci te dăm afară
-          window.location.href = "/dashboard/admin";
-        } else {
-          setUserEmail(user.email ?? null);
-        }
-      } catch (err) {
-        // Dacă baza de date e picată (Technical Revision), nu facem nimic
-        console.error("DB Offline, access granted via Master Cookie");
-      }
+  const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) router.push("/dashboard/admin");
+      else setUserEmail(user.email ?? null);
     };
+    fetchUser(); 
+  }, [router]);
 
-    checkAccess();
-  }, []); // Array gol ca să ruleze o singură dată la încărcare
-
-  // --- 2. LOGOUT COMPLET (Șterge cookie + Sesiune DB) ---
   const handleLogout = async () => {
-    // Distrugem "cheia" de Master Access
-    document.cookie = "admin_access=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    
-    // Închidem sesiunea Supabase (dacă există)
     await supabase.auth.signOut();
-    
-    // Forțăm întoarcerea la login
-    window.location.href = "/dashboard/admin";
+    router.push("/dashboard/admin");
   };
-
 
   //OTA 
   // --- OTA LOGIC ---

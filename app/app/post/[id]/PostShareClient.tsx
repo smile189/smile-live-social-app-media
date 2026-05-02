@@ -1,250 +1,575 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import {
-  Heart,
-  MessageSquare,
-  Share2,
-  Volume2,
-  VolumeX,
-  ChevronLeft,
+  Heart, MessageSquare, Share2, Volume2, VolumeX,
+  ChevronLeft, X, Send, Loader2, Check, Play, Pause,
+  Eye, UserPlus, UserCheck
 } from "lucide-react";
 
-/* ---------------- SIDEBAR ACTIONS ---------------- */
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-function SidebarActions({ post }: { post: any }) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [isSharing, setIsSharing] = useState(false);
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+function formatNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
+}
+
+// ─── COMMENT ITEM ─────────────────────────────────────────────────────────────
+
+function CommentItem({ comm }: { comm: any }) {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 shrink-0 border border-white/5 flex items-center justify-center text-[10px] font-black text-zinc-500 uppercase">
+        {!imgErr && comm.profiles?.avatar_url
+          ? <img src={comm.profiles.avatar_url} className="w-full h-full object-cover" onError={() => setImgErr(true)} alt="" />
+          : comm.profiles?.username?.[0] || "?"
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-black text-yellow-400 mb-0.5 uppercase tracking-tight italic">
+          @{comm.profiles?.username || "anon"}
+        </p>
+        <p className="text-sm font-medium leading-snug text-zinc-200 break-words">{comm.content}</p>
+      </div>
+    </div>
   );
+}
 
+// ─── SIDEBAR ACTIONS ──────────────────────────────────────────────────────────
+
+function SidebarActions({
+  post, currentUser, likeCount, liked, onLike, onOpenComments, commentCount, viewCount
+}: {
+  post: any;
+  currentUser: any;
+  likeCount: number;
+  liked: boolean;
+  onLike: () => void;
+  onOpenComments: () => void;
+  commentCount: number;
+  viewCount: number;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  // Check follow status
   useEffect(() => {
-    if (!post) return;
-
-    const fetchStats = async () => {
-      const { count } = await supabase
-        .from("likes")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", post.id);
-
-      setLikeCount(count || 0);
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: likeData } = await supabase
-          .from("likes")
-          .select("id")
-          .eq("post_id", post.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        setLiked(!!likeData);
-      }
-    };
-
-    fetchStats();
-  }, [post]);
+    if (!currentUser || !post?.profiles?.id) return;
+    supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", currentUser.id)
+      .eq("following_id", post.user_id)
+      .maybeSingle()
+      .then(({ data }) => setFollowing(!!data));
+  }, [currentUser, post]);
 
   const handleShare = async () => {
-const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/app/post/${post.id}`
-    : "";
-
+    const url = typeof window !== "undefined"
+      ? `${window.location.origin}/app/post/${post.id}`
+      : "";
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Smile Live app | @${post.profiles?.username}`,
-          text: post.caption,
-          url: shareUrl,
+          title: `Smile Live | @${post.profiles?.username}`,
+          text: post.caption || "Check this out on Smile Live!",
+          url,
         });
-      } catch (err) {
-        console.log(err);
-      }
+      } catch {}
     } else {
-      await navigator.clipboard.writeText(shareUrl);
-      setIsSharing(true);
-      setTimeout(() => setIsSharing(false), 2000);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        // Fallback for browsers that block clipboard without user gesture
+        const el = document.createElement("input");
+        el.value = url;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
     }
   };
 
-return (
-  <div className="flex flex-col items-center gap-6 pr-4">
-    <button
-      onClick={() => setLiked(!liked)}
-      className="flex flex-col items-center gap-1 text-white"
-    >
-      <div
-        className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 transition-all ${
-          liked ? "text-red-500 scale-110" : ""
-        }`}
+  const handleFollow = async () => {
+    if (!currentUser || followLoading) return;
+    setFollowLoading(true);
+    if (following) {
+      await supabase.from("follows").delete()
+        .eq("follower_id", currentUser.id)
+        .eq("following_id", post.user_id);
+      setFollowing(false);
+    } else {
+      await supabase.from("follows").insert({
+        follower_id: currentUser.id,
+        following_id: post.user_id,
+      });
+      setFollowing(true);
+    }
+    setFollowLoading(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-5 pr-4">
+
+      {/* Like */}
+      <button
+        onClick={onLike}
+        className="flex flex-col items-center gap-1 text-white group"
       >
-        <Heart size={28} className={liked ? "fill-red-500" : ""} />
-      </div>
-      <span className="text-[10px] font-black">{likeCount}</span>
-    </button>
+        <div className={`p-3.5 rounded-full bg-black/40 backdrop-blur-xl border transition-all duration-300 ${
+          liked
+            ? "border-red-500/50 bg-red-500/20 scale-110"
+            : "border-white/10 group-hover:border-red-500/30 group-hover:bg-red-500/10"
+        }`}>
+          <Heart
+            size={26}
+            className={`transition-all duration-300 ${liked ? "fill-red-500 text-red-500" : "text-white"}`}
+          />
+        </div>
+        <span className="text-[10px] font-black tabular-nums">{formatNum(likeCount)}</span>
+      </button>
 
-    <button className="flex flex-col items-center gap-1 text-white">
-      <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
-        <MessageSquare size={28} />
-      </div>
-      <span className="text-[10px] font-black italic uppercase"> </span>
-    </button>
+      {/* Comments */}
+      <button
+        onClick={onOpenComments}
+        className="flex flex-col items-center gap-1 text-white group"
+      >
+        <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 group-hover:border-white/30 transition-all">
+          <MessageSquare size={26} />
+        </div>
+        <span className="text-[10px] font-black tabular-nums">{formatNum(commentCount)}</span>
+      </button>
 
-    <button
-      onClick={handleShare}
-      className="flex flex-col items-center gap-1 text-white relative"
-    >
-      <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 hover:bg-yellow-400 hover:text-black transition-all">
-        <Share2 size={28} />
+      {/* Views */}
+      <div className="flex flex-col items-center gap-1 text-white">
+        <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+          <Eye size={26} className="text-yellow-400" />
+        </div>
+        <span className="text-[10px] font-black tabular-nums text-yellow-400">{formatNum(viewCount)}</span>
       </div>
-      <span className="text-[10px] font-black italic uppercase">Share</span>
 
-      {isSharing && (
-        <span className="absolute -top-10 right-0 bg-yellow-400 text-black text-[10px] px-2 py-1 rounded font-black uppercase">
-          Copy!
+      {/* Share */}
+      <button
+        onClick={handleShare}
+        className="flex flex-col items-center gap-1 text-white relative group"
+      >
+        <div className={`p-3.5 rounded-full backdrop-blur-xl border transition-all duration-300 ${
+          copied
+            ? "bg-yellow-400 border-yellow-400 text-black scale-110"
+            : "bg-black/40 border-white/10 group-hover:bg-yellow-400/10 group-hover:border-yellow-400/30"
+        }`}>
+          {copied ? <Check size={26} className="text-black" /> : <Share2 size={26} />}
+        </div>
+        <span className="text-[10px] font-black italic uppercase">
+          {copied ? "Copied!" : "Share"}
         </span>
+      </button>
+
+      {/* Follow — solo se mostra se è loggato e non è il proprio post */}
+      {currentUser && currentUser.id !== post.user_id && (
+        <button
+          onClick={handleFollow}
+          disabled={followLoading}
+          className="flex flex-col items-center gap-1 text-white group"
+        >
+          <div className={`p-3.5 rounded-full backdrop-blur-xl border transition-all ${
+            following
+              ? "bg-white/10 border-white/20"
+              : "bg-black/40 border-white/10 group-hover:border-white/30"
+          }`}>
+            {followLoading
+              ? <Loader2 size={22} className="animate-spin" />
+              : following
+              ? <UserCheck size={22} className="text-emerald-400" />
+              : <UserPlus size={22} />
+            }
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-tight">
+            {following ? "Following" : "Follow"}
+          </span>
+        </button>
       )}
-    </button>
 
-    {/* SMILE BRANDING ADDED BELOW */}
-    <div className="flex flex-col items-center mt-2 pointer-events-none select-none">
-      <img 
-        src="/smile_rebrand-app.png" 
-        alt="Smile Icon" 
-        className="w-7 h-7 object-contain mb-1" 
-      />
-      <span className="bg-gradient-to-br from-[#8B5CF6] to-[#FACC15] bg-clip-text text-transparent font-black italic tracking-tighter text-[10px] uppercase">
-        smile
-      </span>
+      {/* Smile branding */}
+      <div className="flex flex-col items-center mt-1 pointer-events-none select-none">
+        <img src="/smile_rebrand-app.png" alt="Smile" className="w-7 h-7 object-contain mb-1" />
+        <span className="bg-gradient-to-br from-[#8B5CF6] to-[#FACC15] bg-clip-text text-transparent font-black italic tracking-tighter text-[10px] uppercase">
+          smile
+        </span>
+      </div>
     </div>
-  </div>
-);
-
+  );
 }
 
-/* ---------------- PAGE ---------------- */
+// ─── COMMENTS PANEL ───────────────────────────────────────────────────────────
 
-export default function PostShareClient({ id }: { id: string }) {
-  const [post, setPost] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
+function CommentsPanel({
+  post, currentUser, onClose
+}: {
+  post: any;
+  currentUser: any;
+  onClose: () => void;
+}) {
+  const [comments, setComments]       = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [newComment, setNewComment]   = useState("");
+  const [sending, setSending]         = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const fetchComments = useCallback(async () => {
+    const { data } = await supabase
+      .from("comments")
+      .select("*, profiles(username, avatar_url)")
+      .eq("post_id", post.id)
+      .order("created_at", { ascending: true });
+    if (data) setComments(data);
+    setLoading(false);
+  }, [post.id]);
+
+  useEffect(() => { fetchComments(); }, [fetchComments]);
 
   useEffect(() => {
-    const getPostData = async () => {
-      const { data } = await supabase
-        .from("posts")
-        .select(`*, profiles(username, avatar_url)`)
-        .eq("id", id)
-        .single();
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments]);
 
-      if (data) setPost(data);
+  const handleSend = async () => {
+    if (!newComment.trim() || !currentUser || sending) return;
+    setSending(true);
+    const { data, error } = await supabase
+      .from("comments")
+      .insert([{ post_id: post.id, user_id: currentUser.id, content: newComment.trim() }])
+      .select("*, profiles(username, avatar_url)")
+      .single();
+    if (!error && data) {
+      setComments((prev) => [...prev, data]);
+      setNewComment("");
+    }
+    setSending(false);
+  };
+
+  return (
+    <div className="absolute inset-0 z-[60] flex flex-col bg-[#0a0a0a]/95 backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
+        <div className="text-[11px] font-black uppercase tracking-widest text-zinc-400">
+          {formatNum(comments.length)} Comments
+        </div>
+        <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={22} className="animate-spin text-yellow-400" />
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-2 py-16">
+            <MessageSquare size={32} strokeWidth={1} />
+            <span className="text-[10px] font-black uppercase tracking-widest">No comments yet</span>
+            <span className="text-[10px] text-zinc-700">Be the first to comment</span>
+          </div>
+        ) : (
+          comments.map((c) => <CommentItem key={c.id} comm={c} />)
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="px-4 py-3 border-t border-white/5 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {currentUser ? (
+          <div className="relative">
+            <input
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="Add a comment..."
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-5 pr-14 text-sm font-medium outline-none focus:border-yellow-400/60 transition-all placeholder:text-zinc-700 text-white"
+            />
+            <button
+              onClick={handleSend}
+              disabled={sending || !newComment.trim()}
+              className="absolute right-2 top-2 p-2.5 bg-yellow-400 text-black rounded-xl active:scale-90 transition-all disabled:opacity-30 shadow-lg"
+            >
+              {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/app/login"
+            className="block w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-center text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:bg-white/10 transition-all"
+          >
+            Login to comment
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+
+export default function PostShareClient({ id }: { id: string }) {
+  const [post, setPost]               = useState<any>(null);
+  const [loading, setLoading]         = useState(true);
+  const [muted, setMuted]             = useState(true);
+  const [playing, setPlaying]         = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Like state
+  const [liked, setLiked]         = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  // Comment count (for sidebar badge)
+  const [commentCount, setCommentCount] = useState(0);
+  const [viewCount, setViewCount]       = useState(0);
+
+  // Panels
+  const [showComments, setShowComments] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // ── Fetch post + user ──
+  useEffect(() => {
+    const load = async () => {
+      const [{ data: postData }, { data: { user } }] = await Promise.all([
+        supabase.from("posts").select("*, profiles(id, username, avatar_url)").eq("id", id).single(),
+        supabase.auth.getUser(),
+      ]);
+
+      if (postData) {
+        setPost(postData);
+        setViewCount(postData.views_count || 0);
+
+        // Increment views
+        try {
+          await supabase.rpc("increment_post_views", { post_id: id });
+          setViewCount((v) => v + 1);
+        } catch {}
+
+        // Comments count
+        const { count: cCount } = await supabase
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", id);
+        setCommentCount(cCount || 0);
+
+        // Likes
+        const { count: lCount } = await supabase
+          .from("likes")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", id);
+        setLikeCount(lCount || 0);
+
+        // Check if current user liked
+        if (user) {
+          const { data: likeData } = await supabase
+            .from("likes")
+            .select("id")
+            .eq("post_id", id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setLiked(!!likeData);
+        }
+      }
+
+      setCurrentUser(user);
       setLoading(false);
     };
-
-    getPostData();
+    load();
   }, [id]);
 
-  if (loading)
-    return (
-      <div className="h-screen bg-black flex items-center justify-center text-yellow-400 font-black uppercase">
-        smileliveapp.com ...
-      </div>
-    );
+  // ── Realtime likes ──
+  useEffect(() => {
+    if (!post) return;
+    const ch = supabase.channel(`post-likes-${id}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "likes",
+        filter: `post_id=eq.${id}`
+      }, async () => {
+        const { count } = await supabase
+          .from("likes")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", id);
+        setLikeCount(count || 0);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [post, id]);
 
-  if (!post)
-    return (
-      <div className="h-screen bg-black flex items-center justify-center text-white uppercase font-black">
-        Post not found
-      </div>
-    );
+  // ── Toggle like ──
+  const handleLike = async () => {
+    if (!currentUser) { window.location.href = "/app/login"; return; }
+    if (likeLoading) return;
+    setLikeLoading(true);
+
+    // Optimistic
+    setLiked((prev) => !prev);
+    setLikeCount((prev) => liked ? prev - 1 : prev + 1);
+
+    if (liked) {
+      await supabase.from("likes").delete()
+        .eq("post_id", id)
+        .eq("user_id", currentUser.id);
+    } else {
+      await supabase.from("likes").insert({ post_id: id, user_id: currentUser.id });
+    }
+    setLikeLoading(false);
+  };
+
+  // ── Toggle play ──
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setPlaying(true); }
+    else { v.pause(); setPlaying(false); }
+  };
+
+  // ── Escape closes panels ──
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") setShowComments(false); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // ── Avatar error fallback ──
+  const [avatarErr, setAvatarErr] = useState(false);
+
+  // ─── LOADING ──────────────────────────────────────────────────────────────
+
+  if (loading) return (
+    <div className="h-screen bg-black flex flex-col items-center justify-center gap-4">
+      <div className="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <span className="text-[9px] font-black uppercase tracking-[0.4em] text-yellow-400 font-mono italic">
+        smileliveapp.com
+      </span>
+    </div>
+  );
+
+  if (!post) return (
+    <div className="h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+      <X size={36} className="text-zinc-700" />
+      <span className="font-black uppercase tracking-widest text-sm">Post not found</span>
+      <Link href="/app" className="px-6 py-3 bg-white text-black rounded-full text-xs font-black uppercase tracking-widest mt-2">
+        Go Home
+      </Link>
+    </div>
+  );
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
     <div className="relative h-[100dvh] w-full bg-black flex items-center justify-center overflow-hidden">
+
       {/* Background blur */}
-      <div className="absolute inset-0 opacity-30 blur-[100px] scale-150 pointer-events-none">
-        <video
-          src={post.video_url}
-          muted
-          loop
-          autoPlay
-          playsInline
-          className="w-full h-full object-cover"
-        />
+      <div className="absolute inset-0 opacity-20 blur-[80px] scale-150 pointer-events-none">
+        <video src={post.video_url || post.media_url} muted loop autoPlay playsInline className="w-full h-full object-cover" />
       </div>
 
-      {/* Main Card */}
-      <div className="relative z-10 w-full max-w-[450px] h-full sm:h-[92vh] bg-black sm:rounded-[32px] overflow-hidden border border-white/5 flex flex-col shadow-2xl">
+      {/* Main card */}
+      <div className="relative z-10 w-full max-w-[430px] h-full sm:h-[93vh] bg-black sm:rounded-[28px] overflow-hidden border border-white/5 shadow-2xl flex flex-col">
+
         {/* Top controls */}
-        <div className="absolute top-6 left-6 right-6 z-50 flex justify-between">
+        <div className="absolute top-5 left-5 right-5 z-50 flex justify-between items-center">
           <Link
             href="/app"
-            className="p-3 bg-black/30 backdrop-blur-xl rounded-full text-white border border-white/10"
+            className="p-3 bg-black/40 backdrop-blur-xl rounded-full text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90"
           >
             <ChevronLeft size={20} />
           </Link>
-
           <button
-            onClick={() => setMuted(!muted)}
-            className="p-3 bg-black/30 backdrop-blur-xl rounded-full text-white border border-white/10"
+            onClick={() => setMuted((m) => !m)}
+            className="p-3 bg-black/40 backdrop-blur-xl rounded-full text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90"
           >
             {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
           </button>
         </div>
 
         {/* Video */}
-        <video
-          ref={videoRef}
-          src={post.video_url}
-          className="w-full h-full object-cover"
-          autoPlay
-          loop
-          playsInline
-          muted={muted}
-          onClick={() =>
-            videoRef.current?.paused
-              ? videoRef.current.play()
-              : videoRef.current?.pause()
-          }
-        />
+        <div className="relative flex-1 overflow-hidden" onClick={togglePlay}>
+          <video
+            ref={videoRef}
+            src={post.video_url || post.media_url}
+            poster={post.thumbnail_url || undefined}
+            className="w-full h-full object-cover"
+            autoPlay loop playsInline muted={muted}
+          />
+
+          {/* Play/Pause indicator */}
+          {!playing && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
+                <Play size={28} className="text-white ml-1" fill="white" />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Sidebar */}
-        <div className="absolute right-0 bottom-[18%] z-50">
-          <SidebarActions post={post} />
+        <div className="absolute right-0 bottom-[22%] z-50">
+          <SidebarActions
+            post={post}
+            currentUser={currentUser}
+            likeCount={likeCount}
+            liked={liked}
+            onLike={handleLike}
+            onOpenComments={() => setShowComments(true)}
+            commentCount={commentCount}
+            viewCount={viewCount}
+          />
         </div>
 
         {/* Bottom info */}
-        <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black via-black/70 to-transparent z-40">
-          <div className="flex items-center gap-3 mb-2 text-white">
-            <img
-              src={post.profiles?.avatar_url}
-              className="w-10 h-10 rounded-full border border-yellow-400 object-cover"
-              alt="avatar"
-            />
-            <p className="text-lg font-black">
+        <div className="absolute bottom-0 left-0 w-full px-5 pb-8 pt-16 bg-gradient-to-t from-black via-black/60 to-transparent z-40 pointer-events-none">
+          <Link
+            href={`/app/profile/${post.profiles?.username}`}
+            className="flex items-center gap-3 mb-2 pointer-events-auto w-fit"
+          >
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-yellow-400 bg-zinc-900 flex items-center justify-center text-xs font-black text-zinc-500 uppercase">
+              {!avatarErr && post.profiles?.avatar_url
+                ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" onError={() => setAvatarErr(true)} alt="" />
+                : post.profiles?.username?.[0]
+              }
+            </div>
+            <p className="text-base font-black text-white hover:text-yellow-400 transition-colors">
               @{post.profiles?.username}
             </p>
-          </div>
-
-          <p className="text-white/80 text-sm mt-1 line-clamp-2 pr-10">
-            {post.caption || "Redefine entertainment with Smile Live."}
-          </p>
+          </Link>
+          {post.caption && (
+            <p className="text-white/70 text-sm leading-relaxed line-clamp-2 pr-20">
+              {post.caption}
+            </p>
+          )}
         </div>
+
+        {/* Comments panel (overlay inside card) */}
+        {showComments && (
+          <CommentsPanel
+            post={post}
+            currentUser={currentUser}
+            onClose={() => setShowComments(false)}
+          />
+        )}
       </div>
     </div>
   );

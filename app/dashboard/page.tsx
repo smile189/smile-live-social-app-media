@@ -76,14 +76,14 @@ export default function SuperAdminDashboard() {
   }, [darkMode]);
 
   // --- Fetch current admin ---
-  useEffect(() => {
-  const fetchUser = async () => {
+  useEffect(() => {  
+   const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) router.push("/dashboard/admin");
       else setUserEmail(user.email ?? null);
-    };
+    }; 
     fetchUser(); 
-  }, [router]);
+  }, [router]); 
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

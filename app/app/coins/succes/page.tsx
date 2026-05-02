@@ -97,13 +97,13 @@ function SuccessContent() {
           href="/app"
           className="w-full py-4 bg-yellow-400 text-black rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-yellow-300 transition-all active:scale-[0.98]"
         >
-          Înapoi la App <ArrowRight size={16} />
+          Back to app <ArrowRight size={16} />
         </Link>
         <Link
           href="/app/coins"
           className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
         >
-          <Coins size={16} /> Cumpără mai mulți
+          <Coins size={16} /> Buy moore coins 
         </Link>
       </div>
     </motion.div>

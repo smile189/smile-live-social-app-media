@@ -33,7 +33,7 @@ const PACKAGES = [
   {
     id: "pack_25000",
     coins: 25000,
-    prices: { eur: 19.99, usd: 21.99, ron: 99.99 },
+    prices: { eur: 23.99, usd: 25.99, ron: 119.99 }, // ~4% discount vs Starter
     label: "Popular",
     sub: "Most chosen",
     icon: Flame,
@@ -45,31 +45,31 @@ const PACKAGES = [
   {
     id: "pack_50000",
     coins: 50000,
-    prices: { eur: 34.99, usd: 37.99, ron: 174.99 },
+    prices: { eur: 45.99, usd: 49.99, ron: 229.99 }, // ~8% discount
     label: "Pro",
     sub: "For power users",
     icon: Star,
     gradient: "from-amber-400 to-orange-500",
     glow: "rgba(251,191,36,0.15)",
-    badge: null,
+    badge: "Save 8%",
     popular: false,
   },
   {
-    id: "pack_100000",
-    coins: 100000,
-    prices: { eur: 59.99, usd: 64.99, ron: 299.99 },
+    id: "pack_110000", // Crescut nr. de coins pentru a justifica cei 100 EUR cu discount inclus
+    coins: 110000,
+    prices: { eur: 99.99, usd: 109.99, ron: 499.99 }, 
     label: "Elite",
     sub: "Top creator tier",
     icon: Crown,
     gradient: "from-rose-400 to-pink-600",
     glow: "rgba(251,113,133,0.15)",
-    badge: "Save 40%",
+    badge: "10% Extra",
     popular: false,
   },
   {
-    id: "pack_250000",
-    coins: 250000,
-    prices: { eur: 119.99, usd: 129.99, ron: 599.99 },
+    id: "pack_1150000", // Cantitate masivă pentru 1000 EUR
+    coins: 1150000,
+    prices: { eur: 999.99, usd: 1099.99, ron: 4999.99 },
     label: "Diamond",
     sub: "Ultimate status",
     icon: Diamond,
@@ -79,6 +79,7 @@ const PACKAGES = [
     popular: false,
   },
 ];
+
 
 type Currency = "eur" | "usd" | "ron";
 
@@ -439,7 +440,7 @@ export default function CoinsShop() {
             ))}
             <span className="text-slate-300">·</span>
             
-            <span className="text-[9px] text-slate-400 font-medium">Powered by Stripe</span>
+            <span className="text-[9px] text-slate-400 font-medium"> Powered by Stripe</span>
           </div>
         </div>
       </div>

@@ -122,7 +122,7 @@ function ConvertModal({
           )}
           {val > wallet.coins_balance && val > 0 && (
             <p className="text-[10px] text-rose-500 font-bold mt-2 flex items-center gap-1">
-              <AlertCircle size={10} /> Depășești balanța de coins
+              <AlertCircle size={10} /> Over limit of coins available
             </p>
           )}
         </div>
@@ -141,8 +141,7 @@ function ConvertModal({
           {loading ? "Se convertește..." : `Convertește ${val > 0 ? val.toLocaleString() : ""} →`}
         </button>
         <p className="text-[9px] text-zinc-300 font-bold text-center mt-3 uppercase tracking-wide">
-          Conversia este ireversibilă
-        </p>
+          Not reverse conversion.        </p>
       </motion.div>
     </motion.div>
   );
@@ -218,7 +217,7 @@ function WithdrawModal({
 
         {/* Balanță diamonds */}
         <div className="flex items-center justify-between rounded-2xl px-5 py-4 mb-7" style={{ background: "#fdf4ff", border: "1.5px solid #e9d5ff" }}>
-          <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#a21caf" }}>Disponibil</span>
+          <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#a21caf" }}>Available</span>
           <div className="flex items-center gap-2">
             <Gem size={14} className="text-fuchsia-500" />
             <span className="font-black text-zinc-800 text-base">{maxDiamonds.toLocaleString()}</span>
@@ -229,7 +228,7 @@ function WithdrawModal({
           {/* Diamonds amount */}
           <div>
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">
-              Diamonds de Retras
+             Diamonds to Withdraw
             </label>
             <div className="relative">
               <Gem size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-fuchsia-500" />
@@ -245,12 +244,12 @@ function WithdrawModal({
             </div>
             {estimatedRon && (
               <p className="text-[10px] font-bold mt-2 text-emerald-600 flex items-center gap-1">
-                <Banknote size={10} /> Estimat: ~{estimatedRon} RON
+                <Banknote size={10} /> Estimated: ~{estimatedRon} EUR/USD/RON
               </p>
             )}
             {dVal > maxDiamonds && dVal > 0 && (
               <p className="text-[10px] text-rose-500 font-bold mt-2 flex items-center gap-1">
-                <AlertCircle size={10} /> Depășești balanța disponibilă
+                <AlertCircle size={10} /> You exceed your available balance.
               </p>
             )}
           </div>
@@ -258,7 +257,7 @@ function WithdrawModal({
           {/* Bank details */}
           <div>
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">
-              Date Bancare
+              Bank Details
             </label>
             <div className="relative">
               <CreditCard size={16} className="absolute left-4 top-4 text-blue-400" />
@@ -287,10 +286,10 @@ function WithdrawModal({
           className="mt-7 w-full py-5 rounded-[1.8rem] font-black text-sm uppercase tracking-tight transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white"
           style={{ background: isValid && !loading ? "linear-gradient(90deg,#7c3aed,#ec4899)" : "#e5e7eb" }}
         >
-          {loading ? "Se trimite..." : "Trimite Cererea →"}
+          {loading ? "Submitting..." : "Submit Request →"}
         </button>
         <p className="text-[9px] text-zinc-300 font-bold text-center mt-3 uppercase tracking-wide">
-          Admin procesează în 1–3 zile lucrătoare
+          Admin processes in 2–3 business days
         </p>
       </motion.div>
     </motion.div>
@@ -480,7 +479,7 @@ export default function WalletPage() {
                       <RefreshCcw size={17} className="text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Convertește în Diamonds</p>
+                      <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Convert to Diamonds</p>
                       <p className="text-[9px] font-bold text-zinc-400 mt-0.5">1 Coin = 1 Diamond</p>
                     </div>
                   </div>
@@ -497,8 +496,8 @@ export default function WalletPage() {
                         <ShoppingBag size={17} className="text-white" />
                       </div>
                       <div className="text-left">
-                        <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Cumpără Pachete Coins</p>
-                        <p className="text-[9px] font-bold text-zinc-400 mt-0.5">Pachete disponibile</p>
+                        <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Buy Coin Packages</p>
+                        <p className="text-[9px] font-bold text-zinc-400 mt-0.5">Available Packages</p>
                       </div>
                     </div>
                     <ArrowUpCircle size={20} className="text-amber-300 -rotate-45" />
@@ -508,7 +507,7 @@ export default function WalletPage() {
                 <div className="flex items-start gap-3 px-1 pt-1">
                   <ShieldCheck size={15} className="text-zinc-300 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-zinc-400 font-bold leading-relaxed uppercase tracking-wide">
-                    Coins se convertesc 1:1 în Diamonds. Diamonds pot fi retrași în bani fiat conform valorii stabilite de platformă.
+                    Coins are converted 1:1 to Diamonds. Diamonds can be withdrawn to fiat money according to the value established by the platform.
                   </p>
                 </div>
               </motion.div>
@@ -567,8 +566,8 @@ export default function WalletPage() {
                       <Landmark size={17} className="text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Retrage în Cont Bancar</p>
-                      <p className="text-[9px] font-bold text-zinc-400 mt-0.5">Diamonds → RON</p>
+                      <p className="font-black text-xs uppercase tracking-tight text-zinc-800">Withdraw to Bank Account</p>
+                      <p className="text-[9px] font-bold text-zinc-400 mt-0.5">Diamonds → EUR/USD/RON</p>
                     </div>
                   </div>
                   <ArrowUpCircle size={20} className="text-emerald-300" />
@@ -577,7 +576,7 @@ export default function WalletPage() {
                 <div className="flex items-start gap-3 px-1 pt-1">
                   <ShieldCheck size={15} className="text-zinc-300 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-zinc-400 font-bold leading-relaxed uppercase tracking-wide">
-                    Valoarea unui diamond în RON este stabilită de platformă. Retragerile sunt procesate în 1–3 zile lucrătoare.
+                    The value of a diamond in RON is determined by the platform. Withdrawals are processed within 1–3 business days.
                   </p>
                 </div>
               </motion.div>
@@ -599,7 +598,7 @@ export default function WalletPage() {
           <WithdrawModal
             wallet={wallet} settings={data.settings} userId={data.profile.id} supabase={supabase}
             onClose={() => setModal(null)}
-            onSuccess={() => handleSuccess("Cerere trimisă! Admin-ul o va procesa în curând.")}
+            onSuccess={() => handleSuccess("Request submitted! The admin will process it soon.")}
           />
         )}
       </AnimatePresence>

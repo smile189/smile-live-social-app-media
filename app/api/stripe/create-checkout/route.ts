@@ -13,12 +13,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // ─── PACHETE ──────────────────────────────────────────────────────────────────
 
 export const COIN_PACKAGES = [
-  { id: "pack_500",   coins: 500,   eur: 99,   usd: 99,   ron: 499,  label: "Starter",  popular: false },
-  { id: "pack_1000",  coins: 1000,  eur: 199,  usd: 199,  ron: 999,  label: "Basic",    popular: false },
-  { id: "pack_5000",  coins: 5000,  eur: 499,  usd: 499,  ron: 2499, label: "Pro",      popular: false },
-  { id: "pack_10000", coins: 10000, eur: 999,  usd: 999,  ron: 4999, label: "Elite",    popular: true  },
-  { id: "pack_25000", coins: 25000, eur: 2499, usd: 2499, ron: 12499,label: "Premium",  popular: false },
-  { id: "pack_50000", coins: 50000, eur: 4499, usd: 4499, ron: 22499,label: "Ultimate", popular: false },
+  { id: "pack_10000",   coins: 10000,   label: "Starter", eur: 999,    usd: 1099,   ron: 4999   },
+  { id: "pack_25000",   coins: 25000,   label: "Popular", eur: 2399,   usd: 2599,   ron: 11999  },
+  { id: "pack_50000",   coins: 50000,   label: "Pro",     eur: 4599,   usd: 4999,   ron: 22999  },
+  { id: "pack_110000",  coins: 110000,  label: "Elite",   eur: 9999,   usd: 10999,  ron: 49999  },
+  { id: "pack_1150000", coins: 1150000, label: "Diamond", eur: 99999,  usd: 109999, ron: 499999 },
 ];
 
 export async function POST(req: NextRequest) {

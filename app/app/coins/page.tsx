@@ -250,7 +250,7 @@ export default function CoinsShop() {
             <span className="text-sm font-black tracking-tight text-slate-900">
               Smile{" "}
               <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
-                Coins
+                 marketplace
               </span>
             </span>
           </div>

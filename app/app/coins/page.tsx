@@ -269,45 +269,44 @@ export default function CoinsShop() {
 
       <div className="relative max-w-xl mx-auto px-5 py-10 pb-40">
 
-        {/* ── HEADER ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10"
-        >
-          {/* Coin icon */}
-          <div className="relative inline-flex mb-6">
-            <div className="absolute inset-0 bg-fuchsia-400/20 rounded-full blur-2xl scale-[2]" />
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-fuchsia-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-fuchsia-200">
-              <Coins size={28} className="text-white" />
-            </div>
-          </div>
+{/* ── HEADER ── */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="text-center mb-10"
+>
+  {/* Coin icon */}
+  <div className="relative inline-flex mb-6">
+    <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-2xl scale-[2]" />
+    <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl shadow-amber-200">
+      <Coins size={28} className="text-white" />
+    </div>
+  </div>
 
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight mb-2">
-            Get{" "}
-            <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
-              Golden Coins
-            </span>
-          </h1>
-          <p className="text-slate-500 text-sm font-medium max-w-xs mx-auto leading-relaxed">
-            Send gifts to your favorite creators, boost your posts, and unlock premium features.
-          </p>
+  <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight mb-2">
+    Get{" "}
+    <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+      Golden Coins
+    </span>
+  </h1>
+  <p className="text-slate-500 text-sm font-medium max-w-xs mx-auto leading-relaxed">
+    Send gifts to your favorite creators, boost your posts, and unlock premium features.
+  </p>
 
-          {/* Balance pill under title — solo se loggato */}
-          {balance !== null && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-2 mt-4 bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-full"
-            >
-              <Coins size={14} className="text-fuchsia-500" />
-              <span className="text-sm font-black text-slate-700">
-                {balance.toLocaleString()} coins
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">current balance</span>
-            </motion.div>
-          )}
-        </motion.div>
+  {balance !== null && (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="inline-flex items-center gap-2 mt-4 bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-full"
+    >
+      <Coins size={14} className="text-amber-500" />
+      <span className="text-sm font-black text-slate-700">
+        {balance.toLocaleString()} coins
+      </span>
+      <span className="text-[10px] text-slate-400 font-medium">current balance</span>
+    </motion.div>
+  )}
+</motion.div>
 
         {/* ── CURRENCY SELECTOR ── */}
         <div className="flex items-center justify-between mb-6">

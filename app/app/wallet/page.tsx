@@ -367,7 +367,7 @@ export default function WalletPage() {
               <ChevronLeft size={20} className="text-zinc-500" />
             </Link>
             <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-300">Smile wallet</span>
-            <Link href="/app/marketplace"
+            <Link href="/app/coins"
               className="w-10 h-10 flex items-center justify-center rounded-2xl transition-all"
               style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
               <ShoppingBag size={18} className="text-amber-400" />
@@ -455,7 +455,7 @@ export default function WalletPage() {
                   style={{ background: "linear-gradient(135deg,#fffbeb 0%,#fef3c7 60%,#fde68a 100%)", boxShadow: "0 8px 40px rgba(251,191,36,0.2)" }}>
                   <div className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
                     style={{ background: "radial-gradient(ellipse,rgba(251,191,36,0.3) 0%,transparent 70%)", transform: "translate(30%,-30%)" }} />
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-amber-500/60 mb-3">Balanță Coins</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-amber-500/60 mb-3">Balance Coins</p>
                   <div className="flex items-center justify-center gap-3 mb-2">
                     <Zap size={36} className="fill-amber-400 text-amber-400 drop-shadow" />
                     <span className="text-7xl font-black tracking-tighter text-zinc-900 leading-none">

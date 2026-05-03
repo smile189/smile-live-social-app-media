@@ -19,21 +19,21 @@ export default function NotificationsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // --- MODIFICAT: Cerem datele din profilul expeditorului (sender) ---
     const { data, error } = await supabase
       .from("notifications")
       .select(`
-        id,
-        type,
-        created_at,
-        sender_id,
-        sender:profiles!sender_id (username, avatar_url),
-        post:posts (id, content)
+        *,
+        sender:profiles!sender_id (
+          username,
+          avatar_url
+        )
       `)
       .eq("receiver_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Eroare fetching:", error);
+      console.error("Eroare la preluare:", error);
     } else {
       setNotifications(data || []);
     }
@@ -43,8 +43,6 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications();
 
-    // --- ADAUGAT: Realtime pe pagina asta ---
-    // Cand vine o notificare noua, facem refresh la lista automat
     const channel = supabase
       .channel('notifications_page_live')
       .on('postgres_changes', 
@@ -67,7 +65,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 font-sans">
-      {/* Header fixat */}
       <div className="sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/10 p-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-all">
           <ChevronLeft size={24} />
@@ -91,10 +88,10 @@ export default function NotificationsPage() {
               key={notif.id} 
               className="flex items-start gap-4 p-5 border-b border-white/[0.03] active:bg-white/[0.05] transition-all"
             >
-              {/* Avatar cu Badge */}
+              {/* Avatar reparat cu API DiceBear */}
               <div className="relative shrink-0">
                 <img 
-                  src={notif.sender?.avatar_url || "https://dicebear.com" + notif.sender_id} 
+                  src={notif.sender?.avatar_url || `https://dicebear.com{notif.sender_id}`} 
                   className="w-12 h-12 rounded-2xl object-cover ring-1 ring-white/10"
                   alt="user"
                 />
@@ -103,10 +100,10 @@ export default function NotificationsPage() {
                 </div>
               </div>
 
-              {/* Continut Text */}
               <div className="flex-1 min-w-0 py-0.5">
                 <p className="text-[13px] leading-relaxed">
                   <span className="font-black text-white mr-1.5 tracking-tight">
+                    {/* Folosește username-ul din profilul senderului */}
                     {notif.sender?.username || "SMILE_USER"}
                   </span>
                   <span className="text-zinc-400 font-medium"> 
@@ -119,13 +116,6 @@ export default function NotificationsPage() {
                   {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(notif.created_at).toLocaleDateString()}
                 </span>
               </div>
-
-              {/* Thumbnail mic daca e postare */}
-              {notif.post && (
-                <div className="w-12 h-12 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 shrink-0 flex items-center justify-center">
-                   <p className="text-[8px] p-2 text-zinc-700 font-mono italic truncate">{notif.post.content || "IMAGE"}</p>
-                </div>
-              )}
             </div>
           ))
         )}

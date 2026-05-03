@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
-import { Home, Flame, MessageSquare, Plus, User, Coins } from "lucide-react";
+// ADAUGAT: Bell
+import { Home, Flame, MessageSquare, Plus, User, Coins, Bell } from "lucide-react";
 
-
-// --- FIX: Am adăugat interfața pentru Props ---
 interface BottomNavProps {
   activePostId?: string | null;
   progress?: number;
@@ -19,6 +18,9 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
   const [active, setActive] = useState("feed");
   const [user, setUser] = useState<any>(null);
   const [hasUnread, setHasUnread] = useState(false);
+  
+  // ADAUGAT: State pentru numărul de notificări
+  const [notifCount, setNotifCount] = useState(0);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,18 +31,29 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
     if (pathname?.includes("messages")) setActive("chat");
     else if (pathname?.includes("profile")) setActive("connect");
     else if (pathname?.includes("upload")) setActive("add");
+    else if (pathname?.includes("notifications")) setActive("notif"); // ADAUGAT
     else setActive("feed");
   }, [pathname]);
 
   const checkUnread = async (userId: string) => {
     try {
-      const { count, error } = await supabase
+      // Mesaje
+      const { count: msgCount } = await supabase
         .from("direct_messages")
         .select("*", { count: 'exact', head: true })
         .neq("sender_id", userId)
         .filter('room_id', 'ilike', `%${userId}%`);
 
-      if (!error) setHasUnread((count || 0) > 0);
+      if (msgCount !== null) setHasUnread(msgCount > 0);
+
+      // ADAUGAT: Numărare notificări is_read = false
+      const { count: nCount } = await supabase
+        .from("notifications")
+        .select("*", { count: 'exact', head: true })
+        .eq("receiver_id", userId)
+        .eq("is_read", false);
+
+      if (nCount !== null) setNotifCount(nCount);
     } catch (err) {
       console.log("Eroare badge:", err);
     }
@@ -64,29 +77,40 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel('nav-realtime-dot')
+    
+    const channel = supabase.channel('nav-realtime-combined')
+      // Realtime mesaje
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
         if (payload.new.room_id.includes(user.id) && payload.new.sender_id !== user.id) {
           setHasUnread(true);
         }
       })
+      // ADAUGAT: Realtime notificări (Like/Follow etc)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications', 
+        filter: `receiver_id=eq.${user.id}` 
+      }, () => {
+        setNotifCount(prev => prev + 1);
+      })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-const navItems = [
-  { id: "feed", label: "Home", icon: Home, path: "/app" },
-  { id: "buy", label: "Buy", icon: Coins, path: "/app/coins" },
-  { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
-  { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
-  { id: "connect", label: "Profile", icon: User, path: "/app/profile" },
-];
-
+  // ADAUGAT: Notif în navItems (am înlocuit Buy pentru spațiu, sau poți rearanja)
+  const navItems = [
+    { id: "feed", label: "Home", icon: Home, path: "/app" },
+    { id: "notif", label: "Inbox", icon: Bell, path: "/app/notifications" },
+    { id: "add", label: "Create", icon: Plus, isSpecial: true, path: "/app/upload" },
+    { id: "chat", label: "Chat", icon: MessageSquare, path: "/app/messages" },
+    { id: "connect", label: "Profile", icon: User, path: "/app/profile" },
+  ];
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-[999] pointer-events-none flex flex-col items-center">
       
-      {/* --- ADAUGAT: BARA DE PROGRES PENTRU VIDEO --- */}
       {progress > 0 && (
         <div className="w-full h-[2px] bg-white/10 mb-1 overflow-hidden">
           <div 
@@ -96,7 +120,6 @@ const navItems = [
         </div>
       )}
 
-      {/* GLASS NAV BAR */}
       <nav className="w-full md:max-w-[420px] h-[65px] md:h-16 bg-black/40 backdrop-blur-2xl border-t md:border border-white/20 md:rounded-[30px] md:mb-6 flex items-center justify-around px-2 shadow-2xl pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -123,8 +146,16 @@ const navItems = [
               <div className="relative p-1">
                 <Icon size={22} className={`transition-all duration-300 ${isActive ? "text-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-white/40 group-hover:text-white/60"}`} />
                 
+                {/* Badge Mesaje */}
                 {item.id === "chat" && hasUnread && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-black shadow-[0_0_10px_rgba(220,38,38,0.8)] z-50" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-black z-50" />
+                )}
+
+                {/* ADAUGAT: Badge cu NUMAR Notificări */}
+                {item.id === "notif" && notifCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-yellow-400 text-black text-[10px] font-black rounded-full border-2 border-black flex items-center justify-center px-1 z-50 animate-in zoom-in duration-300">
+                    {notifCount > 99 ? '99+' : notifCount}
+                  </span>
                 )}
 
                 {isActive && (

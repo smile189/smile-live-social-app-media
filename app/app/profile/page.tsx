@@ -472,9 +472,9 @@ export default function ProfilePage() {
                 >
                   <Edit3 size={15} /> Edit Profile
                 </button>
-            <Link href="app/wallet">
+            <Link href="/wallet">
   <div className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-black rounded-full text-sm font-black shadow-lg shadow-yellow-400/20 hover:scale-105 transition-transform cursor-pointer">
-    <Volume2 size={15} /> {/* Sau componenta Wallet dacă o ai importată */}
+    <Wallet size={15} /> {/* Sau componenta Wallet dacă o ai importată */}
     {formatNum(balance)} coins
   </div>
 </Link>

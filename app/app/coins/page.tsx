@@ -257,9 +257,9 @@ export default function CoinsShop() {
 
           {/* Balance pill */}
           <div className="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-indigo-50 border border-fuchsia-200 px-3 py-1.5 rounded-full shadow-sm">
-            <Coins size={12} className="text-fuchsia-500 shrink-0" />
+            <Coins size={12} className="text-yellow-500 shrink-0" />
             {balance !== null ? (
-              <span className="text-xs font-black text-fuchsia-700">{balance.toLocaleString()}</span>
+              <span className="text-xs font-black text-yellow-700">{balance.toLocaleString()}</span>
             ) : (
               <div className="w-8 h-2.5 bg-fuchsia-200/60 rounded-full animate-pulse" />
             )}

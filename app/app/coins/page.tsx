@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   Coins, Zap, Star, Crown, Sparkles, Shield,
   ChevronDown, Loader2, Check, X, Gift,
   TrendingUp, Lock, CreditCard, ArrowRight,
-  Flame, Diamond
+  Flame, Diamond, ChevronLeft
 } from "lucide-react";
 
 const supabase = createBrowserClient(
@@ -33,7 +34,7 @@ const PACKAGES = [
   {
     id: "pack_25000",
     coins: 25000,
-    prices: { eur: 23.99, usd: 25.99, ron: 119.99 }, // ~4% discount vs Starter
+    prices: { eur: 23.99, usd: 25.99, ron: 119.99 },
     label: "Popular",
     sub: "Most chosen",
     icon: Flame,
@@ -45,7 +46,7 @@ const PACKAGES = [
   {
     id: "pack_50000",
     coins: 50000,
-    prices: { eur: 45.99, usd: 49.99, ron: 229.99 }, // ~8% discount
+    prices: { eur: 45.99, usd: 49.99, ron: 229.99 },
     label: "Pro",
     sub: "For power users",
     icon: Star,
@@ -55,9 +56,9 @@ const PACKAGES = [
     popular: false,
   },
   {
-    id: "pack_110000", // Crescut nr. de coins pentru a justifica cei 100 EUR cu discount inclus
+    id: "pack_110000",
     coins: 110000,
-    prices: { eur: 99.99, usd: 109.99, ron: 499.99 }, 
+    prices: { eur: 99.99, usd: 109.99, ron: 499.99 },
     label: "Elite",
     sub: "Top creator tier",
     icon: Crown,
@@ -67,7 +68,7 @@ const PACKAGES = [
     popular: false,
   },
   {
-    id: "pack_1150000", // Cantitate masivă pentru 1000 EUR
+    id: "pack_1150000",
     coins: 1150000,
     prices: { eur: 999.99, usd: 1099.99, ron: 4999.99 },
     label: "Diamond",
@@ -79,7 +80,6 @@ const PACKAGES = [
     popular: false,
   },
 ];
-
 
 type Currency = "eur" | "usd" | "ron";
 
@@ -128,25 +128,18 @@ function PackageCard({
       } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} bg-white`}
       style={selected ? { boxShadow: `0 8px 32px ${pack.glow}, 0 2px 8px rgba(0,0,0,0.08)` } : {}}
     >
-      {/* Popular stripe */}
       {pack.popular && (
         <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${pack.gradient}`} />
       )}
-
-      {/* Badge */}
       {pack.badge && (
         <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r ${pack.gradient} text-white shadow-sm`}>
           {pack.badge}
         </div>
       )}
-
       <div className="p-5 flex items-center gap-4">
-        {/* Icon */}
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${pack.gradient} flex items-center justify-center text-white shadow-md shrink-0`}>
           <Icon size={22} />
         </div>
-
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{pack.label}</span>
@@ -159,17 +152,13 @@ function PackageCard({
             </span>
           </div>
         </div>
-
-        {/* Price + check */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
             <div className="text-xl font-black text-slate-900">{formatPrice(price, currency)}</div>
             <div className="text-[9px] text-slate-400 font-medium">one-time</div>
           </div>
           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-            selected
-              ? `bg-slate-900 border-slate-900`
-              : "border-slate-300"
+            selected ? "bg-slate-900 border-slate-900" : "border-slate-300"
           }`}>
             {selected && <Check size={12} className="text-white" />}
           </div>
@@ -182,13 +171,15 @@ function PackageCard({
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function CoinsShop() {
-  const [currency, setCurrency]           = useState<Currency>("eur");
+  const router = useRouter();
+
+  const [currency, setCurrency]             = useState<Currency>("eur");
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
-  const [selected, setSelected]           = useState<string | null>(null);
-  const [loading, setLoading]             = useState(false);
-  const [balance, setBalance]             = useState<number | null>(null);
-  const [user, setUser]                   = useState<any>(null);
-  const [error, setError]                 = useState<string | null>(null);
+  const [selected, setSelected]             = useState<string | null>(null);
+  const [loading, setLoading]               = useState(false);
+  const [balance, setBalance]               = useState<number | null>(null);
+  const [user, setUser]                     = useState<any>(null);
+  const [error, setError]                   = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -238,7 +229,45 @@ export default function CoinsShop() {
         opacity: 0.4,
       }} />
 
-      <div className="relative max-w-xl mx-auto px-5 py-12 pb-40">
+      {/* ── STICKY TOP NAV ── */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60">
+        <div className="max-w-xl mx-auto px-5 py-3 flex items-center justify-between">
+
+          {/* Back button */}
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all active:scale-95 text-sm font-bold"
+          >
+            <ChevronLeft size={18} />
+            <span className="hidden sm:block text-xs uppercase tracking-widest font-black">Back</span>
+          </button>
+
+          {/* Center logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-indigo-500 flex items-center justify-center shadow-md shadow-fuchsia-200">
+              <Coins size={14} className="text-white" />
+            </div>
+            <span className="text-sm font-black tracking-tight text-slate-900">
+              Smile{" "}
+              <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
+                Coins
+              </span>
+            </span>
+          </div>
+
+          {/* Balance pill */}
+          <div className="flex items-center gap-1.5 bg-gradient-to-r from-pink-50 to-indigo-50 border border-fuchsia-200 px-3 py-1.5 rounded-full shadow-sm">
+            <Coins size={12} className="text-fuchsia-500 shrink-0" />
+            {balance !== null ? (
+              <span className="text-xs font-black text-fuchsia-700">{balance.toLocaleString()}</span>
+            ) : (
+              <div className="w-8 h-2.5 bg-fuchsia-200/60 rounded-full animate-pulse" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative max-w-xl mx-auto px-5 py-10 pb-40">
 
         {/* ── HEADER ── */}
         <motion.div
@@ -248,27 +277,30 @@ export default function CoinsShop() {
         >
           {/* Coin icon */}
           <div className="relative inline-flex mb-6">
-            <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-xl scale-150" />
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-xl shadow-amber-200">
+            <div className="absolute inset-0 bg-fuchsia-400/20 rounded-full blur-2xl scale-[2]" />
+            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-fuchsia-500 to-indigo-500 flex items-center justify-center shadow-xl shadow-fuchsia-200">
               <Coins size={28} className="text-white" />
             </div>
           </div>
 
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-tight mb-2">
-            Get <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Smile Golden Coins</span>
+            Get{" "}
+            <span className="bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
+              Golden Coins
+            </span>
           </h1>
           <p className="text-slate-500 text-sm font-medium max-w-xs mx-auto leading-relaxed">
             Send gifts to your favorite creators, boost your posts, and unlock premium features.
           </p>
 
-          {/* Balance pill */}
+          {/* Balance pill under title — solo se loggato */}
           {balance !== null && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-2 mt-4 bg-white border border-slate-200 shadow-sm px-4 py-2 rounded-full"
             >
-              <Coins size={14} className="text-amber-500" />
+              <Coins size={14} className="text-fuchsia-500" />
               <span className="text-sm font-black text-slate-700">
                 {balance.toLocaleString()} coins
               </span>
@@ -347,12 +379,12 @@ export default function CoinsShop() {
           className="mt-8 grid grid-cols-3 gap-3"
         >
           {[
-            { icon: Gift,       title: "Send Gifts",    desc: "Support live creators" },
-            { icon: TrendingUp, title: "Boost Posts",   desc: "Reach more people" },
-            { icon: Sparkles,   title: "Go Premium",    desc: "Exclusive features" },
+            { icon: Gift,       title: "Send Gifts",  desc: "Support live creators" },
+            { icon: TrendingUp, title: "Boost Posts", desc: "Reach more people" },
+            { icon: Sparkles,   title: "Go Premium",  desc: "Exclusive features" },
           ].map((item) => (
             <div key={item.title} className="bg-white border border-slate-100 rounded-2xl p-4 text-center shadow-sm">
-              <item.icon size={18} className="text-slate-400 mx-auto mb-2" />
+              <item.icon size={18} className="text-fuchsia-400 mx-auto mb-2" />
               <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{item.title}</p>
               <p className="text-[9px] text-slate-400 mt-0.5">{item.desc}</p>
             </div>
@@ -362,7 +394,6 @@ export default function CoinsShop() {
 
       {/* ── STICKY BOTTOM BAR ── */}
       <div className="fixed bottom-0 left-0 right-0 z-50">
-        {/* Blur backdrop */}
         <div className="absolute inset-0 bg-white/80 backdrop-blur-xl border-t border-slate-200" />
 
         <div className="relative max-w-xl mx-auto px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
@@ -407,26 +438,26 @@ export default function CoinsShop() {
           </AnimatePresence>
 
           {/* CTA Button */}
-<motion.button
-  whileTap={{ scale: 0.98 }}
-  onClick={handleBuy}
-  disabled={!selected || loading || !user}
-  className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all duration-300 ${
-    selected && user
-      ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 hover:brightness-110"
-      : "bg-slate-100 text-slate-400 cursor-not-allowed"
-  }`}
->
-  {loading ? (
-    <><Loader2 size={15} className="animate-spin" /> Processing...</>
-  ) : !user ? (
-    <><Lock size={15} /> Login to Purchase</>
-  ) : !selected ? (
-    <><Coins size={15} /> Choose a Package</>
-  ) : (
-    <><CreditCard size={15} /> Pay Now <ArrowRight size={14} /></>
-  )}
-</motion.button>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={handleBuy}
+            disabled={!selected || loading || !user}
+            className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all duration-300 ${
+              selected && user
+                ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 hover:brightness-110"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            {loading ? (
+              <><Loader2 size={15} className="animate-spin" /> Processing...</>
+            ) : !user ? (
+              <><Lock size={15} /> Login to Purchase</>
+            ) : !selected ? (
+              <><Coins size={15} /> Choose a Package</>
+            ) : (
+              <><CreditCard size={15} /> Pay Now <ArrowRight size={14} /></>
+            )}
+          </motion.button>
 
           {/* Trust row */}
           <div className="flex items-center justify-center gap-3 mt-3">
@@ -439,8 +470,7 @@ export default function CoinsShop() {
               </span>
             ))}
             <span className="text-slate-300">·</span>
-            
-            <span className="text-[9px] text-slate-400 font-medium"> Powered by Stripe</span>
+            <span className="text-[9px] text-slate-400 font-medium">Powered by Stripe</span>
           </div>
         </div>
       </div>

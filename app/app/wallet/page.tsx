@@ -73,8 +73,8 @@ function ConvertModal({
                 <Gem size={13} className="text-white" />
               </div>
             </div>
-            <h3 className="font-black text-zinc-900 text-xl tracking-tighter mt-2">Conversie</h3>
-            <p className="text-xs font-bold text-zinc-400 mt-0.5">Coins → Diamonds · rată 1 : 1</p>
+            <h3 className="font-black text-zinc-900 text-xl tracking-tighter mt-2">Convert</h3>
+            <p className="text-xs font-bold text-zinc-400 mt-0.5">Coins → Diamonds · rate 1 : 1</p>
           </div>
           <button onClick={onClose} className="mt-1 p-2.5 rounded-2xl transition-all" style={{ background: "#faf5f8" }}>
             <X size={16} className="text-zinc-400" />
@@ -101,7 +101,7 @@ function ConvertModal({
 
         <div className="mb-6">
           <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 block">
-            Câte Coins convertești?
+           How many Coins are you converting?
           </label>
           <div className="relative">
             <Zap size={16} className="absolute left-4 top-1/2 -translate-y-1/2 fill-amber-400 text-amber-400" />
@@ -117,7 +117,7 @@ function ConvertModal({
           </div>
           {val > 0 && val <= wallet.coins_balance && (
             <p className="text-[10px] font-bold mt-2 text-fuchsia-500 flex items-center gap-1">
-              <Gem size={10} /> Vei primi {val.toLocaleString()} diamonds
+              <Gem size={10} /> You will receive {val.toLocaleString()} diamonds
             </p>
           )}
           {val > wallet.coins_balance && val > 0 && (
@@ -205,9 +205,9 @@ function WithdrawModal({
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-2" style={{ background: "linear-gradient(135deg,#e879f9,#7c3aed)" }}>
               <Landmark size={18} className="text-white" />
             </div>
-            <h3 className="font-black text-zinc-900 text-xl tracking-tighter">Retragere</h3>
+            <h3 className="font-black text-zinc-900 text-xl tracking-tighter">Withdrawal</h3>
             <p className="text-xs font-bold text-zinc-400 mt-0.5">
-              {rateRon > 0 ? `1 💎 = ${rateRon} RON · stabilit de platformă` : "Valoare stabilită de platformă"}
+              {rateRon > 0 ? `1 💎 = ${rateRon} RON · determined by platform` : "Value determined by platform"}
             </p>
           </div>
           <button onClick={onClose} className="mt-1 p-2.5 rounded-2xl" style={{ background: "#faf5ff" }}>
@@ -537,7 +537,7 @@ export default function WalletPage() {
                     </div>
                   )}
 
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-fuchsia-400/60 mb-3">Venituri Diamonds</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-fuchsia-400/60 mb-3">Income Diamonds</p>
                   <div className="flex items-center justify-center gap-3 mb-2">
                     <Gem size={36} className="text-fuchsia-500 drop-shadow" />
                     <span className="text-7xl font-black tracking-tighter text-zinc-900 leading-none">

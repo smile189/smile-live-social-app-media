@@ -138,7 +138,7 @@ function ConvertModal({
           className="w-full py-5 rounded-[1.8rem] font-black text-sm uppercase tracking-tight transition-all disabled:opacity-30 disabled:cursor-not-allowed text-white"
           style={{ background: isValid && !loading ? "linear-gradient(90deg,#c026d3,#a855f7)" : "#e5e7eb" }}
         >
-          {loading ? "Se convertește..." : `Convertește ${val > 0 ? val.toLocaleString() : ""} →`}
+          {loading ? "Converting..." : `Convert ${val > 0 ? val.toLocaleString() : ""} →`}
         </button>
         <p className="text-[9px] text-zinc-300 font-bold text-center mt-3 uppercase tracking-wide">
           Not reverse conversion.        </p>
@@ -462,7 +462,7 @@ export default function WalletPage() {
                       {wallet.coins_balance.toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-[9px] font-bold text-amber-500/50 uppercase tracking-widest">monede disponibile</p>
+                  <p className="text-[9px] font-bold text-amber-500/50 uppercase tracking-widest">Available golden coins</p>
                 </div>
 
                 {/* Convert CTA */}

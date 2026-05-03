@@ -413,7 +413,7 @@ export default function CoinsShop() {
   disabled={!selected || loading || !user}
   className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all duration-300 ${
     selected && user
-      ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 hover:brightness-110"
+      ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 hover:brightness-110"
       : "bg-slate-100 text-slate-400 cursor-not-allowed"
   }`}
 >

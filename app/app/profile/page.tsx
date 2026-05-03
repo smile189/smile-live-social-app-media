@@ -7,7 +7,7 @@ import {
   Camera, LogOut, ChevronLeft, Loader2, X, Play,
   Trash2, MessageCircle, Heart, AlertTriangle, Edit3,
   Send, Wallet, Eye, Check, UserCheck, Users,
-  Grid3x3, Shield, Building2, Settings
+  Grid3x3, Shield, Building2, Settings, Volume2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -472,7 +472,7 @@ export default function ProfilePage() {
                 >
                   <Edit3 size={15} /> Edit Profile
                 </button>
-            <Link href="app/coins">
+            <Link href="app/wallet">
   <div className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-black rounded-full text-sm font-black shadow-lg shadow-yellow-400/20 hover:scale-105 transition-transform cursor-pointer">
     <Volume2 size={15} /> {/* Sau componenta Wallet dacă o ai importată */}
     {formatNum(balance)} coins

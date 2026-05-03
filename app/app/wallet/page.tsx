@@ -337,7 +337,7 @@ export default function WalletPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#FDF8F9" }}>
       <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.4 }}
         className="font-black uppercase text-xs tracking-[0.3em] text-pink-400">
-        Portofel...
+        Digital wallet.....
       </motion.div>
     </div>
   );
@@ -366,7 +366,7 @@ export default function WalletPage() {
               style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
               <ChevronLeft size={20} className="text-zinc-500" />
             </Link>
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-300">Portofel</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-300">Smile wallet</span>
             <Link href="/app/marketplace"
               className="w-10 h-10 flex items-center justify-center rounded-2xl transition-all"
               style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>

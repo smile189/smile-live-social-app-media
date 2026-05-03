@@ -36,6 +36,9 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover", //iphone notch
 };
+import NotificationHandler from "@/components/NotificationHandler";
+
+
 
 // Configurare Metadata pentru SEO, WhatsApp, Facebook și Twitter
 export const metadata: Metadata = {
@@ -128,7 +131,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logosmile.jpeg" />
       </head>
       <body className="antialiased font-sans bg-black text-white selection:bg-yellow-400 selection:text-black">
-        
+        <NotificationHandler />
         <main className="min-h-screen">
           {children}
         </main>

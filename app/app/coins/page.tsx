@@ -407,26 +407,26 @@ export default function CoinsShop() {
           </AnimatePresence>
 
           {/* CTA Button */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleBuy}
-            disabled={!selected || loading || !user}
-            className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all duration-300 ${
-              selected && user
-                ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800"
-                : "bg-slate-100 text-slate-400 cursor-not-allowed"
-            }`}
-          >
-            {loading ? (
-              <><Loader2 size={15} className="animate-spin" /> Processing...</>
-            ) : !user ? (
-              <><Lock size={15} /> Login to Purchase</>
-            ) : !selected ? (
-              <><Coins size={15} /> Choose a Package</>
-            ) : (
-              <><CreditCard size={15} /> Pay Now <ArrowRight size={14} /></>
-            )}
-          </motion.button>
+<motion.button
+  whileTap={{ scale: 0.98 }}
+  onClick={handleBuy}
+  disabled={!selected || loading || !user}
+  className={`w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all duration-300 ${
+    selected && user
+      ? "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 text-white shadow-lg shadow-fuchsia-500/25 hover:shadow-fuchsia-500/40 hover:brightness-110"
+      : "bg-slate-100 text-slate-400 cursor-not-allowed"
+  }`}
+>
+  {loading ? (
+    <><Loader2 size={15} className="animate-spin" /> Processing...</>
+  ) : !user ? (
+    <><Lock size={15} /> Login to Purchase</>
+  ) : !selected ? (
+    <><Coins size={15} /> Choose a Package</>
+  ) : (
+    <><CreditCard size={15} /> Pay Now <ArrowRight size={14} /></>
+  )}
+</motion.button>
 
           {/* Trust row */}
           <div className="flex items-center justify-center gap-3 mt-3">

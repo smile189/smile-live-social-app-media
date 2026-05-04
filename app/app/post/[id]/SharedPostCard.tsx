@@ -81,3 +81,4 @@ export default function SharedPostCard({ payload, isMine = false }: SharedPostCa
     </Link>
   );
 }
+

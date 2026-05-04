@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { X, Search, Send, Check, Loader2, Gem } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Search, Send, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ShareModalProps {
@@ -18,18 +18,6 @@ interface ShareModalProps {
   onClose: () => void;
 }
 
-/**
- * Payload stocat în direct_messages.content (JSON string):
- * {
- *   type: "post_share",
- *   post_id: string,
- *   caption: string,
- *   thumbnail_url: string,
- *   author_username: string,
- *   post_url: string
- * }
- */
-
 export default function ShareModal({ post, currentUser, supabase, onClose }: ShareModalProps) {
   const [users, setUsers]       = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
@@ -37,20 +25,26 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sending, setSending]   = useState(false);
   const [sent, setSent]         = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
-  // ── Fetch followings (persoane pe care le urmărești) ──────────────────────
+  // ── Fetch toți userii platformei (exclus eu) ──────────────────────────────
   useEffect(() => {
-    const fetchFollowing = async () => {
-      const { data } = await supabase
-        .from("follows")
-        .select("following_id, profiles:following_id(id, username, avatar_url)")
-        .eq("follower_id", currentUser.id);
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url")
+        .neq("id", currentUser.id)
+        .order("username", { ascending: true })
+        .limit(100);
 
-      const list = (data || []).map((f: any) => f.profiles).filter(Boolean);
+      console.log("ShareModal users:", data, error);
+      const list = data || [];
       setUsers(list);
       setFiltered(list);
+      setLoadingUsers(false);
     };
-    fetchFollowing();
+    fetchUsers();
   }, [currentUser.id, supabase]);
 
   // ── Search filter ─────────────────────────────────────────────────────────
@@ -83,18 +77,14 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
       post_url:        postUrl,
     });
 
-    // Trimitem câte un mesaj per user selectat
-    const inserts = Array.from(selected).map(recipientId => {
-      // room_id = combinație sortată a celor două user_id (același room pentru ambii)
-      const roomId = [currentUser.id, recipientId].sort().join("_");
-      return {
-        room_id:   roomId,
-        sender_id: currentUser.id,
-        content:   payload,
-      };
-    });
+    const inserts = Array.from(selected).map(recipientId => ({
+      room_id:   [currentUser.id, recipientId].sort().join("_"),
+      sender_id: currentUser.id,
+      content:   payload,
+    }));
 
-    await supabase.from("direct_messages").insert(inserts);
+    const { error } = await supabase.from("direct_messages").insert(inserts);
+    console.log("ShareModal send error:", error);
 
     setSending(false);
     setSent(true);
@@ -105,22 +95,17 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[80] flex items-end justify-center"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(14px)" }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 340 }}
         className="w-full max-w-md rounded-t-[2.5rem] flex flex-col"
         style={{ background: "#111114", maxHeight: "85dvh" }}
       >
-        {/* Handle */}
         <div className="w-10 h-1 rounded-full bg-white/10 mx-auto mt-4 mb-2 shrink-0" />
 
         {/* Header */}
@@ -136,15 +121,14 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
           </button>
         </div>
 
-        {/* Post preview card */}
+        {/* Post preview */}
         <div className="mx-6 mb-4 rounded-2xl overflow-hidden flex shrink-0"
           style={{ background: "#1a1a1f", border: "1px solid rgba(255,255,255,0.06)" }}>
           {thumbnail && (
             <div className="w-16 h-16 shrink-0 bg-zinc-900">
               {thumbnail.match(/\.(mp4|mov|webm)/i)
                 ? <video src={thumbnail} className="w-full h-full object-cover" muted playsInline />
-                : <img src={thumbnail} className="w-full h-full object-cover" alt="" />
-              }
+                : <img src={thumbnail} className="w-full h-full object-cover" alt="" />}
             </div>
           )}
           <div className="flex-1 px-4 py-3 min-w-0 flex flex-col justify-center">
@@ -162,9 +146,8 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
           <div className="relative">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
             <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Caută..."
+              value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="Caută utilizator..."
               className="w-full pl-9 pr-4 py-3 rounded-2xl text-sm font-bold text-white placeholder:text-white/20 outline-none"
               style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
             />
@@ -173,9 +156,14 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
 
         {/* User list */}
         <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-1.5 min-h-0">
-          {filtered.length === 0 && (
+          {loadingUsers && (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={20} className="animate-spin text-pink-400" />
+            </div>
+          )}
+          {!loadingUsers && filtered.length === 0 && (
             <p className="text-center text-[10px] font-black uppercase tracking-widest text-white/20 py-10">
-              {users.length === 0 ? "Nu urmărești pe nimeni încă" : "Niciun rezultat"}
+              {query ? "Niciun rezultat" : "Nu există utilizatori"}
             </p>
           )}
           {filtered.map(u => {
@@ -183,11 +171,14 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
             return (
               <button key={u.id} onClick={() => toggleUser(u.id)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all"
-                style={{ background: isSelected ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.03)", border: `1.5px solid ${isSelected ? "rgba(236,72,153,0.3)" : "transparent"}` }}>
-                <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 shrink-0">
+                style={{
+                  background: isSelected ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.03)",
+                  border: `1.5px solid ${isSelected ? "rgba(236,72,153,0.3)" : "transparent"}`
+                }}>
+                <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 shrink-0 flex items-center justify-center text-[10px] font-black text-zinc-500 uppercase">
                   {u.avatar_url
                     ? <img src={u.avatar_url} className="w-full h-full object-cover" alt="" />
-                    : <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-zinc-500 uppercase">{u.username?.[0]}</div>}
+                    : u.username?.[0]}
                 </div>
                 <span className="flex-1 text-left text-[12px] font-black text-white tracking-tight">@{u.username}</span>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 ${isSelected ? "bg-pink-500" : "bg-white/10"}`}>

@@ -6,11 +6,12 @@ import Link from "next/link";
 import {
   Heart, MessageSquare, Share2, Volume2, VolumeX,
   ChevronLeft, X, Send, Loader2, Check, Play,
-  Eye, UserPlus, UserCheck, Link2, MessageCircle
+  Eye, UserPlus, UserCheck
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import ShareModal from "./ShareModal";
 
+// ✅ useMemo-safe supabase — creat o singură dată
 function useSupabase() {
   return useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,77 +45,18 @@ function CommentItem({ comm }: { comm: any }) {
   );
 }
 
-// ─── SHARE MENU ───────────────────────────────────────────────────────────────
-function ShareMenu({ onCopyLink, onSendToChat, onClose }: {
-  onCopyLink: () => void;
-  onSendToChat: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[70] flex items-end justify-center"
-      style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 340 }}
-        className="w-full max-w-md rounded-t-[2.5rem] px-6 pt-4 pb-10"
-        style={{ background: "#111114" }}
-      >
-        <div className="w-10 h-1 rounded-full bg-white/10 mx-auto mb-6" />
-        <p className="text-[9px] font-black uppercase tracking-widest text-white/30 mb-4">Distribuie</p>
-
-        <div className="space-y-3">
-          {/* Trimite în Chat */}
-          <button
-            onClick={() => { onClose(); onSendToChat(); }}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all"
-            style={{ background: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(168,85,247,0.12))", border: "1.5px solid rgba(236,72,153,0.2)" }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "linear-gradient(135deg, #ec4899, #a855f7)" }}>
-              <MessageCircle size={18} className="text-white" />
-            </div>
-            <div className="text-left">
-              <p className="font-black text-sm text-white tracking-tight">Trimite în Chat</p>
-              <p className="text-[9px] font-bold text-white/30 mt-0.5">Alege un utilizator din lista ta</p>
-            </div>
-          </button>
-
-          {/* Copiază Link */}
-          <button
-            onClick={() => { onCopyLink(); onClose(); }}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1.5px solid rgba(255,255,255,0.08)" }}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/10">
-              <Link2 size={18} className="text-white/60" />
-            </div>
-            <div className="text-left">
-              <p className="font-black text-sm text-white tracking-tight">Copiază Link</p>
-              <p className="text-[9px] font-bold text-white/30 mt-0.5">Distribuie oriunde</p>
-            </div>
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 // ─── SIDEBAR ACTIONS ──────────────────────────────────────────────────────────
 function SidebarActions({
   post, currentUser, likeCount, liked, onLike,
   onOpenComments, commentCount, viewCount,
-  onOpenShareMenu, supabase
+  onOpenShare, supabase
 }: {
   post: any; currentUser: any; likeCount: number; liked: boolean;
   onLike: () => void; onOpenComments: () => void;
   commentCount: number; viewCount: number;
-  onOpenShareMenu: () => void; supabase: any;
+  onOpenShare: () => void; supabase: any;
 }) {
-  const [following, setFollowing]         = useState(false);
+  const [following, setFollowing]     = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
@@ -131,7 +73,8 @@ function SidebarActions({
     if (!currentUser || followLoading) return;
     setFollowLoading(true);
     if (following) {
-      await supabase.from("follows").delete().eq("follower_id", currentUser.id).eq("following_id", post.user_id);
+      await supabase.from("follows").delete()
+        .eq("follower_id", currentUser.id).eq("following_id", post.user_id);
       setFollowing(false);
     } else {
       await supabase.from("follows").insert({ follower_id: currentUser.id, following_id: post.user_id });
@@ -167,8 +110,11 @@ function SidebarActions({
         <span className="text-[10px] font-black tabular-nums text-yellow-400">{formatNum(viewCount)}</span>
       </div>
 
-      {/* Share → deschide ShareMenu */}
-      <button onClick={onOpenShareMenu} className="flex flex-col items-center gap-1 text-white group">
+      {/* Share → deschide ShareModal */}
+      <button
+        onClick={onOpenShare}
+        className="flex flex-col items-center gap-1 text-white group"
+      >
         <div className="p-3.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 group-hover:bg-pink-500/10 group-hover:border-pink-500/30 transition-all duration-300">
           <Share2 size={26} />
         </div>
@@ -179,7 +125,9 @@ function SidebarActions({
       {currentUser && currentUser.id !== post.user_id && (
         <button onClick={handleFollow} disabled={followLoading} className="flex flex-col items-center gap-1 text-white group">
           <div className={`p-3.5 rounded-full backdrop-blur-xl border transition-all ${following ? "bg-white/10 border-white/20" : "bg-black/40 border-white/10 group-hover:border-white/30"}`}>
-            {followLoading ? <Loader2 size={22} className="animate-spin" /> : following ? <UserCheck size={22} className="text-emerald-400" /> : <UserPlus size={22} />}
+            {followLoading
+              ? <Loader2 size={22} className="animate-spin" />
+              : following ? <UserCheck size={22} className="text-emerald-400" /> : <UserPlus size={22} />}
           </div>
           <span className="text-[9px] font-black uppercase tracking-tight">{following ? "Following" : "Follow"}</span>
         </button>
@@ -195,9 +143,7 @@ function SidebarActions({
 }
 
 // ─── COMMENTS PANEL ───────────────────────────────────────────────────────────
-function CommentsPanel({ post, currentUser, onClose, supabase }: {
-  post: any; currentUser: any; onClose: () => void; supabase: any;
-}) {
+function CommentsPanel({ post, currentUser, onClose, supabase }: { post: any; currentUser: any; onClose: () => void; supabase: any; }) {
   const [comments, setComments]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -246,17 +192,20 @@ function CommentsPanel({ post, currentUser, onClose, supabase }: {
       <div className="px-4 py-3 border-t border-white/5 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {currentUser ? (
           <div className="relative">
-            <input value={newComment} onChange={e => setNewComment(e.target.value)}
+            <input
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="Add a comment..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-5 pr-14 text-sm font-medium outline-none focus:border-yellow-400/60 transition-all placeholder:text-zinc-700 text-white" />
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-5 pr-14 text-sm font-medium outline-none focus:border-yellow-400/60 transition-all placeholder:text-zinc-700 text-white"
+            />
             <button onClick={handleSend} disabled={sending || !newComment.trim()}
               className="absolute right-2 top-2 p-2.5 bg-yellow-400 text-black rounded-xl active:scale-90 transition-all disabled:opacity-30 shadow-lg">
               {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             </button>
           </div>
         ) : (
-          <Link href="/app/login" className="block w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-center text-[11px] font-black uppercase tracking-widest text-zinc-500">
+          <Link href="/app/login" className="block w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-center text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:bg-white/10 transition-all">
             Login to comment
           </Link>
         )}
@@ -269,21 +218,19 @@ function CommentsPanel({ post, currentUser, onClose, supabase }: {
 export default function PostShareClient({ id }: { id: string }) {
   const supabase = useSupabase();
 
-  const [post, setPost]               = useState<any>(null);
-  const [loading, setLoading]         = useState(true);
-  const [muted, setMuted]             = useState(true);
-  const [playing, setPlaying]         = useState(true);
+  const [post, setPost]           = useState<any>(null);
+  const [loading, setLoading]     = useState(true);
+  const [muted, setMuted]         = useState(true);
+  const [playing, setPlaying]     = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [liked, setLiked]             = useState(false);
-  const [likeCount, setLikeCount]     = useState(0);
+  const [liked, setLiked]         = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
-  const [viewCount, setViewCount]     = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [showComments, setShowComments] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState(false);  // menu cu optiuni
-  const [showShareModal, setShowShareModal] = useState(false); // picker useri chat
-  const [copied, setCopied]           = useState(false);
-  const [avatarErr, setAvatarErr]     = useState(false);
+  const [showShare, setShowShare] = useState(false);   // ← nuovo
+  const [avatarErr, setAvatarErr] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -327,21 +274,12 @@ export default function PostShareClient({ id }: { id: string }) {
     setLikeLoading(true);
     setLiked(prev => !prev);
     setLikeCount(prev => liked ? prev - 1 : prev + 1);
-    if (liked) await supabase.from("likes").delete().eq("post_id", id).eq("user_id", currentUser.id);
-    else await supabase.from("likes").insert({ post_id: id, user_id: currentUser.id });
-    setLikeLoading(false);
-  };
-
-  const handleCopyLink = async () => {
-    const url = `${window.location.origin}/app/post/${id}`;
-    try { await navigator.clipboard.writeText(url); }
-    catch {
-      const el = document.createElement("input");
-      el.value = url; document.body.appendChild(el); el.select();
-      document.execCommand("copy"); document.body.removeChild(el);
+    if (liked) {
+      await supabase.from("likes").delete().eq("post_id", id).eq("user_id", currentUser.id);
+    } else {
+      await supabase.from("likes").insert({ post_id: id, user_id: currentUser.id });
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setLikeLoading(false);
   };
 
   const togglePlay = () => {
@@ -351,9 +289,7 @@ export default function PostShareClient({ id }: { id: string }) {
   };
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setShowComments(false); setShowShareMenu(false); setShowShareModal(false); }
-    };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") { setShowComments(false); setShowShare(false); } };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
@@ -412,7 +348,7 @@ export default function PostShareClient({ id }: { id: string }) {
               likeCount={likeCount} liked={liked} onLike={handleLike}
               onOpenComments={() => setShowComments(true)}
               commentCount={commentCount} viewCount={viewCount}
-              onOpenShareMenu={() => setShowShareMenu(true)}
+              onOpenShare={() => setShowShare(true)}
               supabase={supabase}
             />
           </div>
@@ -437,42 +373,19 @@ export default function PostShareClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* ── SHARE MENU (copy / chat) ── */}
+      {/* Share Modal — în afara cardului, full screen */}
       <AnimatePresence>
-        {showShareMenu && (
-          <ShareMenu
-            onCopyLink={handleCopyLink}
-            onSendToChat={() => {
-              if (!currentUser) { window.location.href = "/app/login"; return; }
-              setShowShareModal(true);
-            }}
-            onClose={() => setShowShareMenu(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── SHARE MODAL (picker useri) ── */}
-      <AnimatePresence>
-        {showShareModal && currentUser && (
+        {showShare && currentUser && (
           <ShareModal
             post={post}
             currentUser={currentUser}
             supabase={supabase}
-            onClose={() => setShowShareModal(false)}
+            onClose={() => setShowShare(false)}
           />
         )}
-      </AnimatePresence>
-
-      {/* Copied toast */}
-      <AnimatePresence>
-        {copied && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-2 px-5 py-3 rounded-full font-black text-xs text-white uppercase tracking-wide"
-            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.2)" }}
-          >
-            <Check size={14} strokeWidth={3} /> Link copiat!
-          </motion.div>
+        {showShare && !currentUser && (
+          // Dacă nu e logat — redirect
+          (() => { window.location.href = "/app/login"; return null; })()
         )}
       </AnimatePresence>
     </>

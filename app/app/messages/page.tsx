@@ -45,8 +45,8 @@ function parseMessageContent(content: string): { type: "text" | "gift" | "post_s
 /** Preview text pentru sidebar */
 function getPreviewText(content: string): string {
   const { type } = parseMessageContent(content);
-  if (type === "gift")      return "🎁 A trimis un cadou";
-  if (type === "post_share") return "📹 A distribuit un clip";
+  if (type === "gift")      return "🎁 Send an gift";
+  if (type === "post_share") return "📹 Shared a video";
   return content;
 }
 

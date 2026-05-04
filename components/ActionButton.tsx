@@ -1,3 +1,6 @@
+/*
+first version of action buttons for posts (like, comment, share) + message panel with reply functionality.
+*/
 "use client";
 
 import { useState, useEffect } from "react";
@@ -246,7 +249,7 @@ export default function SidebarActions({ post }: { post: any }) {
         </button>
       </div>
 
-      {showMessages && <MessagePanel post={post} onClose={() => setShowMessages(false)} />}
+      {showMessages && <MessagePanel post={post} onClose={() => setShowMessages(false)} />} 
     </>
   );
 }

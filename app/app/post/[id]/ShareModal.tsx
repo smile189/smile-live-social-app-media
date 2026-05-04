@@ -111,9 +111,9 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 shrink-0">
           <div>
-            <h3 className="font-black text-white text-base tracking-tighter">Trimite în Chat</h3>
+            <h3 className="font-black text-white text-base tracking-tighter">Sent  smile chat </h3>
             <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-0.5">
-              {selected.size > 0 ? `${selected.size} selectat${selected.size > 1 ? "i" : ""}` : "Alege destinatari"}
+              {selected.size > 0 ? `${selected.size} selected${selected.size > 1 ? "i" : ""}` : "Chose the destination"}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/40 hover:bg-white/10 transition-all">
@@ -147,7 +147,7 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
             <input
               value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Caută utilizator..."
+              placeholder="Find the users..."
               className="w-full pl-9 pr-4 py-3 rounded-2xl text-sm font-bold text-white placeholder:text-white/20 outline-none"
               style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
             />
@@ -163,7 +163,7 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
           )}
           {!loadingUsers && filtered.length === 0 && (
             <p className="text-center text-[10px] font-black uppercase tracking-widest text-white/20 py-10">
-              {query ? "Niciun rezultat" : "Nu există utilizatori"}
+              {query ? "Not results found" : "Doesn't exist users"}
             </p>
           )}
           {filtered.map(u => {
@@ -198,10 +198,10 @@ export default function ShareModal({ post, currentUser, supabase, onClose }: Sha
             style={{ background: sent ? "#10b981" : selected.size > 0 ? "linear-gradient(90deg,#ec4899,#a855f7)" : "rgba(255,255,255,0.08)" }}
           >
             {sent
-              ? <><Check size={16} strokeWidth={3} /> Trimis!</>
+              ? <><Check size={16} strokeWidth={3} /> Send!</>
               : sending
-              ? <><Loader2 size={16} className="animate-spin" /> Se trimite...</>
-              : <><Send size={15} /> Trimite{selected.size > 1 ? ` (${selected.size})` : ""}</>
+              ? <><Loader2 size={16} className="animate-spin" /> Sending...</>
+              : <><Send size={15} /> Send{selected.size > 1 ? ` (${selected.size})` : ""}</>
             }
           </button>
         </div>

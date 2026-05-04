@@ -1,3 +1,7 @@
+/*
+base code feed ..
+*/
+
 "use client";
 
 import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
@@ -298,6 +302,7 @@ const queryStr = `
             data-id={post.id} 
             className="h-full w-full snap-start snap-always relative overflow-hidden"
           >
+          
             <MediaRenderer 
               post={post} 
               isActive={activePostId === post.id} 

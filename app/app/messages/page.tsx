@@ -1,6 +1,7 @@
 /*
  * SMILE LIVE — Direct Messages
  * Design: Soft luxury · pink/rose palette · glassmorphism · fluid animations
+ * main code version 
  */
 "use client";
 

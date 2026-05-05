@@ -376,14 +376,25 @@ export default function PostShareClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* COMMENTS - Modal "Slide-up" peste video */}
-        <AnimatePresence>
-          {showComments && (
-            <div className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-[2px]">
-               <CommentsPanel post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowComments(false)} />
-            </div>
-          )}
-        </AnimatePresence>
+{/* COMMENTS - Modal "Slide-up" peste video */}
+<AnimatePresence>
+  {showComments && (
+    <div className="absolute top-[35%] bottom-0 left-0 right-0 z-[60] bg-zinc-950/95 backdrop-blur-md rounded-t-[30px] border-t border-white/10 shadow-2xl">
+       {/* Bara de drag/control vizuală tip TikTok */}
+       <div className="w-full flex justify-center py-3">
+         <div className="w-10 h-1 bg-white/20 rounded-full" />
+       </div>
+
+       <CommentsPanel 
+         post={post} 
+         currentUser={currentUser} 
+         supabase={supabase} 
+         onClose={() => setShowComments(false)} 
+       />
+    </div>
+  )}
+</AnimatePresence>
+
       </div>
 
       {/* SHARE MODAL - Full overlay */}

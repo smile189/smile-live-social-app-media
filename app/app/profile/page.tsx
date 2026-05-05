@@ -463,18 +463,29 @@ const handleShareProfile = async () => {
 
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 px-5 py-4 flex items-center justify-between bg-black/80 backdrop-blur-xl border-b border-white/5">
-        <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-90">
+        <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-xl transition-all active:scale-90 text-white">
           <ChevronLeft size={22} />
         </button>
-        <h1 className="font-black italic text-lg tracking-tighter text-yellow-400 uppercase">My Profile</h1>
+
+        <h1 className="font-black italic text-lg tracking-tighter text-yellow-400 uppercase leading-none">
+          My Profile
+        </h1>
+
+        {/* LOGOUT: Minimal, Black & Red High-Contrast */}
         <button
           onClick={() => supabase.auth.signOut().then(() => router.push("/"))}
-          className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all active:scale-90"
-          title="Sign out"
+          className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500 transition-all duration-200 active:scale-95"
         >
-          <LogOut size={20} />
+          <span className="font-black italic text-[11px] uppercase tracking-tighter text-red-500 group-hover:text-white transition-colors">
+            Log Out
+          </span>
+          <LogOut 
+            size={14} 
+            className="text-red-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" 
+          />
         </button>
       </header>
+
 
       <div className="max-w-2xl mx-auto px-4 pt-8 space-y-10">
 

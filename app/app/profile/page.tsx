@@ -10,6 +10,7 @@ import {
   Grid3x3, Shield, Building2, Settings, Volume2, Share2,
 } from "lucide-react";
 import Link from "next/link";
+import BottomNav from "@/components/BottomNav";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -231,7 +232,7 @@ const handleShareProfile = async () => {
     } else {
       throw new Error("Web Share not supported");
     }
-    
+
 
   } catch (err: any) {
     if (err.name !== "AbortError") {
@@ -769,6 +770,8 @@ const handleShareProfile = async () => {
           </div>
         </div>
       )}
+      <BottomNav />
+
     </div>
   );
 }

@@ -732,6 +732,7 @@ export default function ProfilePage() {
                 onClick={() => setDeleteConfirmId(null)}
                 className="flex-1 py-3.5 rounded-2xl border border-zinc-800 hover:bg-zinc-900 text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
               >
+                
                 Cancel
               </button>
               <button

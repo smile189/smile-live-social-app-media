@@ -191,30 +191,50 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Share Profile ──
-  const handleShareProfile = async () => {
-    if (!profile?.username) return;
-    
-    const profileUrl = `${window.location.origin}/app/profile/${profile.username}`;
-    const shareData = {
-      title: `${profile.full_name || profile.username}'s Profile`,
-      text: `Check out ${profile.full_name || profile.username}'s profile!`,
-      url: profileUrl,
-    };
+const handleShareProfile = async () => {
+  if (!profile?.username) return;
 
-    // Try Web Share API first (mobile)
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+  const profileUrl = `${window.location.origin}/app/profile/${profile.username}`;
+  const shareData: ShareData = {
+    title: `${profile.full_name || profile.username}'s Profile`,
+    text: `Check out ${profile.full_name || profile.username}'s profile!`,
+    url: profileUrl,
+  };
+
+  try {
+    // 1. Încercăm să procesăm poza de profil dacă există
+    if (profile.avatar_url) {
       try {
-        await navigator.share(shareData);
-        showToast("Profile shared ✓");
-      } catch (err: any) {
-        // User cancelled share
-        if (err.name !== "AbortError") {
-          showToast("Share failed", "error");
+        const response = await fetch(profile.avatar_url);
+        const blob = await response.blob();
+        const file = new File([blob], "profile-pic.jpg", { type: blob.type });
+        
+        // Adăugăm fișierul în shareData
+        const dataWithFile = { ...shareData, files: [file] };
+
+        // Verificăm dacă browserul permite share-ul cu acest fișier
+        if (navigator.canShare && navigator.canShare(dataWithFile)) {
+          await navigator.share(dataWithFile);
+          showToast("Profile shared with photo ✓");
+          return; // Ieșim dacă share-ul a reușit
         }
+      } catch (fileErr) {
+        console.error("Could not process image for share", fileErr);
+        // Dacă e eroare de CORS sau fetch, mergem mai departe la share fără poză
       }
+    }
+
+    // 2. Fallback la Share API standard (fără poză) dacă fișierul nu e suportat
+    if (navigator.share) {
+      await navigator.share(shareData);
+      showToast("Profile shared ✓");
     } else {
-      // Fallback: copy to clipboard (desktop)
+      throw new Error("Web Share not supported");
+    }
+
+  } catch (err: any) {
+    if (err.name !== "AbortError") {
+      // 3. Fallback final: Copy to clipboard
       try {
         await navigator.clipboard.writeText(profileUrl);
         showToast("Link copiat ✓");
@@ -222,7 +242,9 @@ export default function ProfilePage() {
         showToast("Failed to copy link", "error");
       }
     }
-  };
+  }
+};
+
 
   // ── Fetch posts only (non-destructive) ──
   const fetchPosts = useCallback(async (userId: string) => {
@@ -320,8 +342,8 @@ export default function ProfilePage() {
     setUsernameError("");
     const cleanUsername = editData.username.toLowerCase().trim().replace(/\s+/g, "");
 
-    if (!cleanUsername) return setUsernameError("Username-ul nu poate fi gol");
-    if (!/^[a-z0-9_]+$/.test(cleanUsername)) return setUsernameError("Doar litere, cifre și _");
+    if (!cleanUsername) return setUsernameError("Username could not be empty");
+    if (!/^[a-z0-9_]+$/.test(cleanUsername)) return setUsernameError("Only letters, numbers and _ are allowed");
 
     // Check uniqueness (only if changed)
     if (cleanUsername !== profile.username) {
@@ -330,7 +352,7 @@ export default function ProfilePage() {
         .select("id")
         .eq("username", cleanUsername)
         .maybeSingle();
-      if (existing) return setUsernameError("Username deja folosit");
+      if (existing) return setUsernameError("Username already taken");
     }
 
     setIsSaving(true);
@@ -343,7 +365,7 @@ export default function ProfilePage() {
     if (!error) {
       setProfile((p: any) => ({ ...p, full_name: editData.full_name.trim(), bio: editData.bio.trim(), username: cleanUsername }));
       setIsEditing(false);
-      showToast("Profil salvat ✓");
+      showToast("Profile saved ✓");
     } else {
       showToast(error.message, "error");
     }
@@ -732,7 +754,6 @@ export default function ProfilePage() {
                 onClick={() => setDeleteConfirmId(null)}
                 className="flex-1 py-3.5 rounded-2xl border border-zinc-800 hover:bg-zinc-900 text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
               >
-                
                 Cancel
               </button>
               <button
@@ -741,7 +762,7 @@ export default function ProfilePage() {
                 className="flex-1 py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
               >
                 {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Șterge
+                Delete
               </button>
             </div>
           </div>

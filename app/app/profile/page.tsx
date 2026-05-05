@@ -608,14 +608,34 @@ const handleShareProfile = async () => {
           )}
         </div>
 
-        {/* ── STATS ROW ── */}
-        <div className="flex items-center bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden">
-          <StatItem label="Posts"     value={posts.length} />
-          <StatItem label="Followers" value={followerCount} border />
-          <StatItem label="Following" value={followingCount} border />
-          <StatItem label="Likes"     value={totalLikes} border />
-          <StatItem label="Views"     value={totalViews} border />
+        {/* ── STATS ROW — Ultra Fluid & Modern ── */}
+        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mt-6">
+          {[
+            { label: "Posts", value: posts.length },
+            { label: "Followers", value: followerCount },
+            { label: "Following", value: followingCount },
+            { label: "Likes", value: totalLikes },
+            { label: "Views", value: totalViews },
+          ].map((s) => (
+            <div 
+              key={s.label} 
+              className="flex flex-col items-center min-w-[70px] px-3 py-2.5 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-md transition-all hover:bg-white/[0.07] active:scale-95"
+            >
+              <div className="text-lg font-black italic tracking-tighter text-white leading-none">
+                {formatNum(s.value)}
+              </div>
+              <div className="text-[7px] font-black uppercase tracking-[0.2em] text-zinc-500 mt-1">
+                {s.label}
+              </div>
+              
+              {/* Indicator discret sub cifrele mari */}
+              {s.value > 1000 && (
+                <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1.5 shadow-[0_0_8px_#facc15]" />
+              )}
+            </div>
+          ))}
         </div>
+
 
         {/* ── POSTS GRID ── */}
         {posts.length === 0 ? (

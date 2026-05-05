@@ -7,7 +7,7 @@ import {
   Camera, LogOut, ChevronLeft, Loader2, X, Play,
   Trash2, MessageCircle, Heart, AlertTriangle, Edit3,
   Send, Wallet, Eye, Check, UserCheck, Users,
-  Grid3x3, Shield, Building2, Settings, Volume2,
+  Grid3x3, Shield, Building2, Settings, Volume2, Share2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -190,6 +190,39 @@ export default function ProfilePage() {
   const commentsEndRef = useRef<HTMLDivElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Share Profile ──
+  const handleShareProfile = async () => {
+    if (!profile?.username) return;
+    
+    const profileUrl = `${window.location.origin}/app/profile/${profile.username}`;
+    const shareData = {
+      title: `${profile.full_name || profile.username}'s Profile`,
+      text: `Check out ${profile.full_name || profile.username}'s profile!`,
+      url: profileUrl,
+    };
+
+    // Try Web Share API first (mobile)
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        showToast("Profile shared ✓");
+      } catch (err: any) {
+        // User cancelled share
+        if (err.name !== "AbortError") {
+          showToast("Share failed", "error");
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard (desktop)
+      try {
+        await navigator.clipboard.writeText(profileUrl);
+        showToast("Link copiat ✓");
+      } catch {
+        showToast("Failed to copy link", "error");
+      }
+    }
+  };
 
   // ── Fetch posts only (non-destructive) ──
   const fetchPosts = useCallback(async (userId: string) => {
@@ -465,20 +498,27 @@ export default function ProfilePage() {
                   {profile.bio}
                 </p>
               )}
-              <div className="flex items-center justify-center gap-3 pt-1">
+              <div className="flex items-center justify-center gap-3 pt-1 flex-wrap">
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:bg-white/10 transition-all active:scale-95"
                 >
                   <Edit3 size={15} /> Edit Profile
                 </button>
-            <Link href="/app/wallet">
-  <div className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-black rounded-full text-sm font-black shadow-lg shadow-yellow-400/20 hover:scale-105 transition-transform cursor-pointer">
-    <Wallet size={15} /> {/* Sau componenta Wallet dacă o ai importată */}
-    {formatNum(balance)} coins
-  </div>
-</Link>
+                
+                <button
+                  onClick={handleShareProfile}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:bg-white/10 transition-all active:scale-95"
+                >
+                  <Share2 size={15} /> Share Profile
+                </button>
 
+                <Link href="/app/wallet">
+                  <div className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-black rounded-full text-sm font-black shadow-lg shadow-yellow-400/20 hover:scale-105 transition-transform cursor-pointer">
+                    <Wallet size={15} />
+                    {formatNum(balance)} coins
+                  </div>
+                </Link>
               </div>
             </div>
           ) : (

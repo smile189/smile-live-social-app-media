@@ -12,7 +12,7 @@ import {
   X, Send, Zap, Loader2, Reply as ReplyIcon 
 } from "lucide-react";
 
-/* --- COMPONENTA MESAJE (PRO STUDIO CU REPLY) --- */
+/* --- COMPONENTA MESAJE (PRO STUDIO CU REPLY) - WHITE THEME --- */
 function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -61,34 +61,39 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose} />
       
-      {/* Adaptare PC: sm:rounded-[3rem] și eliminare mb-80 pe desktop pentru centrare */}
-      <div className="relative w-full max-w-xl bg-[#0A0A0A] border-t sm:border border-white/10 rounded-t-[3rem] sm:rounded-[3rem] h-[75vh] sm:h-[80vh] mb-[80px] sm:mb-0 flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-700 ease-out">
+      {/* WHITE THEME: bg-white + border-zinc-200 */}
+      <div className="relative w-full max-w-xl bg-white border-t sm:border border-zinc-200 rounded-t-[3rem] sm:rounded-[3rem] h-[75vh] sm:h-[80vh] mb-[80px] sm:mb-0 flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-700 ease-out">
         
-        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/40 backdrop-blur-md">
+        {/* Header cu fundal alb subtil */}
+        <div className="p-6 border-b border-zinc-200 flex justify-between items-center bg-zinc-50">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">comments</span>
+          
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-pink-600">comments</span>
           </div>
-          <button onClick={onClose} className="p-2 bg-white/5 rounded-full text-zinc-400"><X size={20}/></button>
+          <button onClick={onClose} className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-full text-zinc-700 transition-colors">
+            <X size={20}/>
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-32">
+        {/* Lista de comentarii pe fundal alb */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-32 bg-white">
           {comments.map((c) => (
-            <div key={c.id} className={`flex gap-3 animate-in fade-in duration-500 ${c.parent_id ? 'ml-8 border-l border-white/5 pl-4' : ''}`}>
+            <div key={c.id} className={`flex gap-3 animate-in fade-in duration-500 ${c.parent_id ? 'ml-8 border-l-2 border-zinc-200 pl-4' : ''}`}>
               <Link href={`/app/profile/${c.profiles?.username}`}>
-                <img src={c.profiles?.avatar_url || `https://api.dicebear.com{c.profiles?.username}`} className="w-8 h-8 rounded-full border border-white/10 bg-zinc-900 shrink-0 cursor-pointer" />
+                <img src={c.profiles?.avatar_url || `https://api.dicebear.com{c.profiles?.username}`} className="w-8 h-8 rounded-full border-2 border-zinc-200 bg-zinc-100 shrink-0 cursor-pointer hover:border-yellow-400 transition-colors" />
               </Link>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[9px] font-black uppercase text-zinc-500">@{c.profiles?.username}</p>
                   <button 
                     onClick={() => setReplyTo(c)}
-                    className="text-[8px] font-black uppercase text-yellow-500/50 hover:text-yellow-500 transition-colors"
+                    className="text-[8px] font-black uppercase text-yellow-600 hover:text-yellow-500 transition-colors"
                   >
                     Reply
                   </button>
                 </div>
-                <div className="text-sm text-zinc-300 bg-zinc-900/50 p-3 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-full">
+                {/* Bubble comentariu pe fundal gri deschis */}
+                <div className="text-sm text-zinc-800 bg-zinc-100 p-3 rounded-2xl rounded-tl-none border border-zinc-200 inline-block max-w-full">
                   {c.content}
                 </div>
               </div>
@@ -96,27 +101,31 @@ function MessagePanel({ post, onClose }: { post: any; onClose: () => void }) {
           ))}
         </div>
 
-        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black via-black to-transparent pt-10">
+        {/* Input section cu gradient alb */}
+        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-white via-white to-transparent pt-10">
           {replyTo && (
-            <div className="flex items-center justify-between bg-yellow-500/10 border border-yellow-500/20 p-2 px-4 rounded-t-xl mb-0 animate-in slide-in-from-bottom-2">
-              <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest flex items-center gap-2">
+            <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 p-2 px-4 rounded-t-xl mb-0 animate-in slide-in-from-bottom-2">
+              <span className="text-[9px] font-black text-yellow-700 uppercase tracking-widest flex items-center gap-2">
                 <ReplyIcon size={12}/> replying to @{replyTo.profiles?.username}
               </span>
-              <button onClick={() => setReplyTo(null)}><X size={14} className="text-yellow-500"/></button>
+              <button onClick={() => setReplyTo(null)}>
+                <X size={14} className="text-yellow-700"/>
+              </button>
             </div>
           )}
 
-          <div className="flex items-center gap-3 bg-zinc-900 border border-white/10 p-2.5 rounded-2xl shadow-2xl">
+          {/* Input cu stil alb */}
+          <div className="flex items-center gap-3 bg-zinc-50 border-2 border-zinc-200 p-2.5 rounded-2xl shadow-lg">
             <input 
               value={newComment} 
               onChange={(e) => setNewComment(e.target.value)} 
               placeholder="Contribution..." 
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-white px-3 h-10" 
+              className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-zinc-900 placeholder:text-zinc-400 px-3 h-10" 
             />
             <button 
               onClick={handleSend} 
               disabled={isSending || !newComment.trim()} 
-              className="h-10 w-10 bg-yellow-400 rounded-xl text-black flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-yellow-500/10"
+              className="h-10 w-10 bg-yellow-400 hover:bg-yellow-500 rounded-xl text-black flex items-center justify-center active:scale-90 transition-all shadow-lg disabled:opacity-50"
             >
               {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} strokeWidth={3} />}
             </button>

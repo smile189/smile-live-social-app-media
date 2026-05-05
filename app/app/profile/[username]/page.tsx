@@ -438,9 +438,7 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
           <span className="font-black text-[9px] tracking-[0.5em] uppercase text-zinc-600 italic leading-none">
             User smile  profile
           </span>
-          <span className="font-black text-[5px] tracking-[0.3em] uppercase text-zinc-800 italic mt-1">
-            Official Platform
-          </span>
+
         </div>
 
         {/* LOGO REBRAND DREAPTA */}
@@ -492,21 +490,34 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
             </div>
           )}
 
-          {/* Stats row */}
-          <div className="mt-8 flex items-center gap-1 bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden">
+          {/* Stats row — Ultra modern & fluid */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-6">
             {[
               { label: "Posts", value: posts.length },
               { label: "Followers", value: followersCount },
               { label: "Following", value: followingCount },
               { label: "Likes", value: totalLikes },
               { label: "Views", value: totalViews },
-            ].map((s, i) => (
-              <div key={s.label} className={`px-5 py-4 text-center ${i !== 0 ? "border-l border-white/5" : ""}`}>
-                <div className="text-lg font-black text-white leading-none">{formatNum(s.value)}</div>
-                <div className="text-[8px] font-bold uppercase tracking-widest text-zinc-600 mt-0.5">{s.label}</div>
+            ].map((s) => (
+              <div 
+                key={s.label} 
+                className="flex flex-col items-center px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-md transition-all hover:bg-white/[0.06] hover:scale-105"
+              >
+                <div className="text-xl font-black italic tracking-tighter text-white leading-none">
+                  {formatNum(s.value)}
+                </div>
+                <div className="text-[7px] font-black uppercase tracking-[0.2em] text-zinc-500 mt-1">
+                  {s.label}
+                </div>
+                
+                {/* Un punct discret sub statistica activă sau importantă */}
+                {s.label === "Likes" && (
+                  <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1 shadow-[0_0_8px_#facc15]" />
+                )}
               </div>
             ))}
           </div>
+
 
           {/* Action buttons */}
           <div className="mt-6 flex gap-3 w-full max-w-xs">
@@ -527,18 +538,18 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
               }
             </button>
 
-<button
-  onClick={() => {
-    const roomId = [currentUser.id, profile.id].sort().join("_");
-    // Adăugăm un flag "autoSend=true" ca să știe chat-ul să-l trimită singur
-    const msg = encodeURIComponent("Salut! ✨ Ți-am văzut profilul și am vrut să te salut!");
-    router.push(`/app/messages?room=${roomId}&text=${msg}&autoSend=true`);
-  }}
-  className="px-5 py-3 rounded-2xl border border-pink-500/20 bg-pink-500/5 text-pink-500 hover:bg-pink-500/10 active:scale-95 transition-all flex items-center gap-2"
->
-  <MessageCircle size={20} fill="currentColor" />
-  <span className="font-black italic uppercase text-[10px] tracking-tighter">Say Hi</span>
-</button>
+                <button
+                  onClick={() => {
+                    const roomId = [currentUser.id, profile.id].sort().join("_");
+                    // Adăugăm un flag "autoSend=true" ca să știe chat-ul să-l trimită singur
+                    const msg = encodeURIComponent("Salut! ✨ Ți-am văzut profilul și am vrut să te salut!");
+                    router.push(`/app/messages?room=${roomId}&text=${msg}&autoSend=true`);
+                  }}
+                  className="px-5 py-3 rounded-2xl border border-pink-500/20 bg-pink-500/5 text-pink-500 hover:bg-pink-500/10 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <MessageCircle size={20} fill="currentColor" />
+                  <span className="font-black italic uppercase text-[10px] tracking-tighter">Say Hi</span>
+                </button>
 
 
           </div>

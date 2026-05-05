@@ -312,51 +312,40 @@ export default function PostShareClient({ id }: { id: string }) {
  return (
   <>
     <div className="relative h-[100dvh] w-full bg-black flex items-center justify-center overflow-hidden font-sans">
-      {/* 1. BACKGROUND BLUR */}
-      <div className="absolute inset-0 opacity-25 blur-[120px] pointer-events-none">
-        <video src={post.video_url || post.media_url} muted loop autoPlay playsInline className="w-full h-full object-cover scale-150" />
+      {/* 1. BACKGROUND AMBIENT (Blurat fin, nu deranjant) */}
+      <div className="absolute inset-0 opacity-30 blur-[100px] pointer-events-none scale-110">
+        <video src={post.video_url || post.media_url} muted loop autoPlay playsInline className="w-full h-full object-cover" />
       </div>
 
-      {/* 2. CONTAINERUL PRINCIPAL (Incadrat cu margini pe Desktop, Full pe Mobil) */}
-      <div className="relative z-10 w-full max-w-[420px] h-full sm:h-[92vh] bg-black sm:rounded-[35px] overflow-hidden border border-white/10 shadow-2xl flex flex-col">
+      {/* 2. CONTAINER PRINCIPAL (Aspect Ratio de mobil pe orice ecran) */}
+      <div className="relative z-10 w-full max-w-[430px] h-full sm:h-[94vh] bg-zinc-950 sm:rounded-[40px] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10 flex flex-col">
         
-        {/* BARA DE SUS - Coborâtă (top-10) și mai compactă */}
-        <div className="absolute top-10 left-5 right-5 z-50 flex justify-between items-center pointer-events-none">
-          {/* BUTONUL X / BACK - Acum e mai vizibil și mai jos */}
-          <Link 
-            href="/app" 
-            className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full text-white border border-white/15 hover:bg-white/10 transition-all pointer-events-auto active:scale-90"
-          >
-            <X size={22} strokeWidth={2.5} />
+        {/* TOP BAR - Mai aerisită, butoane mai mici/discrete */}
+        <div className="absolute top-6 left-6 right-6 z-50 flex justify-between items-center">
+          <Link href="/app" className="p-2.5 bg-black/20 backdrop-blur-xl rounded-full text-white/90 border border-white/10 hover:bg-white/10 transition-all">
+            <ChevronLeft size={22} />
           </Link>
-
-          <button 
-            onClick={() => setMuted(m => !m)} 
-            className="p-2.5 bg-black/40 backdrop-blur-2xl rounded-full text-white border border-white/15 hover:bg-white/10 transition-all pointer-events-auto active:scale-90"
-          >
+          <button onClick={() => setMuted(m => !m)} className="p-2.5 bg-black/20 backdrop-blur-xl rounded-full text-white/90 border border-white/10 hover:bg-white/10 transition-all">
             {muted ? <VolumeX size={22} /> : <Volume2 size={22} />}
           </button>
         </div>
 
-        {/* PLAYERUL VIDEO - Incadrat cu padding vertical pentru a nu "sugruma" butoanele */}
-        <div className="relative flex-1 bg-black flex items-center justify-center cursor-pointer" onClick={togglePlay}>
-          <video 
-            ref={videoRef} 
-            src={post.video_url || post.media_url} 
-            className="w-full h-full object-cover" 
-            autoPlay loop playsInline muted={muted} 
-          />
+        {/* PLAYER VIDEO - Centrat perfect */}
+        <div className="relative flex-1 flex items-center justify-center bg-black cursor-pointer" onClick={togglePlay}>
+          <video ref={videoRef} src={post.video_url || post.media_url} poster={post.thumbnail_url || undefined}
+            className="w-full h-full object-contain sm:object-cover" autoPlay loop playsInline muted={muted} />
+          
           {!playing && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                <Play size={35} className="text-white ml-1" fill="white" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <Play size={32} className="text-white ml-1" fill="white" />
               </div>
             </div>
           )}
         </div>
 
-        {/* SIDEBAR - Ajustat pentru noua încadrare */}
-        <div className="absolute right-3 bottom-[25%] z-50">
+        {/* SIDEBAR - Ridicat mai sus (UX fix: să nu blocheze descrierea) */}
+        <div className="absolute right-3 bottom-[28%] z-50 flex flex-col gap-5">
           <SidebarActions
             post={post} currentUser={currentUser}
             likeCount={likeCount} liked={liked} onLike={handleLike}
@@ -367,43 +356,43 @@ export default function PostShareClient({ id }: { id: string }) {
           />
         </div>
 
-        {/* INFO JOS - Spațiat mai mult de marginea de jos */}
-        <div className="absolute bottom-0 left-0 w-full px-6 pb-12 pt-32 bg-gradient-to-t from-black via-black/80 to-transparent z-40 pointer-events-none">
-          <div className="pointer-events-auto">
-            <Link href={`/app/profile/${post.profiles?.username}`} className="flex items-center gap-3 mb-3 w-fit group">
-              <div className="w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden bg-zinc-900 group-hover:border-white transition-all">
+        {/* INFO JOS - Gradient lung pentru lizibilitate (TikTok style) */}
+        <div className="absolute bottom-0 left-0 w-full px-5 pb-10 pt-32 bg-gradient-to-t from-black via-black/80 to-transparent z-40 pointer-events-none">
+          <div className="flex flex-col gap-3 pointer-events-auto max-w-[85%]">
+            <Link href={`/app/profile/${post.profiles?.username}`} className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-yellow-400 transition-colors">
                 {!avatarErr && post.profiles?.avatar_url
-                  ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" alt="" />
-                  : <div className="w-full h-full flex items-center justify-center font-black text-[10px]">{post.profiles?.username?.[0]}</div>}
+                  ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" onError={() => setAvatarErr(true)} alt="" />
+                  : <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-xs font-bold uppercase">{post.profiles?.username?.[0]}</div>}
               </div>
-              <span className="text-base font-bold text-white tracking-tight">@{post.profiles?.username}</span>
+              <span className="text-[16px] font-bold text-white drop-shadow-md">@{post.profiles?.username}</span>
             </Link>
             
             {post.caption && (
-              <p className="text-white/90 text-[14.5px] leading-relaxed line-clamp-2 pr-16 drop-shadow-lg">
+              <p className="text-white/90 text-[14px] leading-snug drop-shadow-md line-clamp-2">
                 {post.caption}
               </p>
             )}
           </div>
         </div>
 
-        {/* MODAL COMENTARII - Slide-up stil iOS */}
+        {/* COMMENTS - Modal "Slide-up" peste video */}
         <AnimatePresence>
           {showComments && (
-            <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-[2px]">
                <CommentsPanel post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowComments(false)} />
             </div>
           )}
         </AnimatePresence>
       </div>
-    </div>
 
-    {/* MODAL SHARE */}
-    <AnimatePresence>
-      {showShare && currentUser && (
-        <ShareModal post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowShare(false)} />
-      )}
-    </AnimatePresence>
+      {/* SHARE MODAL - Full overlay */}
+      <AnimatePresence>
+        {showShare && currentUser && (
+          <ShareModal post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowShare(false)} />
+        )}
+      </AnimatePresence>
+    </div>
   </>
 );
 

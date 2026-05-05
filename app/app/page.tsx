@@ -219,20 +219,26 @@ const TopNav = ({ activeTab, onTabChange, onSearchClick }: {
         <Search size={20} className="text-white" />
       </button>
 
-      {/* Center Nav */}
-      <nav className="flex items-center bg-black/40 backdrop-blur-2xl p-1 rounded-[22px] border border-white/10 pointer-events-auto shadow-2xl">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={`relative flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-300 ${
-              activeTab === tab.id ? "bg-white text-black scale-105 shadow-xl" : "text-white/40 hover:text-white"
-            }`}
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+{/* Center Nav */}
+<nav className="flex items-center bg-black/40 backdrop-blur-2xl p-1 rounded-[22px] border border-white/10 pointer-events-auto shadow-2xl">
+  {tabs.map((tab) => (
+    <button
+      key={tab.id}
+      onClick={() => onTabChange(tab.id)}
+      className={`relative flex items-center gap-2 px-6 py-2.5 rounded-[18px] transition-all duration-300 ${
+        activeTab === tab.id ? "bg-white text-black scale-105 shadow-xl" : "text-white/40 hover:text-white"
+      }`}
+    >
+      {/* ADAUGĂ ASTA: Randează iconița și schimbă-i culoarea în funcție de tab-ul activ */}
+      <span className={`${activeTab === tab.id ? "text-pink-500" : "text-white/40"}`}>
+        {tab.icon}
+      </span>
+      
+      <span className="text-[10px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
+    </button>
+  ))}
+</nav>
+
 
       {/* Spacer for symmetry */}
       <div className="w-12"></div>

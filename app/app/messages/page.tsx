@@ -227,36 +227,6 @@ export default function DirectChatPage() {
   const [sendingGift, setSendingGift]       = useState<string | null>(null);
 
 
-const [user, setUser] = useState<any>(null);
-
-  // --- LOGICA DE AUTO-SEND (PUNE-O AICI) ---
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  useEffect(() => {
-    const roomId = searchParams.get("room");
-    const autoText = searchParams.get("text");
-    const shouldSend = searchParams.get("autoSend");
-
-    // Verificăm dacă avem tot ce ne trebuie și dacă userul e logat
-    if (roomId && autoText && shouldSend === "true" && user?.id) {
-      const sendMessageNow = async () => {
-        const { error } = await supabase.from("direct_messages").insert({
-          room_id: roomId,
-          sender_id: user.id,
-          content: autoText,
-        });
-
-        if (!error) {
-          // Curățăm URL-ul ca să nu trimită mesajul de două ori
-          router.replace(`/app/messages?room=${roomId}`);
-        }
-      };
-      sendMessageNow();
-    }
-  }, [searchParams, user, router]);
-  // ------------------------------------------
-
 
 
   useEffect(() => {

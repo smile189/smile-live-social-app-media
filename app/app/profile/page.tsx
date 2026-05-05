@@ -231,6 +231,7 @@ const handleShareProfile = async () => {
     } else {
       throw new Error("Web Share not supported");
     }
+    
 
   } catch (err: any) {
     if (err.name !== "AbortError") {

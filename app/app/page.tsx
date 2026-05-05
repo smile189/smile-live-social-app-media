@@ -204,7 +204,7 @@ const TopNav = ({ activeTab, onTabChange, onSearchClick }: {
 }) => {
   const tabs = [
     { id: "friends", label: "Friends", icon: <Users size={14} /> },
-    { id: "foryou", label: "For You", icon: <Sparkles size={14} /> },
+    { id: "foryou", label: " You", icon: <Sparkles size={14} /> },
     { id: "live", label: "Live", icon: <Radio size={14} /> }
   ];
 

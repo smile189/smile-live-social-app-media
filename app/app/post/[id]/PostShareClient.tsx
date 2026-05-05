@@ -309,85 +309,91 @@ export default function PostShareClient({ id }: { id: string }) {
     </div>
   );
 
-  return (
-    <>
-      <div className="relative h-[100dvh] w-full bg-black flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 opacity-20 blur-[80px] scale-150 pointer-events-none">
-          <video src={post.video_url || post.media_url} muted loop autoPlay playsInline className="w-full h-full object-cover" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-[430px] h-full sm:h-[93vh] bg-black sm:rounded-[28px] overflow-hidden border border-white/5 shadow-2xl flex flex-col">
-
-          {/* Top controls */}
-          <div className="absolute top-5 left-5 right-5 z-50 flex justify-between items-center">
-            <Link href="/app" className="p-3 bg-black/40 backdrop-blur-xl rounded-full text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90">
-              <ChevronLeft size={20} />
-            </Link>
-            <button onClick={() => setMuted(m => !m)} className="p-3 bg-black/40 backdrop-blur-xl rounded-full text-white border border-white/10 hover:bg-white/10 transition-all active:scale-90">
-              {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-            </button>
-          </div>
-
-          {/* Video */}
-          <div className="relative flex-1 overflow-hidden" onClick={togglePlay}>
-            <video ref={videoRef} src={post.video_url || post.media_url} poster={post.thumbnail_url || undefined}
-              className="w-full h-full object-cover" autoPlay loop playsInline muted={muted} />
-            {!playing && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
-                  <Play size={28} className="text-white ml-1" fill="white" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="absolute right-0 bottom-[22%] z-50">
-            <SidebarActions
-              post={post} currentUser={currentUser}
-              likeCount={likeCount} liked={liked} onLike={handleLike}
-              onOpenComments={() => setShowComments(true)}
-              commentCount={commentCount} viewCount={viewCount}
-              onOpenShare={() => setShowShare(true)}
-              supabase={supabase}
-            />
-          </div>
-
-          {/* Bottom info */}
-          <div className="absolute bottom-0 left-0 w-full px-5 pb-8 pt-16 bg-gradient-to-t from-black via-black/60 to-transparent z-40 pointer-events-none">
-            <Link href={`/app/profile/${post.profiles?.username}`} className="flex items-center gap-3 mb-2 pointer-events-auto w-fit">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-yellow-400 bg-zinc-900 flex items-center justify-center text-xs font-black text-zinc-500 uppercase">
-                {!avatarErr && post.profiles?.avatar_url
-                  ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" onError={() => setAvatarErr(true)} alt="" />
-                  : post.profiles?.username?.[0]}
-              </div>
-              <p className="text-base font-black text-white hover:text-yellow-400 transition-colors">@{post.profiles?.username}</p>
-            </Link>
-            {post.caption && <p className="text-white/70 text-sm leading-relaxed line-clamp-2 pr-20">{post.caption}</p>}
-          </div>
-
-          {/* Comments panel */}
-          {showComments && (
-            <CommentsPanel post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowComments(false)} />
-          )}
-        </div>
+ return (
+  <>
+    <div className="relative h-[100dvh] w-full bg-black flex items-center justify-center overflow-hidden font-sans">
+      {/* 1. BACKGROUND AMBIENT (Blurat fin, nu deranjant) */}
+      <div className="absolute inset-0 opacity-30 blur-[100px] pointer-events-none scale-110">
+        <video src={post.video_url || post.media_url} muted loop autoPlay playsInline className="w-full h-full object-cover" />
       </div>
 
-      {/* Share Modal — în afara cardului, full screen */}
+      {/* 2. CONTAINER PRINCIPAL (Aspect Ratio de mobil pe orice ecran) */}
+      <div className="relative z-10 w-full max-w-[430px] h-full sm:h-[94vh] bg-zinc-950 sm:rounded-[40px] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10 flex flex-col">
+        
+        {/* TOP BAR - Mai aerisită, butoane mai mici/discrete */}
+        <div className="absolute top-6 left-6 right-6 z-50 flex justify-between items-center">
+          <Link href="/app" className="p-2.5 bg-black/20 backdrop-blur-xl rounded-full text-white/90 border border-white/10 hover:bg-white/10 transition-all">
+            <ChevronLeft size={22} />
+          </Link>
+          <button onClick={() => setMuted(m => !m)} className="p-2.5 bg-black/20 backdrop-blur-xl rounded-full text-white/90 border border-white/10 hover:bg-white/10 transition-all">
+            {muted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+          </button>
+        </div>
+
+        {/* PLAYER VIDEO - Centrat perfect */}
+        <div className="relative flex-1 flex items-center justify-center bg-black cursor-pointer" onClick={togglePlay}>
+          <video ref={videoRef} src={post.video_url || post.media_url} poster={post.thumbnail_url || undefined}
+            className="w-full h-full object-contain sm:object-cover" autoPlay loop playsInline muted={muted} />
+          
+          {!playing && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+              <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <Play size={32} className="text-white ml-1" fill="white" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* SIDEBAR - Ridicat mai sus (UX fix: să nu blocheze descrierea) */}
+        <div className="absolute right-3 bottom-[28%] z-50 flex flex-col gap-5">
+          <SidebarActions
+            post={post} currentUser={currentUser}
+            likeCount={likeCount} liked={liked} onLike={handleLike}
+            onOpenComments={() => setShowComments(true)}
+            commentCount={commentCount} viewCount={viewCount}
+            onOpenShare={() => setShowShare(true)}
+            supabase={supabase}
+          />
+        </div>
+
+        {/* INFO JOS - Gradient lung pentru lizibilitate (TikTok style) */}
+        <div className="absolute bottom-0 left-0 w-full px-5 pb-10 pt-32 bg-gradient-to-t from-black via-black/80 to-transparent z-40 pointer-events-none">
+          <div className="flex flex-col gap-3 pointer-events-auto max-w-[85%]">
+            <Link href={`/app/profile/${post.profiles?.username}`} className="flex items-center gap-2.5 group">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-yellow-400 transition-colors">
+                {!avatarErr && post.profiles?.avatar_url
+                  ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" onError={() => setAvatarErr(true)} alt="" />
+                  : <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-xs font-bold uppercase">{post.profiles?.username?.[0]}</div>}
+              </div>
+              <span className="text-[16px] font-bold text-white drop-shadow-md">@{post.profiles?.username}</span>
+            </Link>
+            
+            {post.caption && (
+              <p className="text-white/90 text-[14px] leading-snug drop-shadow-md line-clamp-2">
+                {post.caption}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* COMMENTS - Modal "Slide-up" peste video */}
+        <AnimatePresence>
+          {showComments && (
+            <div className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-[2px]">
+               <CommentsPanel post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowComments(false)} />
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* SHARE MODAL - Full overlay */}
       <AnimatePresence>
         {showShare && currentUser && (
-          <ShareModal
-            post={post}
-            currentUser={currentUser}
-            supabase={supabase}
-            onClose={() => setShowShare(false)}
-          />
-        )}
-        {showShare && !currentUser && (
-          // Dacă nu e logat — redirect
-          (() => { window.location.href = "/app/login"; return null; })()
+          <ShareModal post={post} currentUser={currentUser} supabase={supabase} onClose={() => setShowShare(false)} />
         )}
       </AnimatePresence>
-    </>
-  );
+    </div>
+  </>
+);
+
 }

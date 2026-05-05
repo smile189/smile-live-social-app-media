@@ -771,7 +771,6 @@ const handleShareProfile = async () => {
         </div>
       )}
       <BottomNav />
-
     </div>
   );
 }

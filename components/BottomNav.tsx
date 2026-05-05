@@ -17,6 +17,7 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
   const pathname = usePathname();
   const [active, setActive] = useState("feed");
   const [user, setUser] = useState<any>(null);
+  const [profileData, setProfileData] = useState<{ avatar_url?: string } | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
   
   // ADAUGAT: State pentru numărul de notificări
@@ -34,6 +35,20 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
     else if (pathname?.includes("notifications")) setActive("notif"); // ADAUGAT
     else setActive("feed");
   }, [pathname]);
+
+  // FUNCȚIE NOUĂ: Fetch Avatar
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", userId)
+        .single();
+      if (data) setProfileData(data);
+    } catch (err) {
+      console.log("Eroare profil:", err);
+    }
+  };
 
   const checkUnread = async (userId: string) => {
     try {
@@ -63,14 +78,22 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
     const init = async () => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       setUser(currentUser);
-      if (currentUser) checkUnread(currentUser.id);
+      if (currentUser) {
+        checkUnread(currentUser.id);
+        fetchProfile(currentUser.id);
+      }
     };
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const curr = session?.user ?? null;
       setUser(curr);
-      if (curr) checkUnread(curr.id);
+      if (curr) {
+        checkUnread(curr.id);
+        fetchProfile(curr.id);
+      } else {
+        setProfileData(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -99,7 +122,6 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // ADAUGAT: Notif în navItems (am înlocuit Buy pentru spațiu, sau poți rearanja)
   const navItems = [
     { id: "feed", label: "Home", icon: Home, path: "/app" },
     { id: "notif", label: "Inbox", icon: Bell, path: "/app/notifications" },
@@ -124,6 +146,7 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
+          const isProfile = item.id === "connect";
 
           if (item.isSpecial) {
             return (
@@ -144,7 +167,19 @@ export default function BottomNav({ activePostId, progress = 0 }: BottomNavProps
           return (
             <button key={item.id} onClick={() => router.push(item.path)} className="flex flex-col items-center justify-center flex-1 h-full relative group">
               <div className="relative p-1">
-                <Icon size={22} className={`transition-all duration-300 ${isActive ? "text-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-white/40 group-hover:text-white/60"}`} />
+                {isProfile && user ? (
+                  <div className={`w-[24px] h-[24px] rounded-full overflow-hidden border transition-all duration-300 ${isActive ? "border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "border-white/40 group-hover:border-white/60"}`}>
+                    {profileData?.avatar_url ? (
+                      <img src={profileData.avatar_url} alt="profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                        <User size={14} className="text-white/40" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Icon size={22} className={`transition-all duration-300 ${isActive ? "text-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-white/40 group-hover:text-white/60"}`} />
+                )}
                 
                 {/* Badge Mesaje */}
                 {item.id === "chat" && hasUnread && (

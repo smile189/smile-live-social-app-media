@@ -501,61 +501,80 @@ const [isPolicyOpen, setIsPolicyOpen] = useState(false);///1
     );
   }
 
-  return (
-    <div className="h-screen w-full bg-black overflow-hidden relative">
-      {/* 1. BUTONUL DE ACTIVARE (Exemplu: pus în colțul dreapta sus sub TopNav) */}
-      <button 
-        onClick={() => setIsPolicyOpen(true)}
-        className="fixed top-24 right-4 z-50 p-2 bg-white/10 backdrop-blur-md rounded-full text-white/50 hover:text-white border border-white/10 transition-all"
-        title="Politicile Smile"
-      >
-       <Info size={20} />
-      </button>
+return (
+  <div className="h-screen w-full bg-black overflow-hidden relative text-white">
+    
+    {/* TOP NAV: Navigare + Search integrat direct */}
+    <nav className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-16 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="flex-1" /> {/* Spacer */}
       
-      <TopNav 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab}
-        onSearchClick={() => setIsSearchOpen(true)}
-      />
-      
-      <UserSearchModal 
-        isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
-      />
-      
-            {/* MODALUL DE POLITICI (Adăugat aici) */}
-      <PolicyOverlay 
-        isOpen={isPolicyOpen} 
-        onClose={() => setIsPolicyOpen(false)} 
-      />
-
-      {/* SNAP MANDATORY: Forțează oprirea la fiecare video (one by one) */}
-      <div 
-        ref={containerRef} 
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth"
-        style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
-      >
-        {posts.map((post) => (
-          <section 
-            key={post.id} 
-            data-id={post.id} 
-            className="h-full w-full snap-start snap-always relative overflow-hidden"
+      <div className="flex items-center gap-6">
+        {[
+          { id: "friends", label: "Friends", icon: <Users size={14} /> },
+          { id: "foryou", label: "For You", icon: <Sparkles size={14} /> },
+          { id: "live", label: "Live", icon: <Radio size={14} /> }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`relative flex items-center gap-1.5 py-1 transition-all ${
+              activeTab === tab.id ? "opacity-100 scale-105" : "opacity-60"
+            }`}
           >
-          
-            <MediaRenderer 
-              post={post} 
-              isActive={activePostId === post.id} 
-              isNear={true}
-              onProgress={setGlobalProgress}
-            />
-            <SidebarActions post={post} />
-          </section>
+            {tab.icon}
+            <span className="text-[15px] font-bold">{tab.label}</span>
+            {activeTab === tab.id && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-white rounded-full" />
+            )}
+          </button>
         ))}
       </div>
+
+      <div className="flex-1 flex justify-end">
+        <button onClick={() => setIsSearchOpen(true)} className="p-2">
+          <Search size={22} />
+        </button>
+      </div>
+    </nav>
+
+    {/* BUTON INFO */}
+    <button 
+      onClick={() => setIsPolicyOpen(true)}
+      className="fixed top-20 right-4 z-50 p-2 bg-white/10 backdrop-blur-md rounded-full text-white/50 hover:text-white border border-white/10 transition-all"
+    >
+      <Info size={20} />
+    </button>
     
+    {/* MODALE */}
+    <UserSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+    <PolicyOverlay isOpen={isPolicyOpen} onClose={() => setIsPolicyOpen(false)} />
 
-
-      <BottomNav activePostId={activePostId} progress={globalProgress} />
+    {/* FEED SNAP MANDATORY */}
+    <div 
+      ref={containerRef} 
+      className="h-full w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar scroll-smooth"
+      style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+    >
+      {posts.map((post) => (
+        <section 
+          key={post.id} 
+          data-id={post.id} 
+          className="h-full w-full snap-start snap-always relative overflow-hidden flex items-center justify-center"
+        >
+          <MediaRenderer 
+            post={post} 
+            isActive={activePostId === post.id} 
+            isNear={true}
+            onProgress={setGlobalProgress}
+          />
+          <SidebarActions post={post} />
+        </section>
+      ))}
     </div>
-  );
+
+    {/* BOTTOM NAV */}
+    <BottomNav activePostId={activePostId} progress={globalProgress} />
+  </div>
+);
+
 }

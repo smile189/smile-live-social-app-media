@@ -391,7 +391,7 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
     <div className="h-screen bg-[#050505] flex flex-col items-center justify-center gap-4">
       <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
       <span className="text-[9px] font-black uppercase tracking-[0.4em] text-yellow-400 font-mono italic">
-        SMILE SYNCING
+        SMILE...
       </span>
     </div>
   );
@@ -406,7 +406,7 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
         <X size={32} className="text-zinc-700" />
       </div>
       <h1 className="text-xl font-black uppercase tracking-[0.3em] italic mb-2">User Protocol 404</h1>
-      <p className="text-zinc-600 text-sm mb-10">Acest profil nu există.</p>
+      <p className="text-zinc-600 text-sm mb-10">This user profile doesn't exist.</p>
       <button
         onClick={() => router.push("/app")}
         className="px-10 py-4 bg-white text-black font-black uppercase text-[10px] tracking-widest rounded-full hover:bg-zinc-100 transition-all active:scale-95"
@@ -433,11 +433,29 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
         >
           <ChevronLeft size={20} />
         </button>
-        <span className="font-black text-[9px] tracking-[0.5em] uppercase text-zinc-600 italic">
-          User Protocol
-        </span>
-        <div className="w-10" />
+
+        <div className="flex flex-col items-center flex-1">
+          <span className="font-black text-[9px] tracking-[0.5em] uppercase text-zinc-600 italic leading-none">
+            User smile  profile
+          </span>
+          <span className="font-black text-[5px] tracking-[0.3em] uppercase text-zinc-800 italic mt-1">
+            Official Platform
+          </span>
+        </div>
+
+        {/* LOGO REBRAND DREAPTA */}
+        <div className="flex flex-col items-end gap-1">
+          <img 
+            src="/smile_rebrand-app.png" 
+            alt="Smile Logo" 
+            className="h-7 w-auto object-contain brightness-110 active:scale-95 transition-transform"
+          />
+          <span className="font-black text-[8px] tracking-[0.2em] uppercase text-zinc-600 italic">
+            www.smileliveapp.com
+          </span>
+        </div>
       </div>
+
 
       <div className="pt-28 max-w-4xl mx-auto px-4">
 
@@ -509,15 +527,20 @@ await supabase.rpc("increment_post_views", { post_id: post.id }).then(null, () =
               }
             </button>
 
-            {/* Gift/Zap button — only if logged in and not own profile */}
-            {currentUser && (
-              <button
-                className="px-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/5 text-yellow-400 hover:bg-yellow-400/10 active:rotate-12 transition-all"
-                style={{ boxShadow: `0 0 20px ${liveColor}20` }}
-              >
-                <Zap size={20} fill="currentColor" />
-              </button>
-            )}
+<button
+  onClick={() => {
+    const roomId = [currentUser.id, profile.id].sort().join("_");
+    // Adăugăm un flag "autoSend=true" ca să știe chat-ul să-l trimită singur
+    const msg = encodeURIComponent("Salut! ✨ Ți-am văzut profilul și am vrut să te salut!");
+    router.push(`/app/messages?room=${roomId}&text=${msg}&autoSend=true`);
+  }}
+  className="px-5 py-3 rounded-2xl border border-pink-500/20 bg-pink-500/5 text-pink-500 hover:bg-pink-500/10 active:scale-95 transition-all flex items-center gap-2"
+>
+  <MessageCircle size={20} fill="currentColor" />
+  <span className="font-black italic uppercase text-[10px] tracking-tighter">Say Hi</span>
+</button>
+
+
           </div>
 
           {/* Not logged in hint */}

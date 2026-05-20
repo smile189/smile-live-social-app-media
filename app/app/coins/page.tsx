@@ -79,6 +79,23 @@ const PACKAGES = [
     badge: "Max Savings",
     popular: false,
   },
+{
+  /*id: "pack_1m_billionaire", // Să fie IDENTIC cu cel din backend!
+  coins: 1150000000, 
+  prices: { 
+    eur: 999999.99, // Modificat la 999.999,99 € ca să accepte Stripe
+    usd: 1100000.00, 
+    ron: 5000000.00 
+  },
+  label: "Billionaire",
+  sub: "Ultimate status",
+  icon: Diamond,
+  gradient: "from-yellow-300 via-amber-500 to-yellow-700", 
+  glow: "rgba(234,179,8,0.45)",
+  badge: "MYTHIC",
+  popular: true,
+}
+ */
 ];
 
 type Currency = "eur" | "usd" | "ron";

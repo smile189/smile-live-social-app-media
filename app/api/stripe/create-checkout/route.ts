@@ -18,6 +18,7 @@ export const COIN_PACKAGES = [
   { id: "pack_50000",   coins: 50000,   label: "Pro",     eur: 4599,   usd: 4999,   ron: 22999  },
   { id: "pack_110000",  coins: 110000,  label: "Elite",   eur: 9999,   usd: 10999,  ron: 49999  },
   { id: "pack_1150000", coins: 1150000, label: "Diamond", eur: 99999,  usd: 109999, ron: 499999 },
+
 ];
 
 export async function POST(req: NextRequest) {

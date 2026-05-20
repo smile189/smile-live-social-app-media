@@ -79,8 +79,9 @@ const PACKAGES = [
     badge: "Max Savings",
     popular: false,
   },
+   /*
 {
-  /*id: "pack_1m_billionaire", // Să fie IDENTIC cu cel din backend!
+ id: "pack_1m_billionaire", // Să fie IDENTIC cu cel din backend!
   coins: 1150000000, 
   prices: { 
     eur: 999999.99, // Modificat la 999.999,99 € ca să accepte Stripe

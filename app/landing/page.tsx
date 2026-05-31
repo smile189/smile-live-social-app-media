@@ -584,11 +584,11 @@ useEffect(() => {
             <h2 className="text-5xl sm:text-[10rem] font-black italic uppercase tracking-tighter leading-none mb-16 relative z-10">
                 DONT JUST WATCH.<br/><span className="text-red-600">SMILE.</span>
             </h2>
-<Link href="app/login">
-  <button className="relative z-10 px-20 py-10 bg-white text-black font-black uppercase text-sm rounded-full hover:scale-110 transition-transform shadow-2xl">
-    Create Your Account
-  </button>
-</Link>
+            <Link href="app/login">
+              <button className="relative z-10 px-20 py-10 bg-white text-black font-black uppercase text-sm rounded-full hover:scale-110 transition-transform shadow-2xl">
+                Create Your Account
+              </button>
+            </Link>
         </section>
 
       </main>

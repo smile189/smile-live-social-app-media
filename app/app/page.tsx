@@ -392,6 +392,11 @@ const [isPolicyOpen, setIsPolicyOpen] = useState(false);///1
   
 
   const loadContent = useCallback(async (isInitial = false) => {
+        if (activeTab === "live") {
+      window.location.href = "/live";
+      return;
+    }
+
     if (isFetching.current) return;
     isFetching.current = true;
     

@@ -1,6 +1,6 @@
 /**
  * path: app/live/[username]/page.tsx
- * about: Stream individual - Responsive TikTok Style Layout (9:16 Center Box on Desktop)
+ * about: Individual Stream - Responsive TikTok Style Layout (9:16 Center Box on Desktop)
  * author: BM
  */
 
@@ -12,7 +12,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ChatLive from '@/components/ChatLive';
 import FLive from '@/components/FLive';
 
-import { LiveKitRoom, RoomAudioRenderer, VideoTrack, useTracks } from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer, VideoTrack, useTracks, TrackReference } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 
@@ -63,19 +63,19 @@ export default function MainLive() {
     
     fetch(`/api/token?room=${encodeURIComponent(liveRoomId)}&username=${encodeURIComponent(viewerName)}`)
       .then((res) => {
-        if (!res.ok) throw new Error("Eroare server token");
+        if (!res.ok) throw new Error("Token server error");
         return res.json();
       })
       .then((data) => {
         if (data.token) {
           setLkToken(data.token);
         } else {
-          setLkError("Token invalid.");
+          setLkError("Invalid token received.");
         }
       })
       .catch((err) => {
         console.error("Fetch Token Error:", err);
-        setLkError("Eroare de conexiune la server.");
+        setLkError("Server connection error.");
       });
   }, [username, loading, streamerId, liveRoomId, retryKey]);
 
@@ -88,20 +88,20 @@ export default function MainLive() {
   return (
     <main className="relative h-screen w-screen bg-[#020005] overflow-hidden flex items-center justify-center">
       
-      {/* 1. FUNDAL CINEMATIC PENTRU MONITOARE MARI */}
+      {/* 1. CINEMATIC BACKGROUND FOR DESKTOP MONITORS */}
       <div className="absolute inset-0 z-0 pointer-events-none hidden md:block">
         <div className="absolute inset-0 bg-gradient-to-tr from-[#020005] via-[#0d011a] to-[#05000a] opacity-90" />
         <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[60%] bg-purple-600/10 rounded-full blur-[160px]" />
       </div>
 
-      {/* 2. CONTAINER RESPONSIVE TIP SMARTPHONE (9:16 Pe Desktop | Fullscreen pe Mobil) */}
+      {/* 2. RESPONSIVE SMARTPHONE-LIKE CONTAINER (9:16 On Desktop | Fullscreen on Mobile) */}
       <div className="relative w-full h-full md:max-w-[450px] md:h-[92vh] md:rounded-[32px] md:border md:border-white/10 md:shadow-[0_0_50px_rgba(168,85,247,0.15)] bg-[#05010a] overflow-hidden flex flex-col z-10">
         
-        {/* STRAT VIDEO INDEPENDENT */}
+        {/* INDEPENDENT VIDEO LAYER */}
         <div className="absolute inset-0 z-10 w-full h-full flex items-center justify-center">
           {!liveRoomId ? (
             <div className="text-white/40 text-sm font-semibold uppercase tracking-wider px-4 text-center">
-              Streamerul nu are camera pornită
+              Streamer is currently offline
             </div>
           ) : lkToken ? (
             <LiveKitRoom
@@ -125,20 +125,20 @@ export default function MainLive() {
                     onClick={() => setRetryKey(prev => prev + 1)}
                     className="text-[11px] bg-purple-600 px-3 py-1 rounded text-white uppercase font-bold"
                   >
-                    Reîncearcă
+                    Retry Conexiune
                   </button>
                 </>
-              ) : "Se conectează la stream-ul video..."}
+              ) : "Connecting to video stream..."}
             </div>
           )}
         </div>
         
-        {/* STRAT INTERACTIV: TAP-TAP OVERLAY (Mapat la dimensiunea containerului) */}
+        {/* INTERACTIVE LAYER: TAP-TAP OVERLAY */}
         <div className="absolute inset-0 z-20 pointer-events-auto">
           <FLive streamerName={username} />
         </div>
 
-        {/* STRAT INTERACTIV SUPERIOR: CONTAINER DE CHAT ȘI CONTROALE */}
+        {/* UPPER INTERACTIVE LAYER: CHAT CONTAINER */}
         <div className="relative z-30 mt-auto w-full flex flex-col items-center pointer-events-none p-4">
           {streamerId ? (
             <div className="h-[420px] md:h-[400px] w-full max-w-full pointer-events-auto">
@@ -146,7 +146,7 @@ export default function MainLive() {
             </div>
           ) : (
             <div className="text-white/20 mb-10 font-bold uppercase tracking-widest text-xs">
-              Profilul nu a fost găsit
+              Profile not found
             </div>
           )}
         </div>
@@ -163,18 +163,19 @@ function VideoPlayerContainer({ onRetry }: { onRetry: () => void }) {
     { onlySubscribed: true }
   );
 
-  const liveVideoTrack = tracks.find(t => t.publication?.isSubscribed) ?? null;
+  // Filters out placeholders to protect the VideoTrack component from TypeScript type mismatch errors
+  const liveVideoTrack = tracks.find(t => t.publication?.isSubscribed && !t.isPlaceholder) ?? null;
 
   if (!liveVideoTrack) {
     return (
       <div className="text-center text-white/30 font-bold uppercase tracking-widest text-xs animate-pulse flex flex-col gap-3 relative z-40 pointer-events-auto px-6">
         <span className="w-5 h-5 border-2 border-t-transparent border-purple-500 rounded-full animate-spin mx-auto" />
-        <span>Se așteaptă semnalul...</span>
+        <span>Waiting for video signal...</span>
         <button
           onClick={onRetry}
           className="text-[10px] bg-white/5 border border-white/10 text-purple-400 font-bold px-2.5 py-1 rounded-md tracking-normal hover:bg-white/10 transition-all mt-1"
         >
-          Forțează Reîncărcarea
+          Force Refresh
         </button>
       </div>
     );
@@ -182,9 +183,8 @@ function VideoPlayerContainer({ onRetry }: { onRetry: () => void }) {
 
   return (
     <div className="w-full h-full absolute inset-0 bg-black">
-      {/* Imaginea video principală mulată perfect (object-cover) */}
       <VideoTrack
-        trackRef={liveVideoTrack}
+        trackRef={liveVideoTrack as TrackReference}
         className="w-full h-full object-cover relative z-10"
       />
     </div>

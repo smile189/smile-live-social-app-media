@@ -38,7 +38,7 @@
   ],
   "exclude": [
     "node_modules",
-     "smile-live-app"
+    // "smile-live-app"
   ],
   /// "extends": "expo/tsconfig.base"
 }

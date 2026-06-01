@@ -125,7 +125,7 @@ export default function MainLive() {
                     onClick={() => setRetryKey(prev => prev + 1)}
                     className="text-[11px] bg-purple-600 px-3 py-1 rounded text-white uppercase font-bold"
                   >
-                    Retry Conexiune
+                    Retry Connection
                   </button>
                 </>
               ) : "Connecting to video stream..."}
@@ -163,8 +163,8 @@ function VideoPlayerContainer({ onRetry }: { onRetry: () => void }) {
     { onlySubscribed: true }
   );
 
-  // Filters out placeholders to protect the VideoTrack component from TypeScript type mismatch errors
-  const liveVideoTrack = tracks.find(t => t.publication?.isSubscribed && !t.isPlaceholder) ?? null;
+  // FIXED: Checked t.publication safely to filter out undefined track publications
+  const liveVideoTrack = tracks.find(t => t.publication !== undefined && t.publication.isSubscribed) ?? null;
 
   if (!liveVideoTrack) {
     return (

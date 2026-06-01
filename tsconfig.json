@@ -37,7 +37,8 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+     "smile-live-app"
   ],
   /// "extends": "expo/tsconfig.base"
 }

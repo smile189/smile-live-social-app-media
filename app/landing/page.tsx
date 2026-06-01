@@ -194,7 +194,7 @@ useEffect(() => {
 
 
       <Link 
-        href="/app/live" 
+        href="/live" 
         className="w-full sm:w-auto group relative px-10 py-5 sm:px-12 sm:py-6 border border-red-600/50 text-white font-black uppercase text-[10px] sm:text-xs tracking-[0.2em] rounded-2xl transition-all hover:bg-red-600 hover:shadow-[0_0_40px_rgba(220,38,38,0.5)] backdrop-blur-sm flex items-center justify-center gap-3"
       >
         <span className="relative z-10">Go LIVE</span>

@@ -9,27 +9,27 @@ const founders = [
   {
     name: 'Alexandra Stefan',
     role: 'Chief Executive Officer',
-    focus: 'Product Strategy & Growth',
-    initials: 'AS',
+    focus: 'Co-Founder & CEO, Product Strategy & Growth',
+    initials: 'A Stefan',
     icon: Briefcase,
     linkedin: 'https://linkedin.com',
     github: '#',
     bio: 'Former Product Lead with a successful in many projects. Drives the commercial vision and strategic partnerships at SmileLive for global scaling.',
     highlights: ['10+ Yrs Product Experience', 'Ex-Social media  Lead', 'Social media specialist interactive'],
     hasConsulting: true,
-    phone: '+40722000000', // Înlocuiește cu numărul real al CEO-ului
-    rate: '€1,000/hr'
+    phone: '+40725962147', // 
+    rate: '€10,000/hr'
   },
   {
     name: 'B Marius',
     role: 'Chief Technology Officer',
-    focus: 'Infrastructure & Architecture',
-    initials: 'MB',
+    focus: 'Co-Founder & CTO, Infrastructure & Architecture',
+    initials: 'BM',
     icon: Code2,
     linkedin: 'https://linkedin.com',
     github: 'https://github.com/smile189/smile-live-social-app-media',
-    bio: 'Distributed systems architect. Developed SmileLive\'s streaming infrastructure capable of supporting over 100k concurrent connections.',
-    highlights: ['Senior Software Eng', 'WebRTC & Go Expert', 'Smile Source main Contributor', 'ARM Cortex M/A  advanced knowledge', 'Fullstack dev'],
+    bio: 'Distributed systems architect. Developed SmileLiveapp.com\'s streaming infrastructure capable of supporting over 100k concurrent connections.',
+    highlights: ['Senior Software Eng', 'WebRTC & Go/CLI Expert', 'Smile Source main Contributor- JS/TSX, C/C++', 'ARM Cortex M/A  advanced knowledge', 'Fullstack dev'],
     hasConsulting: false
   },
 ];

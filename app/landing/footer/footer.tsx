@@ -97,7 +97,7 @@ export default function Footer() {
     {
       title: "Platform",
       links: [
-        { label: "About Us", url: "/landing/404" },
+        { label: "About Us", url: "/landing/founders" },
          { label: "web app", url: "/app" },
         { label: "Developers", url: "/landing/404" },
       ],

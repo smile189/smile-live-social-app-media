@@ -58,8 +58,9 @@ const companyInsights = [
 export default function FoundersClient() {
   const [selectedInsight, setSelectedInsight] = useState('vision');
 
-  const activeInsight = companyInsights.find(i => i.id === selectedInsight) || companyInsights;
-  const InsightIcon = activeInsight.icon;
+const activeInsight = companyInsights.find(i => i.id === selectedInsight) || companyInsights[0];
+const InsightIcon = activeInsight.icon;
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white flex flex-col justify-between">

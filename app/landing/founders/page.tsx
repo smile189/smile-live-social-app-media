@@ -10,7 +10,7 @@ const founders = [
     name: 'Alexandra Stefan',
     role: 'Chief Executive Officer',
     focus: 'Co-Founder & CEO, Product Strategy & Growth',
-    initials: 'A Stefan',
+    initials: 'A S',
     icon: Briefcase,
     linkedin: 'https://linkedin.com',
     github: '#',
@@ -24,7 +24,7 @@ const founders = [
     name: 'B Marius',
     role: 'Chief Technology Officer',
     focus: 'Co-Founder & CTO, Infrastructure & Architecture',
-    initials: 'BM',
+    initials: 'B M',
     icon: Code2,
     linkedin: 'https://linkedin.com',
     github: 'https://github.com/smile189/smile-live-social-app-media',
@@ -49,7 +49,7 @@ const companyInsights = [
   },
   {
     id: 'growth',
-    title: 'Q3/Q4 Scalability',
+    title: ' Scalability',
     description: 'Expanding the ecosystem through native viewer-brand interaction modules and integrating new ultra-low latency protocols.',
     icon: Rocket
   }

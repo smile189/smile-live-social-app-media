@@ -195,7 +195,8 @@ function LiveScreenInner({
       .from("gift_types")
       .select("id, name, image_url, coin_price, description")
       .order("coin_price", { ascending: true })
-      .then(({ data }) => { if (data) setGiftTypes(data as GiftType[]); });
+      .then(({ data }: { data: any }) => { if (data) setGiftTypes(data as GiftType[]); });
+
   }, [supabase]);
 
   /* ── Coins (optimistic) ── */

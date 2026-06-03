@@ -735,36 +735,68 @@ export default function LiveStudioPage() {
   const [error, setError] = useState("");
   const [loadingStream, setLoadingStream] = useState(false);
 
-  useEffect(() => {
-    async function checkStreamerStatus() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
+
+//** user profileload  */
+useEffect(() => {
+  let isMounted = true;
+
+  async function checkStreamerStatus() {
+    try {
+      // 1. Luăm userul prin getUser (este mai sigur pe server/client în Next.js decât getSession)
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        if (isMounted) {
           setError("Trebuie să fii autentificat pentru a accesa studioul live.");
           setLoadingCheck(false);
-          return;
         }
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, username, is_live, live_room_id, coins")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        if (profileError || !profile) {
-          setError("Nu s-a găsit profilul de utilizator.");
-          setLoadingCheck(false);
-          return;
-        }
-        setUserProfile(profile as UserProfile);
-        // TODO: înlocuiește cu profile.follower_count când coloana e gata
-        setFollowerCount(1250);
-      } catch {
+        return;
+      }
+
+      // 2. Interogăm profilul doar dacă avem un ID valid de utilizator
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, username, is_live, live_room_id, coins")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (profileError) {
+        console.error("Supabase Error:", profileError);
+        setError("Eroare la preluarea datelor de profil.");
+        return;
+      }
+
+      // Dacă profilul chiar lipsește din tabelă în acel moment
+      if (!profile) {
+        setError("Nu s-a găsit profilul de utilizator.");
+        return;
+      }
+
+      // 3. Totul este în regulă, salvăm datele
+      setUserProfile(profile as UserProfile);
+      setFollowerCount(1250);
+
+    } catch (err) {
+      if (isMounted) {
         setError("Eroare tehnică la verificare.");
-      } finally {
+      }
+    } finally {
+      if (isMounted) {
         setLoadingCheck(false);
       }
     }
-    checkStreamerStatus();
-  }, [supabase]);
+  }
+
+  checkStreamerStatus();
+
+  // Curățăm efectul pentru a evita memory leaks la un-mount
+  return () => {
+    isMounted = false;
+  };
+}, [supabase]);
+
 
   async function handleStartStream() {
     if (followerCount < MIN_FOLLOWERS || !userProfile) return;

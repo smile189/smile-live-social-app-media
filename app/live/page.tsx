@@ -9,6 +9,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from "@supabase/ssr";
+import { Radio } from 'lucide-react';
 
 interface ProfileFromDB {
   id: string;
@@ -104,7 +105,20 @@ export default function LiveDashboard() {
             {streamers.length} LIVE NOW
           </div>
         </header>
+
+        
       </div>
+
+                <button
+                  onClick={() => router.push('/live/studio')} // Modifică calea în funcție de structura ta
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-500 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#05010a]"
+                >
+                  {/* Bulina roșie stabilă (fără ping continuu) */}
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
+                  
+                  <span>Go Live</span>
+                </button>
+
 
       {/* Main Grid View */}
       {streamers.length === 0 ? (

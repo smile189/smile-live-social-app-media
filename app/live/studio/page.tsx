@@ -698,8 +698,8 @@ function LiveScreen({
     <LiveKitRoom
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-      video={true}
-      audio={true}
+      video={false} // Schimbat în false
+      audio={false} // Schimbat în false
       connect={true}
       onDisconnected={onStop}
       style={{ display: "contents" }}
@@ -712,6 +712,7 @@ function LiveScreen({
         supabase={supabase}
       />
     </LiveKitRoom>
+
   );
 }
 

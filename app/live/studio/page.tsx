@@ -695,24 +695,34 @@ function LiveScreen({
   supabase: ReturnType<typeof createBrowserClient>;
 }) {
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-      video={false} // Schimbat în false
-      audio={false} // Schimbat în false
-      connect={true}
-      onDisconnected={onStop}
-      style={{ display: "contents" }}
-    >
-      <LiveScreenInner
-        streamerId={streamerId}
-        senderId={senderId}
-        senderCoins={senderCoins}
-        onStop={onStop}
-        supabase={supabase}
-      />
-    </LiveKitRoom>
-
+  <LiveKitRoom
+    token={token}
+    serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+    video={false} 
+    audio={false} 
+    connect={true}
+    onDisconnected={onStop}
+    style={{ display: "contents" }}
+    //  ADAUGĂ ACEST BLOC AICI:
+    onConnected={async (room) => {
+      try {
+        // Solicită browserului să deschidă fizic camera și microfonul
+        await room.localParticipant.setCameraEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
+      } catch (err) {
+        console.error("Browserul a blocat din nou accesul la echipamente:", err);
+        alert("Te rugăm să permiți accesul la cameră și microfon din setările browserului (apasă pe lacătul de la URL).");
+      }
+    }}
+  >
+    <LiveScreenInner
+      streamerId={streamerId}
+      senderId={senderId}
+      senderCoins={senderCoins}
+      onStop={onStop}
+      supabase={supabase}
+    />
+  </LiveKitRoom>
   );
 }
 

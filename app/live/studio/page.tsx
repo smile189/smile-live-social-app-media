@@ -368,13 +368,13 @@ function LiveScreenInner({
   const localCameraTrack = localTracks.find((t) => t.source === Track.Source.Camera);
   const visibleAvatars = viewers.slice(-5);
   const extraCount = Math.max(0, viewers.length - visibleAvatars.length);
+const sideActions = [
+  { label: "Mic",   icon: micOn  ? Mic       : MicOff,    on: micOn,   action: toggleMic   },
+  { label: "Cam",   icon: camOn  ? Camera    : CameraOff, on: camOn,   action: toggleCam   },
+  { label: "Flip",  icon: SwitchCamera,                   on: false,   action: () => {}    },
+  { label: "Share", icon: ScreenShare,                    on: shareOn, action: toggleShare },
+] as const;
 
-  const sideActions = [
-    { label: "Mic",   icon: micOn  ? Mic       : MicOff,    on: !micOn,  action: toggleMic   },
-    { label: "Cam",   icon: camOn  ? Camera    : CameraOff, on: !camOn,  action: toggleCam   },
-    { label: "Flip",  icon: SwitchCamera,                   on: false,   action: () => {}    },
-    { label: "Share", icon: ScreenShare,                    on: shareOn, action: toggleShare },
-  ] as const;
 
   return (
     <div className="relative min-h-screen bg-black flex flex-col overflow-hidden">
@@ -634,7 +634,7 @@ function LiveScreenInner({
             <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
             <div className="flex items-center justify-between px-4 pb-3">
               <span className="text-[14px] font-black text-white">
-                Vizionează acum ({viewers.length})
+                Viewrs now ({viewers.length})
               </span>
               <button
                 onClick={() => setShowViewers(false)}
@@ -964,7 +964,7 @@ export default function LiveStudioPage() {
         </button>
 
         <a
-          href="https://wa.me/40729411747"
+          href="https://wa.me/407294117666"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-center gap-2.5 text-[13px] font-semibold text-white/50 hover:text-white hover:border-white/20 transition-all"

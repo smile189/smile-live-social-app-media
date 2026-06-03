@@ -738,31 +738,50 @@ export default function LiveStudioPage() {
   
 //** user profileload  */
   useEffect(() => {
-    async function checkStreamerStatus() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          setError("Trebuie să fii autentificat pentru a accesa studioul live.");
-          setLoadingCheck(false);
-          return;
-        }
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, username, is_live, live_room_id, coins")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        setUserProfile(profile as UserProfile);
-        // TODO: înlocuiește cu profile.follower_count când coloana e gata
-        setFollowerCount(0);
-      } catch {
-        setError("Eroare tehnică la verificare.");
-      } finally {
+  async function checkStreamerStatus() {
+    try {
+      // 1. Preluăm userul în condiții de siguranță prin getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        setError("Trebuie să fii autentificat pentru a accesa studioul live.");
         setLoadingCheck(false);
+        return;
       }
+
+      // 2. Selectăm DOAR coloanele care există cu adevărat în DB-ul tău
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, username, is_live, live_room_id") 
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        console.error("Supabase Error:", profileError);
+        setError("Nu s-a găsit profilul de utilizator.");
+        setLoadingCheck(false);
+        return;
+      }
+
+      // 3. Injectăm monedele (0) manual în obiectul de stare pentru TypeScript
+      setUserProfile({
+        ...profile,
+        coins: 0
+      } as UserProfile);
+      
+      // 4. Setezi 0 urmăritori pentru testul tău curent
+      setFollowerCount(0);
+
+    } catch (err) {
+      setError("Eroare tehnică la verificare.");
+    } finally {
+      setLoadingCheck(false);
     }
-    checkStreamerStatus();
-  }, [supabase]);
+  }
+  
+  checkStreamerStatus();
+}, [supabase]);
+
 
   async function handleStartStream() {
      if (followerCount < 0 || !userProfile) return; 

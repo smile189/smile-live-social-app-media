@@ -220,9 +220,9 @@ function LiveScreenInner({
       .eq("streamer_id", streamerId)
       .order("created_at", { ascending: false })
       .limit(40)
-      .then(({ data }) => {
-        if (data) setMessages((data as LiveChatMessage[]).reverse());
-      });
+   .then(({ data }: { data: any }) => {
+  if (data) setMessages((data as LiveChatMessage[]).reverse());
+});
 
     // Realtime subscription
     const channel = supabase

@@ -751,11 +751,7 @@ export default function LiveStudioPage() {
           .select("id, username, is_live, live_room_id, coins")
           .eq("id", session.user.id)
           .maybeSingle();
-        if (profileError || !profile) {
-          setError("Nu s-a găsit profilul de utilizator.");
-          setLoadingCheck(false);
-          return;
-        }
+
         setUserProfile(profile as UserProfile);
         // TODO: înlocuiește cu profile.follower_count când coloana e gata
         setFollowerCount(0);

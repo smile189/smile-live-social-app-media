@@ -230,7 +230,7 @@ function LiveScreenInner({
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "live_chat", filter: `streamer_id=eq.${streamerId}` },
-        async (payload) => {
+    async (payload: any) => {
           const { data } = await supabase
             .from("live_chat")
             .select(`

@@ -22,12 +22,14 @@ import {
 import { RoomEvent, Track } from "livekit-client";
 import type { RemoteParticipant, Room } from "livekit-client";
 import Image from "next/image";
+// Înlocuiește CameraRotate cu SwitchCamera
 import {
   Radio, AlertCircle, ShieldAlert, Users, ArrowLeft, Video,
   Wifi, Smartphone, BadgeCheck, Lightbulb, TrendingUp, Coins,
-  Phone, Mic, MicOff, Camera, CameraOff, CameraRotate,
+  Phone, Mic, MicOff, Camera, CameraOff, SwitchCamera,
   ScreenShare, Eye, UserPlus, Send, StopCircle, Loader2,
 } from "lucide-react";
+
 
 /* ═══════════════════════════════════════════
    TYPES
@@ -369,7 +371,7 @@ function LiveScreenInner({
   const sideActions = [
     { label: "Mic",   icon: micOn  ? Mic       : MicOff,    on: !micOn,  action: toggleMic   },
     { label: "Cam",   icon: camOn  ? Camera    : CameraOff, on: !camOn,  action: toggleCam   },
-    { label: "Flip",  icon: CameraRotate,                   on: false,   action: () => {}    },
+    { label: "Flip",  icon: SwitchCamera,                   on: false,   action: () => {}    },
     { label: "Share", icon: ScreenShare,                    on: shareOn, action: toggleShare },
   ] as const;
 

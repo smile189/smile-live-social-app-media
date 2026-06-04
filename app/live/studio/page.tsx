@@ -1,7 +1,8 @@
 /**
  * path: app/live/studio/page.tsx
- * about: Streamer Studio — all-in-one: auth, pre-live, LiveKit, gifts, chat realtime, viewers
+ * about: Streamer Studio — auth, pre-live, LiveKit, gifts, chat realtime, viewers
  * author: AI / BM
+ * fixes: viewer names + avatars from LiveKit metadata; all UI text in English
  */
 
 "use client";
@@ -22,12 +23,11 @@ import {
 import { RoomEvent, Track } from "livekit-client";
 import type { RemoteParticipant, Room } from "livekit-client";
 import Image from "next/image";
-// Înlocuiește CameraRotate cu SwitchCamera
 import {
   Radio, AlertCircle, ShieldAlert, Users, ArrowLeft, Video,
   Wifi, Smartphone, BadgeCheck, Lightbulb, TrendingUp, Coins,
   Phone, Mic, MicOff, Camera, CameraOff, SwitchCamera,
-  ScreenShare, Eye, UserPlus, Send, StopCircle, Loader2,
+  ScreenShare, Eye, Send, StopCircle, Loader2,
 } from "lucide-react";
 
 
@@ -55,6 +55,7 @@ interface Viewer {
   displayName: string;
   initials: string;
   color: string;
+  avatarUrl: string | null;   // ← fix: avatar from LK metadata
   joinedAt: number;
 }
 
@@ -96,15 +97,87 @@ function colorFor(id: string): string {
 function initialsFrom(name: string) {
   return name.replace("@", "").slice(0, 2).toUpperCase();
 }
+
+/**
+ * FIX: parse p.name and p.metadata to get displayName + avatarUrl.
+ * Token must be generated with:
+ *   new AccessToken(key, secret, { identity, name: username, metadata: JSON.stringify({ avatar_url }) })
+ */
 function toViewer(p: RemoteParticipant): Viewer {
   const identity = p.identity;
+
+  // name comes from the LK token grant
+  const displayName = p.name ? `@${p.name}` : `@${identity}`;
+
+  // avatar_url comes from metadata JSON
+  let avatarUrl: string | null = null;
+  try {
+    if (p.metadata) {
+      const meta = JSON.parse(p.metadata);
+      avatarUrl = meta.avatar_url ?? null;
+    }
+  } catch {
+    // metadata not valid JSON — ignore
+  }
+
   return {
     identity,
-    displayName: p.name || `@${identity}`,
+    displayName,
     initials: initialsFrom(p.name || identity),
     color: colorFor(identity),
+    avatarUrl,
     joinedAt: Date.now(),
   };
+}
+
+/* ═══════════════════════════════════════════
+   VIEWER AVATAR  (handles photo + fallback)
+═══════════════════════════════════════════ */
+function ViewerAvatar({
+  viewer,
+  size = 40,
+  className = "",
+}: {
+  viewer: Viewer;
+  size?: number;
+  className?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const showPhoto = viewer.avatarUrl && !imgError;
+
+  return (
+    <div
+      className={`rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}
+      style={{
+        width: size,
+        height: size,
+        background: showPhoto ? undefined : viewer.color,
+      }}
+    >
+      {showPhoto ? (
+        <Image
+          src={viewer.avatarUrl!}
+          alt={viewer.displayName}
+          width={size}
+          height={size}
+          className="object-cover w-full h-full"
+          unoptimized
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span
+          style={{
+            fontSize: size * 0.33,
+            fontWeight: 900,
+            color: "#000",
+            lineHeight: 1,
+          }}
+        >
+          {viewer.initials}
+        </span>
+      )}
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════
@@ -196,7 +269,6 @@ function LiveScreenInner({
       .select("id, name, image_url, coin_price, description")
       .order("coin_price", { ascending: true })
       .then(({ data }: { data: any }) => { if (data) setGiftTypes(data as GiftType[]); });
-
   }, [supabase]);
 
   /* ── Coins (optimistic) ── */
@@ -209,7 +281,6 @@ function LiveScreenInner({
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load recent
     supabase
       .from("live_chat")
       .select(`
@@ -220,17 +291,16 @@ function LiveScreenInner({
       .eq("streamer_id", streamerId)
       .order("created_at", { ascending: false })
       .limit(40)
-   .then(({ data }: { data: any }) => {
-  if (data) setMessages((data as LiveChatMessage[]).reverse());
-});
+      .then(({ data }: { data: any }) => {
+        if (data) setMessages((data as LiveChatMessage[]).reverse());
+      });
 
-    // Realtime subscription
     const channel = supabase
       .channel(`live_chat:${streamerId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "live_chat", filter: `streamer_id=eq.${streamerId}` },
-    async (payload: any) => {
+        async (payload: any) => {
           const { data } = await supabase
             .from("live_chat")
             .select(`
@@ -256,16 +326,15 @@ function LiveScreenInner({
   async function handleGift(g: GiftType) {
     if (sendingGiftId) return;
     if (localCoins < g.coin_price) {
-      setGiftError("Coins insuficienți.");
+      setGiftError("Not enough coins.");
       setTimeout(() => setGiftError(null), 3000);
       return;
     }
     setSendingGiftId(g.id);
     setGiftError(null);
     const prev = localCoins;
-    setLocalCoins((c) => c - g.coin_price); // optimistic
+    setLocalCoins((c) => c - g.coin_price);
 
-    // 1. INSERT gift_transaction → triggerul process_gift_transaction deduce coins
     const { error: txError } = await supabase
       .from("gift_transactions")
       .insert({
@@ -276,18 +345,17 @@ function LiveScreenInner({
       });
 
     if (txError) {
-      setLocalCoins(prev); // rollback
+      setLocalCoins(prev);
       setGiftError(
         txError.message.toLowerCase().includes("insufficient")
-          ? "Coins insuficienți."
-          : "Tranzacția a eșuat."
+          ? "Not enough coins."
+          : "Transaction failed."
       );
       setTimeout(() => setGiftError(null), 3000);
       setSendingGiftId(null);
       return;
     }
 
-    // 2. INSERT live_chat type='gift' → apare în feed realtime
     await supabase.from("live_chat").insert({
       streamer_id: streamerId,
       sender_id: senderId,
@@ -296,11 +364,10 @@ function LiveScreenInner({
       content: null,
     });
 
-    // Toast local
     showGiftToast({
-      senderName: "Tu",
+      senderName: "You",
       senderColor: "#FE2C55",
-      senderInitials: "TU",
+      senderInitials: "YO",
       giftName: g.name,
       giftImageUrl: g.image_url,
     });
@@ -368,13 +435,13 @@ function LiveScreenInner({
   const localCameraTrack = localTracks.find((t) => t.source === Track.Source.Camera);
   const visibleAvatars = viewers.slice(-5);
   const extraCount = Math.max(0, viewers.length - visibleAvatars.length);
-const sideActions = [
-  { label: "Mic",   icon: micOn  ? Mic       : MicOff,    on: micOn,   action: toggleMic   },
-  { label: "Cam",   icon: camOn  ? Camera    : CameraOff, on: camOn,   action: toggleCam   },
-  { label: "Flip",  icon: SwitchCamera,                   on: false,   action: () => {}    },
-  { label: "Share", icon: ScreenShare,                    on: shareOn, action: toggleShare },
-] as const;
 
+  const sideActions = [
+    { label: "Mic",    icon: micOn   ? Mic        : MicOff,    on: micOn,    action: toggleMic   },
+    { label: "Cam",    icon: camOn   ? Camera     : CameraOff, on: camOn,    action: toggleCam   },
+    { label: "Flip",   icon: SwitchCamera,                     on: false,    action: () => {}    },
+    { label: "Share",  icon: ScreenShare,                      on: shareOn,  action: toggleShare },
+  ] as const;
 
   return (
     <div className="relative min-h-screen bg-black flex flex-col overflow-hidden">
@@ -416,7 +483,7 @@ const sideActions = [
               {giftToast.senderInitials}
             </div>
             <span className="text-[13px] font-bold text-white">{giftToast.senderName}</span>
-            <span className="text-[12px] text-white/50">trimis</span>
+            <span className="text-[12px] text-white/50">sent</span>
             <div className="relative w-5 h-5 flex-shrink-0">
               <Image src={giftToast.giftImageUrl} alt={giftToast.giftName} fill className="object-contain" unoptimized />
             </div>
@@ -428,7 +495,7 @@ const sideActions = [
         {showMuteHint && (
           <div className="absolute top-16 left-4 z-30 flex items-center gap-2 bg-black/60 border border-[#FE2C55]/30 rounded-full px-3 py-1.5 pointer-events-none">
             <MicOff className="h-3.5 w-3.5 text-[#FE2C55]" />
-            <span className="text-[12px] font-bold text-[#FE2C55]">Microfon oprit</span>
+            <span className="text-[12px] font-bold text-[#FE2C55]">Microphone off</span>
           </div>
         )}
 
@@ -496,13 +563,7 @@ const sideActions = [
                     <Loader2 className="h-7 w-7 text-[#EF9F27] animate-spin" />
                   ) : (
                     <div className="relative w-7 h-7">
-                      <Image
-                        src={g.image_url}
-                        alt={g.name}
-                        fill
-                        className="object-contain"
-                        unoptimized
-                      />
+                      <Image src={g.image_url} alt={g.name} fill className="object-contain" unoptimized />
                     </div>
                   )}
                   <span className="text-[10px] text-white/50 font-semibold">{g.coin_price}</span>
@@ -512,28 +573,31 @@ const sideActions = [
           </div>
         )}
 
-        {/* Viewer avatar stack */}
+        {/* Viewer avatar stack — FIX: uses ViewerAvatar */}
         {viewers.length > 0 && (
           <div className="flex items-center gap-2 px-4 pb-1.5">
             <div className="flex items-center">
               {visibleAvatars.map((v, i) => (
                 <div
                   key={v.identity}
-                  className="w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-[10px] font-black"
                   style={{
-                    background: v.color,
-                    color: "#000",
                     marginLeft: i === 0 ? 0 : -8,
                     zIndex: visibleAvatars.length - i,
                     position: "relative",
                   }}
                 >
-                  {v.initials}
+                  <ViewerAvatar
+                    viewer={v}
+                    size={28}
+                    className="border-2 border-black"
+                  />
                 </div>
               ))}
             </div>
             <span className="text-[12px] text-white/45 font-medium">
-              {extraCount > 0 ? `+${extraCount} vizionează` : `${viewers.length} vizionează`}
+              {extraCount > 0
+                ? `+${extraCount} watching`
+                : `${viewers.length} watching`}
             </span>
           </div>
         )}
@@ -560,7 +624,7 @@ const sideActions = [
                   </div>
                   <span className="text-[12px]">
                     <span className="font-bold" style={{ color }}>{name}</span>
-                    <span className="text-white/40"> a trimis </span>
+                    <span className="text-white/40"> sent </span>
                     <span className="font-bold text-[#EF9F27]">{msg.gift.name}</span>
                   </span>
                   <div className="relative w-4 h-4 flex-shrink-0">
@@ -596,14 +660,14 @@ const sideActions = [
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") sendChat(); }}
-            placeholder="Scrie un comentariu..."
+            placeholder="Write a comment..."
             className="flex-1 bg-white/[0.07] border border-white/10 rounded-full px-4 py-2.5 text-[13px] text-white placeholder:text-white/30 outline-none"
           />
           <button
             onClick={sendChat}
             disabled={sendingChat || !chatInput.trim()}
             className="w-10 h-10 rounded-full bg-[#FE2C55] flex items-center justify-center flex-shrink-0 disabled:opacity-40"
-            aria-label="Trimite"
+            aria-label="Send"
           >
             {sendingChat
               ? <Loader2 className="h-4 w-4 text-white animate-spin" />
@@ -619,12 +683,12 @@ const sideActions = [
             className="w-full py-3.5 rounded-2xl bg-[#FE2C55]/10 border border-[#FE2C55]/30 text-[#FE2C55] text-[13px] font-black flex items-center justify-center gap-2"
           >
             <StopCircle className="h-4 w-4" />
-            Oprește live-ul
+            End Live Stream
           </button>
         </div>
       </div>
 
-      {/* Viewers panel */}
+      {/* Viewers panel — FIX: shows real name + avatar photo */}
       {showViewers && (
         <div
           className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
@@ -634,19 +698,19 @@ const sideActions = [
             <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
             <div className="flex items-center justify-between px-4 pb-3">
               <span className="text-[14px] font-black text-white">
-                Viewrs now ({viewers.length})
+                Viewers now ({viewers.length})
               </span>
               <button
                 onClick={() => setShowViewers(false)}
                 className="text-white/40 text-xl leading-none hover:text-white transition-colors"
-                aria-label="Închide"
+                aria-label="Close"
               >
                 ×
               </button>
             </div>
             <div className="overflow-y-auto flex-1 px-4 pb-6">
               {viewers.length === 0 ? (
-                <p className="text-[13px] text-white/30 text-center py-8">Niciun viewer momentan</p>
+                <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
               ) : (
                 [...viewers].reverse().map((v) => {
                   const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
@@ -655,16 +719,13 @@ const sideActions = [
                       key={v.identity}
                       className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0"
                     >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-black flex-shrink-0"
-                        style={{ background: v.color, color: "#000" }}
-                      >
-                        {v.initials}
-                      </div>
+                      {/* FIX: real avatar photo if available */}
+                      <ViewerAvatar viewer={v} size={40} />
+
                       <div className="flex-1">
                         <p className="text-[14px] font-bold text-white">{v.displayName}</p>
                         <p className="text-[12px] text-white/35">
-                          {mins < 1 ? "acum" : `acum ${mins} min`}
+                          {mins < 1 ? "just joined" : `${mins} min ago`}
                         </p>
                       </div>
                     </div>
@@ -682,7 +743,7 @@ const sideActions = [
 }
 
 /* ═══════════════════════════════════════════
-   LIVE SCREEN WRAPPER  (provides LiveKitRoom ctx)
+   LIVE SCREEN WRAPPER
 ═══════════════════════════════════════════ */
 function LiveScreen({
   token, streamerId, senderId, senderCoins, onStop, supabase,
@@ -695,31 +756,29 @@ function LiveScreen({
   supabase: ReturnType<typeof createBrowserClient>;
 }) {
   return (
-<LiveKitRoom
-  token={token}
-  serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-  video={false} 
-  audio={false} 
-  connect={true}
-  onDisconnected={onStop}
-  style={{ display: "contents" }}
-  // Folosim evenimentul nativ de conectare pe cameră (fără argumente în paranteze)
-  onConnected={() => {
-    // Cerem browserului să deschidă camera și microfonul în mod direct
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(() => console.log("Permisiune acordată cu succes!"))
-      .catch((err) => console.error("Eroare de permisiune:", err));
-  }}
->
-  <LiveScreenInner
-    streamerId={streamerId}
-    senderId={senderId}
-    senderCoins={senderCoins}
-    onStop={onStop}
-    supabase={supabase}
-  />
-</LiveKitRoom>
-
+    <LiveKitRoom
+      token={token}
+      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+      video={false}
+      audio={false}
+      connect={true}
+      onDisconnected={onStop}
+      style={{ display: "contents" }}
+      onConnected={() => {
+        navigator.mediaDevices
+          .getUserMedia({ video: true, audio: true })
+          .then(() => console.log("Media permissions granted"))
+          .catch((err) => console.error("Media permission error:", err));
+      }}
+    >
+      <LiveScreenInner
+        streamerId={streamerId}
+        senderId={senderId}
+        senderCoins={senderCoins}
+        onStop={onStop}
+        supabase={supabase}
+      />
+    </LiveKitRoom>
   );
 }
 
@@ -743,56 +802,41 @@ export default function LiveStudioPage() {
   const [error, setError] = useState("");
   const [loadingStream, setLoadingStream] = useState(false);
 
-  
-//** user profileload  */
   useEffect(() => {
-  async function checkStreamerStatus() {
-    try {
-      // 1. Preluăm userul în condiții de siguranță prin getUser()
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        setError("Trebuie să fii autentificat pentru a accesa studioul live.");
+    async function checkStreamerStatus() {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          setError("You must be logged in to access the live studio.");
+          setLoadingCheck(false);
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, username, is_live, live_room_id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError || !profile) {
+          setError("User profile not found.");
+          setLoadingCheck(false);
+          return;
+        }
+
+        setUserProfile({ ...profile, coins: 0 } as UserProfile);
+        setFollowerCount(0);
+      } catch {
+        setError("A technical error occurred during verification.");
+      } finally {
         setLoadingCheck(false);
-        return;
       }
-
-      // 2. Selectăm DOAR coloanele care există cu adevărat în DB-ul tău
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, username, is_live, live_room_id") 
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profileError || !profile) {
-        console.error("Supabase Error:", profileError);
-        setError("Nu s-a găsit profilul de utilizator.");
-        setLoadingCheck(false);
-        return;
-      }
-
-      // 3. Injectăm monedele (0) manual în obiectul de stare pentru TypeScript
-      setUserProfile({
-        ...profile,
-        coins: 0
-      } as UserProfile);
-      
-      // 4. Setezi 0 urmăritori pentru testul tău curent
-      setFollowerCount(0);
-
-    } catch (err) {
-      setError("Eroare tehnică la verificare.");
-    } finally {
-      setLoadingCheck(false);
     }
-  }
-  
-  checkStreamerStatus();
-}, [supabase]);
-
+    checkStreamerStatus();
+  }, [supabase]);
 
   async function handleStartStream() {
-     if (followerCount < 0 || !userProfile) return; 
+    if (followerCount < 0 || !userProfile) return;
     setLoadingStream(true);
     setError("");
     const targetRoomId = `room_${userProfile.username}`;
@@ -802,7 +846,7 @@ export default function LiveStudioPage() {
       );
       const data = await res.json();
       if (!res.ok || !data.token) {
-        setError(data.error || "Generarea token-ului a eșuat.");
+        setError(data.error || "Token generation failed.");
         setLoadingStream(false);
         return;
       }
@@ -811,14 +855,14 @@ export default function LiveStudioPage() {
         .update({ is_live: true, live_room_id: targetRoomId })
         .eq("id", userProfile.id);
       if (dbError) {
-        setError("Nu s-a putut actualiza starea în baza de date.");
+        setError("Could not update live status in the database.");
         setLoadingStream(false);
         return;
       }
       setLkToken(data.token);
       setIsLive(true);
     } catch {
-      setError("Eroare la conectarea cu serverul LiveKit.");
+      setError("Error connecting to the LiveKit server.");
     } finally {
       setLoadingStream(false);
     }
@@ -845,7 +889,7 @@ export default function LiveStudioPage() {
             <Radio className="h-6 w-6 text-[#FE2C55] animate-pulse" />
           </div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 animate-pulse">
-            Smile Live Studio...
+            Loading Smile Live Studio...
           </p>
         </div>
       </div>
@@ -897,7 +941,7 @@ export default function LiveStudioPage() {
         </div>
         <h1 className="text-2xl font-black tracking-tight mb-2">Live Creator Studio</h1>
         <p className="text-sm text-white/50 max-w-[280px] leading-relaxed">
-          Transmite live, conectează-te cu audiența ta și monetizează fiecare moment.
+          Go live, connect with your audience and monetize every moment.
         </p>
       </div>
 
@@ -906,7 +950,7 @@ export default function LiveStudioPage() {
         <div className="mx-4 mb-5 flex items-start gap-2.5 bg-amber-400/[0.07] border border-amber-400/20 rounded-[14px] px-3.5 py-3">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <p className="text-[13px] text-amber-300/80 leading-relaxed">
-            Ai nevoie de <span className="font-bold text-amber-300">1,000 urmăritori</span> pentru a debloca live-ul.
+            You need <span className="font-bold text-amber-300">1,000 followers</span> to unlock live streaming.
           </p>
         </div>
       )}
@@ -914,7 +958,7 @@ export default function LiveStudioPage() {
       {/* Follower progress */}
       <div className="mx-4 mb-5 bg-[#111] border border-white/[0.07] rounded-[20px] p-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-white/35">Urmăritori</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white/35">Followers</span>
           <span className={`text-[13px] font-bold ${canGoLive ? "text-[#25F4EE]" : "text-amber-400"}`}>
             {followerCount.toLocaleString()} / {MIN_FOLLOWERS.toLocaleString()}
           </span>
@@ -923,17 +967,17 @@ export default function LiveStudioPage() {
         <div className="flex items-center justify-between mt-2">
           <span className="text-[12px] text-white/25">0</span>
           <span className="text-[12px] text-white/25">
-            {canGoLive ? "Deblocat" : `${MIN_FOLLOWERS.toLocaleString()} — obiectiv`}
+            {canGoLive ? "Unlocked" : `${MIN_FOLLOWERS.toLocaleString()} — goal`}
           </span>
         </div>
       </div>
 
       {/* Req cards */}
       <div className="mx-4 mb-5 grid grid-cols-2 gap-2.5">
-        <ReqCard icon={Users} label="Urmăritori" value={followerCount.toLocaleString()} ok={canGoLive} />
-        <ReqCard icon={BadgeCheck} label="Status cont" value="Activ" ok={true} />
-        <ReqCard icon={Smartphone} label="Cameră" value="Ready" ok={true} />
-        <ReqCard icon={Wifi} label="Conexiune" value="Stabil" ok={true} />
+        <ReqCard icon={Users}     label="Followers"   value={followerCount.toLocaleString()} ok={canGoLive} />
+        <ReqCard icon={BadgeCheck} label="Account"    value="Active"  ok={true} />
+        <ReqCard icon={Smartphone} label="Camera"     value="Ready"   ok={true} />
+        <ReqCard icon={Wifi}       label="Connection" value="Stable"  ok={true} />
       </div>
 
       {/* Error */}
@@ -958,7 +1002,7 @@ export default function LiveStudioPage() {
             ? <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             : <>
                 <Radio className="h-5 w-5" />
-                {canGoLive ? "Pornește Transmisiunea" : "Transmisiune Restricționată"}
+                {canGoLive ? "Start Broadcasting" : "Streaming Restricted"}
               </>
           }
         </button>
@@ -970,23 +1014,23 @@ export default function LiveStudioPage() {
           className="w-full py-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-center gap-2.5 text-[13px] font-semibold text-white/50 hover:text-white hover:border-white/20 transition-all"
         >
           <Phone className="h-4 w-4" />
-          Support & Parteneriate
+          Support & Partnerships
         </a>
       </div>
 
       {/* Tips */}
       <div className="mx-4 flex flex-col gap-2">
         <Tip icon={Lightbulb}>
-          <strong className="text-white/80 font-semibold">Sfat:</strong>{" "}
-          Transmisiunile de 30+ min generează de 4× mai multe Smiles.
+          <strong className="text-white/80 font-semibold">Tip:</strong>{" "}
+          Streams lasting 30+ minutes generate 4× more Smiles.
         </Tip>
         <Tip icon={TrendingUp}>
           <strong className="text-white/80 font-semibold">Peak hours:</strong>{" "}
-          Cel mai bun moment să transmiți este între 19:00 – 23:00.
+          The best time to go live is between 7:00 PM – 11:00 PM.
         </Tip>
         <Tip icon={Coins}>
-          <strong className="text-white/80 font-semibold">Monetizare:</strong>{" "}
-          Activează campanii de brand direct din setările streamului.
+          <strong className="text-white/80 font-semibold">Monetize:</strong>{" "}
+          Activate brand campaigns directly from your stream settings.
         </Tip>
       </div>
     </div>

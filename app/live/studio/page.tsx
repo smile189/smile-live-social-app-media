@@ -75,7 +75,7 @@ interface GiftToastData {
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const MIN_FOLLOWERS = 10;
+const MIN_FOLLOWERS = 2;
 const AVATAR_COLORS = [
   "#FE2C55","#25F4EE","#7F77DD","#EF9F27",
   "#1D9E75","#D4537E","#378ADD","#FF6B81",
@@ -952,7 +952,7 @@ useEffect(() => {
         <div className="mx-4 mb-5 flex items-start gap-2.5 bg-amber-400/[0.07] border border-amber-400/20 rounded-[14px] px-3.5 py-3">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <p className="text-[13px] text-amber-300/80 leading-relaxed">
-            You need <span className="font-bold text-amber-300">100 followers</span> to unlock live streaming.
+            You need <span className="font-bold text-amber-300">10 followers</span> to unlock live streaming.
           </p>
         </div>
       )}

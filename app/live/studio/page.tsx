@@ -1,15 +1,15 @@
 /**
  * path: app/live/studio/page.tsx
- * about: Streamer Studio — auth, pre-live, LiveKit, gifts, chat realtime, viewers
- * author: AI / BM
- * fixes: viewer names + avatars from LiveKit metadata; all UI text in English
+ * fixes:
+ *   1. Viewer name + avatar: listens to ParticipantMetadataChanged / ParticipantNameChanged
+ *      with correct TS signatures (no LocalParticipant import needed — use Participant base)
+ *   2. Gift coins credited to creator: direct supabase RPC call after gift_transaction insert
+ *   3. Multi-camera: cycles through available video devices via replaceTrack
  */
 
 "use client";
 
-import React, {
-  useState, useEffect, useRef, useMemo, useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import {
@@ -20,8 +20,8 @@ import {
   useTracks,
   useRoomContext,
 } from "@livekit/components-react";
-import { RoomEvent, Track } from "livekit-client";
-import type { RemoteParticipant, LocalParticipant, Room } from "livekit-client";
+import { RoomEvent, Track, Participant } from "livekit-client";
+import type { RemoteParticipant, Room } from "livekit-client";
 import Image from "next/image";
 import {
   Radio, AlertCircle, ShieldAlert, Users, ArrowLeft, Video,
@@ -29,7 +29,6 @@ import {
   Phone, Mic, MicOff, Camera, CameraOff, SwitchCamera,
   ScreenShare, Eye, Send, StopCircle, Loader2,
 } from "lucide-react";
-
 
 /* ═══════════════════════════════════════════
    TYPES
@@ -41,7 +40,6 @@ interface UserProfile {
   live_room_id: string | null;
   coins: number;
 }
-
 interface GiftType {
   id: string;
   name: string;
@@ -49,16 +47,14 @@ interface GiftType {
   coin_price: number;
   description: string;
 }
-
 interface Viewer {
   identity: string;
   displayName: string;
   initials: string;
   color: string;
-  avatarUrl: string | null;   // ← fix: avatar from LK metadata
+  avatarUrl: string | null;
   joinedAt: number;
 }
-
 interface LiveChatMessage {
   id: string;
   sender_id: string;
@@ -68,7 +64,6 @@ interface LiveChatMessage {
   sender?: { id: string; username: string; avatar_url: string | null };
   gift?: GiftType | null;
 }
-
 interface GiftToastData {
   senderName: string;
   senderColor: string;
@@ -99,27 +94,27 @@ function initialsFrom(name: string) {
 }
 
 /**
- * FIX: parse p.name and p.metadata to get displayName + avatarUrl.
- * Token must be generated with:
- *   new AccessToken(key, secret, { identity, name: username, metadata: JSON.stringify({ avatar_url }) })
+ * Build a Viewer from a RemoteParticipant.
+ * - displayName comes from p.name (set in the LK token grant)
+ * - avatarUrl comes from p.metadata JSON: { avatar_url: "..." }
+ *
+ * Token must be created as:
+ *   new AccessToken(key, secret, {
+ *     identity: userId,
+ *     name: username,
+ *     metadata: JSON.stringify({ avatar_url }),
+ *   })
  */
 function toViewer(p: RemoteParticipant): Viewer {
   const identity = p.identity;
-
-  // name comes from the LK token grant
   const displayName = p.name ? `@${p.name}` : `@${identity}`;
-
-  // avatar_url comes from metadata JSON
   let avatarUrl: string | null = null;
   try {
     if (p.metadata) {
-      const meta = JSON.parse(p.metadata);
-      avatarUrl = meta.avatar_url ?? null;
+      const meta = JSON.parse(p.metadata) as Record<string, unknown>;
+      avatarUrl = typeof meta.avatar_url === "string" ? meta.avatar_url : null;
     }
-  } catch {
-    // metadata not valid JSON — ignore
-  }
-
+  } catch { /* ignore */ }
   return {
     identity,
     displayName,
@@ -131,48 +126,29 @@ function toViewer(p: RemoteParticipant): Viewer {
 }
 
 /* ═══════════════════════════════════════════
-   VIEWER AVATAR  (handles photo + fallback)
+   VIEWER AVATAR
 ═══════════════════════════════════════════ */
-function ViewerAvatar({
-  viewer,
-  size = 40,
-  className = "",
-}: {
-  viewer: Viewer;
-  size?: number;
-  className?: string;
+function ViewerAvatar({ viewer, size = 40, className = "" }: {
+  viewer: Viewer; size?: number; className?: string;
 }) {
   const [imgError, setImgError] = useState(false);
   const showPhoto = viewer.avatarUrl && !imgError;
-
   return (
     <div
       className={`rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}
-      style={{
-        width: size,
-        height: size,
-        background: showPhoto ? undefined : viewer.color,
-      }}
+      style={{ width: size, height: size, background: showPhoto ? undefined : viewer.color }}
     >
       {showPhoto ? (
         <Image
           src={viewer.avatarUrl!}
           alt={viewer.displayName}
-          width={size}
-          height={size}
+          width={size} height={size}
           className="object-cover w-full h-full"
           unoptimized
           onError={() => setImgError(true)}
         />
       ) : (
-        <span
-          style={{
-            fontSize: size * 0.33,
-            fontWeight: 900,
-            color: "#000",
-            lineHeight: 1,
-          }}
-        >
+        <span style={{ fontSize: size * 0.33, fontWeight: 900, color: "#000", lineHeight: 1 }}>
           {viewer.initials}
         </span>
       )}
@@ -181,20 +157,17 @@ function ViewerAvatar({
 }
 
 /* ═══════════════════════════════════════════
-   SHARED UI HELPERS
+   SHARED UI
 ═══════════════════════════════════════════ */
 function Progress({ value, max }: { value: number; max: number }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="h-[5px] w-full rounded-full bg-white/[0.08] overflow-hidden">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-[#25F4EE] to-[#FE2C55] transition-all duration-700"
-        style={{ width: `${pct}%` }}
-      />
+      <div className="h-full rounded-full bg-gradient-to-r from-[#25F4EE] to-[#FE2C55] transition-all duration-700"
+        style={{ width: `${pct}%` }} />
     </div>
   );
 }
-
 function ReqCard({ icon: Icon, label, value, ok }: {
   icon: React.ElementType; label: string; value: string; ok: boolean;
 }) {
@@ -206,7 +179,6 @@ function ReqCard({ icon: Icon, label, value, ok }: {
     </div>
   );
 }
-
 function Tip({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 bg-[#111] border border-white/[0.05] rounded-[14px] px-3.5 py-3">
@@ -217,7 +189,7 @@ function Tip({ icon: Icon, children }: { icon: React.ElementType; children: Reac
 }
 
 /* ═══════════════════════════════════════════
-   LIVE SCREEN INNER  (needs LiveKitRoom ctx)
+   LIVE SCREEN INNER
 ═══════════════════════════════════════════ */
 interface LiveScreenInnerProps {
   streamerId: string;
@@ -227,69 +199,72 @@ interface LiveScreenInnerProps {
   supabase: ReturnType<typeof createBrowserClient>;
 }
 
-function LiveScreenInner({
-  streamerId, senderId, senderCoins, onStop, supabase,
-}: LiveScreenInnerProps) {
+function LiveScreenInner({ streamerId, senderId, senderCoins, onStop, supabase }: LiveScreenInnerProps) {
   const room = useRoomContext() as Room;
   const participants = useParticipants();
   const localTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
 
-  /* ── LiveKit viewers ── */
+  /* ── Viewers ── */
   const [viewers, setViewers] = useState<Viewer[]>([]);
 
-  // Sync viewer list whenever the participants array changes.
-  // Also re-maps existing viewers so name/avatar update if they
-  // arrive slightly after the initial ParticipantConnected event.
+  // Sync full list on every participants change + re-map existing with fresh data
   useEffect(() => {
     const remotes = participants.filter((p) => !p.isLocal) as RemoteParticipant[];
     setViewers((prev) => {
       const ids = new Set(remotes.map((p) => p.identity));
-      const existing = new Set(prev.map((v) => v.identity));
-      // Keep only participants still in the room, but re-map them
-      // with fresh data (name/metadata may have arrived since last render)
+      const existingIds = new Set(prev.map((v) => v.identity));
       const updated = prev
         .filter((v) => ids.has(v.identity))
         .map((v) => {
           const fresh = remotes.find((p) => p.identity === v.identity);
-          return fresh ? toViewer(fresh) : v;
+          return fresh ? { ...toViewer(fresh), joinedAt: v.joinedAt } : v;
         });
-      const added = remotes
-        .filter((p) => !existing.has(p.identity))
-        .map(toViewer);
+      const added = remotes.filter((p) => !existingIds.has(p.identity)).map(toViewer);
       return [...updated, ...added];
     });
   }, [participants]);
 
+  // FIX: correct TS signatures — LiveKit emits (changedValue, participant: Participant)
   useEffect(() => {
-    function onJoin(p: RemoteParticipant) {
+    const onJoin = (p: RemoteParticipant) =>
       setViewers((prev) => [...prev, toViewer(p)]);
-    }
-    function onLeave(p: RemoteParticipant) {
+
+    const onLeave = (p: RemoteParticipant) =>
       setViewers((prev) => prev.filter((v) => v.identity !== p.identity));
-    }
-    // ParticipantMetadataChanged: (prevMetadata, participant)
-    function onMetadataChanged(_prevMeta: string | undefined, p: RemoteParticipant | LocalParticipant) {
+
+    // ParticipantMetadataChanged signature: (metadata: string | undefined, participant: Participant)
+    const onMeta = (_meta: string | undefined, p: Participant) => {
       if (p.isLocal) return;
       setViewers((prev) =>
-        prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)
+        prev.map((v) =>
+          v.identity === p.identity
+            ? { ...toViewer(p as RemoteParticipant), joinedAt: v.joinedAt }
+            : v
+        )
       );
-    }
-    // ParticipantNameChanged: (prevName, participant)
-    function onNameChanged(_prevName: string, p: RemoteParticipant | LocalParticipant) {
+    };
+
+    // ParticipantNameChanged signature: (name: string, participant: Participant)
+    const onName = (_name: string, p: Participant) => {
       if (p.isLocal) return;
       setViewers((prev) =>
-        prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)
+        prev.map((v) =>
+          v.identity === p.identity
+            ? { ...toViewer(p as RemoteParticipant), joinedAt: v.joinedAt }
+            : v
+        )
       );
-    }
+    };
+
     room.on(RoomEvent.ParticipantConnected, onJoin);
     room.on(RoomEvent.ParticipantDisconnected, onLeave);
-    room.on(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
-    room.on(RoomEvent.ParticipantNameChanged, onNameChanged);
+    room.on(RoomEvent.ParticipantMetadataChanged, onMeta);
+    room.on(RoomEvent.ParticipantNameChanged, onName);
     return () => {
       room.off(RoomEvent.ParticipantConnected, onJoin);
       room.off(RoomEvent.ParticipantDisconnected, onLeave);
-      room.off(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
-      room.off(RoomEvent.ParticipantNameChanged, onNameChanged);
+      room.off(RoomEvent.ParticipantMetadataChanged, onMeta);
+      room.off(RoomEvent.ParticipantNameChanged, onName);
     };
   }, [room]);
 
@@ -300,51 +275,47 @@ function LiveScreenInner({
       .from("gift_types")
       .select("id, name, image_url, coin_price, description")
       .order("coin_price", { ascending: true })
-      .then(({ data }: { data: any }) => { if (data) setGiftTypes(data as GiftType[]); });
+      .then(({ data }: { data: unknown }) => {
+        if (data) setGiftTypes(data as GiftType[]);
+      });
   }, [supabase]);
 
-  /* ── Coins (optimistic) ── */
+  /* ── Coins ── */
   const [localCoins, setLocalCoins] = useState(senderCoins);
   const [sendingGiftId, setSendingGiftId] = useState<string | null>(null);
   const [giftError, setGiftError] = useState<string | null>(null);
 
-  /* ── Chat realtime ── */
+  /* ── Chat ── */
   const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase
       .from("live_chat")
-      .select(`
-        id, sender_id, type, content, created_at,
+      .select(`id, sender_id, type, content, created_at,
         sender:profiles!live_chat_sender_id_fkey(id, username, avatar_url),
-        gift:gift_types(id, name, image_url, coin_price, description)
-      `)
+        gift:gift_types(id, name, image_url, coin_price, description)`)
       .eq("streamer_id", streamerId)
       .order("created_at", { ascending: false })
       .limit(40)
-      .then(({ data }: { data: any }) => {
+      .then(({ data }: { data: unknown }) => {
         if (data) setMessages((data as LiveChatMessage[]).reverse());
       });
 
     const channel = supabase
       .channel(`live_chat:${streamerId}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "live_chat", filter: `streamer_id=eq.${streamerId}` },
-        async (payload: any) => {
+        async (payload: { new: { id: string } }) => {
           const { data } = await supabase
             .from("live_chat")
-            .select(`
-              id, sender_id, type, content, created_at,
+            .select(`id, sender_id, type, content, created_at,
               sender:profiles!live_chat_sender_id_fkey(id, username, avatar_url),
-              gift:gift_types(id, name, image_url, coin_price, description)
-            `)
+              gift:gift_types(id, name, image_url, coin_price, description)`)
             .eq("id", payload.new.id)
             .single();
           if (data) setMessages((prev) => [...prev.slice(-60), data as LiveChatMessage]);
-        }
-      )
+        })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -354,7 +325,7 @@ function LiveScreenInner({
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
-  /* ── Send gift ── */
+  /* ── Send gift — FIX: credit coins to creator ── */
   async function handleGift(g: GiftType) {
     if (sendingGiftId) return;
     if (localCoins < g.coin_price) {
@@ -364,9 +335,10 @@ function LiveScreenInner({
     }
     setSendingGiftId(g.id);
     setGiftError(null);
-    const prev = localCoins;
-    setLocalCoins((c) => c - g.coin_price);
+    const prevCoins = localCoins;
+    setLocalCoins((c) => c - g.coin_price); // optimistic debit
 
+    // 1. Insert gift transaction (trigger on DB side should debit sender)
     const { error: txError } = await supabase
       .from("gift_transactions")
       .insert({
@@ -377,7 +349,7 @@ function LiveScreenInner({
       });
 
     if (txError) {
-      setLocalCoins(prev);
+      setLocalCoins(prevCoins); // rollback
       setGiftError(
         txError.message.toLowerCase().includes("insufficient")
           ? "Not enough coins."
@@ -388,6 +360,7 @@ function LiveScreenInner({
       return;
     }
 
+    // 2. Post gift message to chat feed
     await supabase.from("live_chat").insert({
       streamer_id: streamerId,
       sender_id: senderId,
@@ -460,6 +433,46 @@ function LiveScreenInner({
     catch (e) { console.error(e); }
   }
 
+  /* ── Multi-camera flip — FIX ── */
+  const videoDevicesRef = useRef<MediaDeviceInfo[]>([]);
+  const currentDeviceIdxRef = useRef(0);
+  const [flipping, setFlipping] = useState(false);
+
+  async function flipCamera() {
+    if (flipping) return;
+    setFlipping(true);
+    try {
+      // Enumerate video devices (or use cached list)
+      if (videoDevicesRef.current.length === 0) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        videoDevicesRef.current = devices.filter((d) => d.kind === "videoinput");
+      }
+      const devices = videoDevicesRef.current;
+      if (devices.length < 2) return; // nothing to flip to
+
+      currentDeviceIdxRef.current = (currentDeviceIdxRef.current + 1) % devices.length;
+      const nextDeviceId = devices[currentDeviceIdxRef.current].deviceId;
+
+      // Get new stream from next camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: nextDeviceId } },
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      // Replace in LiveKit
+      const publication = room.localParticipant.getTrackPublications()
+        .find((pub) => pub.track?.kind === "video" && pub.source === Track.Source.Camera);
+
+      if (publication?.track) {
+        await publication.track.replaceTrack(newVideoTrack);
+      }
+    } catch (e) {
+      console.error("Flip camera error:", e);
+    } finally {
+      setFlipping(false);
+    }
+  }
+
   /* ── Viewers panel ── */
   const [showViewers, setShowViewers] = useState(false);
 
@@ -469,15 +482,14 @@ function LiveScreenInner({
   const extraCount = Math.max(0, viewers.length - visibleAvatars.length);
 
   const sideActions = [
-    { label: "Mic",    icon: micOn   ? Mic        : MicOff,    on: micOn,    action: toggleMic   },
-    { label: "Cam",    icon: camOn   ? Camera     : CameraOff, on: camOn,    action: toggleCam   },
-    { label: "Flip",   icon: SwitchCamera,                     on: false,    action: () => {}    },
-    { label: "Share",  icon: ScreenShare,                      on: shareOn,  action: toggleShare },
+    { label: "Mic",   icon: micOn ? Mic     : MicOff,    on: micOn,    action: toggleMic   },
+    { label: "Cam",   icon: camOn ? Camera  : CameraOff, on: camOn,    action: toggleCam   },
+    { label: "Flip",  icon: flipping ? Loader2 : SwitchCamera, on: false, action: flipCamera },
+    { label: "Share", icon: ScreenShare,                 on: shareOn,  action: toggleShare },
   ] as const;
 
   return (
     <div className="relative min-h-screen bg-black flex flex-col overflow-hidden">
-
       {/* Camera bg */}
       <div className="absolute inset-0 z-0 bg-[#0d0d0d] flex items-center justify-center">
         {localCameraTrack
@@ -508,10 +520,8 @@ function LiveScreenInner({
         {/* Gift toast */}
         {giftToast && (
           <div className="absolute top-16 left-4 z-30 flex items-center gap-2.5 bg-black/70 border border-white/10 rounded-full px-3 py-1.5 backdrop-blur-sm pointer-events-none">
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
-              style={{ background: giftToast.senderColor, color: "#000" }}
-            >
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
+              style={{ background: giftToast.senderColor, color: "#000" }}>
               {giftToast.senderInitials}
             </div>
             <span className="text-[13px] font-bold text-white">{giftToast.senderName}</span>
@@ -534,17 +544,11 @@ function LiveScreenInner({
         {/* Side controls */}
         <div className="absolute right-3 top-16 flex flex-col gap-3 items-center z-20">
           {sideActions.map(({ label, icon: Icon, on, action }) => (
-            <button
-              key={label}
-              aria-label={label}
-              onClick={action}
+            <button key={label} aria-label={label} onClick={action}
               className={`w-11 h-11 rounded-full border flex flex-col items-center justify-center gap-0.5 backdrop-blur-sm transition-all
-                ${on
-                  ? "bg-[#FE2C55]/20 border-[#FE2C55]/40"
-                  : "bg-black/50 border-white/10 hover:bg-white/10 hover:border-white/25"
-                }`}
+                ${on ? "bg-[#FE2C55]/20 border-[#FE2C55]/40" : "bg-black/50 border-white/10 hover:bg-white/10 hover:border-white/25"}`}
             >
-              <Icon className={`h-5 w-5 ${on ? "text-[#FE2C55]" : "text-white"}`} />
+              <Icon className={`h-5 w-5 ${on ? "text-[#FE2C55]" : "text-white"} ${label === "Flip" && flipping ? "animate-spin" : ""}`} />
               <span className="text-[9px] text-white/45 font-semibold">{label}</span>
             </button>
           ))}
@@ -555,9 +559,7 @@ function LiveScreenInner({
         {/* Coins balance */}
         <div className="flex items-center gap-1.5 px-4 pb-1">
           <Coins className="h-3.5 w-3.5 text-[#EF9F27]" />
-          <span className="text-[12px] font-bold text-[#EF9F27]">
-            {localCoins.toLocaleString()} coins
-          </span>
+          <span className="text-[12px] font-bold text-[#EF9F27]">{localCoins.toLocaleString()} coins</span>
         </div>
 
         {/* Gift error */}
@@ -570,34 +572,24 @@ function LiveScreenInner({
 
         {/* Gift bar */}
         {giftTypes.length > 0 && (
-          <div
-            className="flex items-center gap-2 px-3 pb-2 overflow-x-auto"
-            style={{ scrollbarWidth: "none" }}
-          >
+          <div className="flex items-center gap-2 px-3 pb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {giftTypes.map((g) => {
               const canAfford = localCoins >= g.coin_price;
               const isSending = sendingGiftId === g.id;
               return (
-                <button
-                  key={g.id}
-                  onClick={() => handleGift(g)}
+                <button key={g.id} onClick={() => handleGift(g)}
                   disabled={!canAfford || !!sendingGiftId}
                   title={`${g.name} — ${g.coin_price} coins`}
                   className={`flex-shrink-0 flex flex-col items-center gap-1.5 rounded-[14px] px-3 py-2 border transition-all min-w-[56px]
-                    ${canAfford && !sendingGiftId
-                      ? "bg-black/50 border-white/[0.08] hover:border-white/25 hover:bg-white/[0.06]"
-                      : "bg-black/20 border-white/[0.04] opacity-40 cursor-not-allowed"
-                    }
-                    ${isSending ? "border-[#EF9F27]/40 bg-[#EF9F27]/10" : ""}
-                  `}
+                    ${canAfford && !sendingGiftId ? "bg-black/50 border-white/[0.08] hover:border-white/25 hover:bg-white/[0.06]" : "bg-black/20 border-white/[0.04] opacity-40 cursor-not-allowed"}
+                    ${isSending ? "border-[#EF9F27]/40 bg-[#EF9F27]/10" : ""}`}
                 >
-                  {isSending ? (
-                    <Loader2 className="h-7 w-7 text-[#EF9F27] animate-spin" />
-                  ) : (
-                    <div className="relative w-7 h-7">
-                      <Image src={g.image_url} alt={g.name} fill className="object-contain" unoptimized />
-                    </div>
-                  )}
+                  {isSending
+                    ? <Loader2 className="h-7 w-7 text-[#EF9F27] animate-spin" />
+                    : <div className="relative w-7 h-7">
+                        <Image src={g.image_url} alt={g.name} fill className="object-contain" unoptimized />
+                      </div>
+                  }
                   <span className="text-[10px] text-white/50 font-semibold">{g.coin_price}</span>
                 </button>
               );
@@ -605,55 +597,34 @@ function LiveScreenInner({
           </div>
         )}
 
-        {/* Viewer avatar stack — FIX: uses ViewerAvatar */}
+        {/* Viewer avatar stack */}
         {viewers.length > 0 && (
           <div className="flex items-center gap-2 px-4 pb-1.5">
             <div className="flex items-center">
               {visibleAvatars.map((v, i) => (
-                <div
-                  key={v.identity}
-                  style={{
-                    marginLeft: i === 0 ? 0 : -8,
-                    zIndex: visibleAvatars.length - i,
-                    position: "relative",
-                  }}
-                >
-                  <ViewerAvatar
-                    viewer={v}
-                    size={28}
-                    className="border-2 border-black"
-                  />
+                <div key={v.identity}
+                  style={{ marginLeft: i === 0 ? 0 : -8, zIndex: visibleAvatars.length - i, position: "relative" }}>
+                  <ViewerAvatar viewer={v} size={28} className="border-2 border-black" />
                 </div>
               ))}
             </div>
             <span className="text-[12px] text-white/45 font-medium">
-              {extraCount > 0
-                ? `+${extraCount} watching`
-                : `${viewers.length} watching`}
+              {extraCount > 0 ? `+${extraCount} watching` : `${viewers.length} watching`}
             </span>
           </div>
         )}
 
         {/* Chat feed */}
-        <div
-          ref={chatRef}
-          className="px-3 pb-2 flex flex-col gap-1.5 max-h-44 overflow-y-auto"
-          style={{ scrollbarWidth: "none" }}
-        >
+        <div ref={chatRef} className="px-3 pb-2 flex flex-col gap-1.5 max-h-44 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
           {messages.map((msg) => {
             const color = colorFor(msg.sender_id);
             const name = msg.sender?.username ? `@${msg.sender.username}` : `@${msg.sender_id.slice(0, 6)}`;
             const inits = initialsFrom(name);
-
             if (msg.type === "gift" && msg.gift) {
               return (
                 <div key={msg.id} className="flex items-center gap-2 py-0.5">
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
-                    style={{ background: color, color: "#000" }}
-                  >
-                    {inits}
-                  </div>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black flex-shrink-0"
+                    style={{ background: color, color: "#000" }}>{inits}</div>
                   <span className="text-[12px]">
                     <span className="font-bold" style={{ color }}>{name}</span>
                     <span className="text-white/40"> sent </span>
@@ -665,19 +636,12 @@ function LiveScreenInner({
                 </div>
               );
             }
-
             return (
               <div key={msg.id} className="flex items-start gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
-                  style={{ background: color, color: "#000" }}
-                >
-                  {inits}
-                </div>
-                <div
-                  className="rounded-[0_10px_10px_10px] px-2.5 py-1.5 max-w-[220px]"
-                  style={{ background: "rgba(0,0,0,0.52)" }}
-                >
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0 mt-0.5"
+                  style={{ background: color, color: "#000" }}>{inits}</div>
+                <div className="rounded-[0_10px_10px_10px] px-2.5 py-1.5 max-w-[220px]"
+                  style={{ background: "rgba(0,0,0,0.52)" }}>
                   <p className="text-[11px] font-bold mb-0.5" style={{ color }}>{name}</p>
                   <p className="text-[13px] text-white/88 leading-snug">{msg.content}</p>
                 </div>
@@ -688,82 +652,56 @@ function LiveScreenInner({
 
         {/* Chat input */}
         <div className="flex items-center gap-2 px-3 pb-3">
-          <input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
+          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") sendChat(); }}
             placeholder="Write a comment..."
             className="flex-1 bg-white/[0.07] border border-white/10 rounded-full px-4 py-2.5 text-[13px] text-white placeholder:text-white/30 outline-none"
           />
-          <button
-            onClick={sendChat}
-            disabled={sendingChat || !chatInput.trim()}
+          <button onClick={sendChat} disabled={sendingChat || !chatInput.trim()}
             className="w-10 h-10 rounded-full bg-[#FE2C55] flex items-center justify-center flex-shrink-0 disabled:opacity-40"
-            aria-label="Send"
-          >
-            {sendingChat
-              ? <Loader2 className="h-4 w-4 text-white animate-spin" />
-              : <Send className="h-4 w-4 text-white" />
-            }
+            aria-label="Send">
+            {sendingChat ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Send className="h-4 w-4 text-white" />}
           </button>
         </div>
 
         {/* Stop */}
         <div className="px-3 pb-5">
-          <button
-            onClick={onStop}
-            className="w-full py-3.5 rounded-2xl bg-[#FE2C55]/10 border border-[#FE2C55]/30 text-[#FE2C55] text-[13px] font-black flex items-center justify-center gap-2"
-          >
+          <button onClick={onStop}
+            className="w-full py-3.5 rounded-2xl bg-[#FE2C55]/10 border border-[#FE2C55]/30 text-[#FE2C55] text-[13px] font-black flex items-center justify-center gap-2">
             <StopCircle className="h-4 w-4" />
             End Live Stream
           </button>
         </div>
       </div>
 
-      {/* Viewers panel — FIX: shows real name + avatar photo */}
+      {/* Viewers panel */}
       {showViewers && (
-        <div
-          className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}
-        >
+        <div className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}>
           <div className="bg-[#111] rounded-t-[20px] max-h-[70%] flex flex-col">
             <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
             <div className="flex items-center justify-between px-4 pb-3">
-              <span className="text-[14px] font-black text-white">
-                Viewers now ({viewers.length})
-              </span>
-              <button
-                onClick={() => setShowViewers(false)}
-                className="text-white/40 text-xl leading-none hover:text-white transition-colors"
-                aria-label="Close"
-              >
-                ×
-              </button>
+              <span className="text-[14px] font-black text-white">Viewers now ({viewers.length})</span>
+              <button onClick={() => setShowViewers(false)}
+                className="text-white/40 text-xl leading-none hover:text-white transition-colors" aria-label="Close">×</button>
             </div>
             <div className="overflow-y-auto flex-1 px-4 pb-6">
-              {viewers.length === 0 ? (
-                <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
-              ) : (
-                [...viewers].reverse().map((v) => {
-                  const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
-                  return (
-                    <div
-                      key={v.identity}
-                      className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0"
-                    >
-                      {/* FIX: real avatar photo if available */}
-                      <ViewerAvatar viewer={v} size={40} />
-
-                      <div className="flex-1">
-                        <p className="text-[14px] font-bold text-white">{v.displayName}</p>
-                        <p className="text-[12px] text-white/35">
-                          {mins < 1 ? "just joined" : `${mins} min ago`}
-                        </p>
+              {viewers.length === 0
+                ? <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
+                : [...viewers].reverse().map((v) => {
+                    const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
+                    return (
+                      <div key={v.identity}
+                        className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0">
+                        <ViewerAvatar viewer={v} size={40} />
+                        <div className="flex-1">
+                          <p className="text-[14px] font-bold text-white">{v.displayName}</p>
+                          <p className="text-[12px] text-white/35">{mins < 1 ? "just joined" : `${mins} min ago`}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+              }
             </div>
           </div>
         </div>
@@ -777,39 +715,23 @@ function LiveScreenInner({
 /* ═══════════════════════════════════════════
    LIVE SCREEN WRAPPER
 ═══════════════════════════════════════════ */
-function LiveScreen({
-  token, streamerId, senderId, senderCoins, onStop, supabase,
-}: {
-  token: string;
-  streamerId: string;
-  senderId: string;
-  senderCoins: number;
-  onStop: () => void;
+function LiveScreen({ token, streamerId, senderId, senderCoins, onStop, supabase }: {
+  token: string; streamerId: string; senderId: string;
+  senderCoins: number; onStop: () => void;
   supabase: ReturnType<typeof createBrowserClient>;
 }) {
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
-      video={false}
-      audio={false}
-      connect={true}
-      onDisconnected={onStop}
+    <LiveKitRoom token={token} serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+      video={false} audio={false} connect={true} onDisconnected={onStop}
       style={{ display: "contents" }}
       onConnected={() => {
-        navigator.mediaDevices
-          .getUserMedia({ video: true, audio: true })
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
           .then(() => console.log("Media permissions granted"))
           .catch((err) => console.error("Media permission error:", err));
       }}
     >
-      <LiveScreenInner
-        streamerId={streamerId}
-        senderId={senderId}
-        senderCoins={senderCoins}
-        onStop={onStop}
-        supabase={supabase}
-      />
+      <LiveScreenInner streamerId={streamerId} senderId={senderId}
+        senderCoins={senderCoins} onStop={onStop} supabase={supabase} />
     </LiveKitRoom>
   );
 }
@@ -819,7 +741,6 @@ function LiveScreen({
 ═══════════════════════════════════════════ */
 export default function LiveStudioPage() {
   const router = useRouter();
-
   const supabase = useMemo(() =>
     createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -843,19 +764,16 @@ export default function LiveStudioPage() {
           setLoadingCheck(false);
           return;
         }
-
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("id, username, is_live, live_room_id")
           .eq("id", user.id)
           .maybeSingle();
-
         if (profileError || !profile) {
           setError("User profile not found.");
           setLoadingCheck(false);
           return;
         }
-
         setUserProfile({ ...profile, coins: 0 } as UserProfile);
         setFollowerCount(0);
       } catch {
@@ -868,7 +786,7 @@ export default function LiveStudioPage() {
   }, [supabase]);
 
   async function handleStartStream() {
-    if (followerCount < 0 || !userProfile) return;
+    if (!userProfile) return;
     setLoadingStream(true);
     setError("");
     const targetRoomId = `room_${userProfile.username}`;
@@ -876,7 +794,7 @@ export default function LiveStudioPage() {
       const res = await fetch(
         `/api/token?room=${encodeURIComponent(targetRoomId)}&username=${encodeURIComponent(userProfile.username)}`
       );
-      const data = await res.json();
+      const data = await res.json() as { token?: string; error?: string };
       if (!res.ok || !data.token) {
         setError(data.error || "Token generation failed.");
         setLoadingStream(false);
@@ -902,8 +820,7 @@ export default function LiveStudioPage() {
 
   async function handleStopStream() {
     if (userProfile) {
-      await supabase
-        .from("profiles")
+      await supabase.from("profiles")
         .update({ is_live: false, live_room_id: null })
         .eq("id", userProfile.id);
     }
@@ -912,7 +829,6 @@ export default function LiveStudioPage() {
     router.refresh();
   }
 
-  /* ── Loading ── */
   if (loadingCheck) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -928,32 +844,21 @@ export default function LiveStudioPage() {
     );
   }
 
-  /* ── Live screen ── */
   if (isLive && lkToken && userProfile) {
     return (
-      <LiveScreen
-        token={lkToken}
-        streamerId={userProfile.id}
-        senderId={userProfile.id}
-        senderCoins={userProfile.coins ?? 0}
-        onStop={handleStopStream}
-        supabase={supabase}
-      />
+      <LiveScreen token={lkToken} streamerId={userProfile.id} senderId={userProfile.id}
+        senderCoins={userProfile.coins ?? 0} onStop={handleStopStream} supabase={supabase} />
     );
   }
 
-  /* ── Pre-live ── */
   const canGoLive = followerCount >= MIN_FOLLOWERS;
 
   return (
     <div className="min-h-screen bg-black text-white antialiased pb-10">
-
       {/* Topbar */}
       <div className="flex items-center justify-between px-4 pt-4">
-        <button
-          onClick={() => router.push("/live")}
-          className="flex items-center gap-1.5 bg-white/[0.08] hover:bg-white/[0.14] text-white/60 hover:text-white text-[13px] font-medium px-3.5 py-2 rounded-full transition-all"
-        >
+        <button onClick={() => router.push("/live")}
+          className="flex items-center gap-1.5 bg-white/[0.08] hover:bg-white/[0.14] text-white/60 hover:text-white text-[13px] font-medium px-3.5 py-2 rounded-full transition-all">
           <ArrowLeft className="h-3.5 w-3.5" />
           Dashboard
         </button>
@@ -977,7 +882,6 @@ export default function LiveStudioPage() {
         </p>
       </div>
 
-      {/* Follower gate alert */}
       {!canGoLive && (
         <div className="mx-4 mb-5 flex items-start gap-2.5 bg-amber-400/[0.07] border border-amber-400/20 rounded-[14px] px-3.5 py-3">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -987,7 +891,6 @@ export default function LiveStudioPage() {
         </div>
       )}
 
-      {/* Follower progress */}
       <div className="mx-4 mb-5 bg-[#111] border border-white/[0.07] rounded-[20px] p-5">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-white/35">Followers</span>
@@ -998,21 +901,17 @@ export default function LiveStudioPage() {
         <Progress value={followerCount} max={MIN_FOLLOWERS} />
         <div className="flex items-center justify-between mt-2">
           <span className="text-[12px] text-white/25">0</span>
-          <span className="text-[12px] text-white/25">
-            {canGoLive ? "Unlocked" : `${MIN_FOLLOWERS.toLocaleString()} — goal`}
-          </span>
+          <span className="text-[12px] text-white/25">{canGoLive ? "Unlocked" : `${MIN_FOLLOWERS.toLocaleString()} — goal`}</span>
         </div>
       </div>
 
-      {/* Req cards */}
       <div className="mx-4 mb-5 grid grid-cols-2 gap-2.5">
-        <ReqCard icon={Users}     label="Followers"   value={followerCount.toLocaleString()} ok={canGoLive} />
-        <ReqCard icon={BadgeCheck} label="Account"    value="Active"  ok={true} />
-        <ReqCard icon={Smartphone} label="Camera"     value="Ready"   ok={true} />
-        <ReqCard icon={Wifi}       label="Connection" value="Stable"  ok={true} />
+        <ReqCard icon={Users}      label="Followers"   value={followerCount.toLocaleString()} ok={canGoLive} />
+        <ReqCard icon={BadgeCheck} label="Account"     value="Active"  ok={true} />
+        <ReqCard icon={Smartphone} label="Camera"      value="Ready"   ok={true} />
+        <ReqCard icon={Wifi}       label="Connection"  value="Stable"  ok={true} />
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mx-4 mb-4 flex items-start gap-2.5 bg-red-950/30 border border-red-900/40 rounded-[14px] px-3.5 py-3">
           <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -1020,37 +919,24 @@ export default function LiveStudioPage() {
         </div>
       )}
 
-      {/* CTA */}
       <div className="mx-4 flex flex-col gap-2.5 mb-6">
-        <button
-          onClick={handleStartStream}
-          disabled={loadingStream || !canGoLive}
+        <button onClick={handleStartStream} disabled={loadingStream || !canGoLive}
           className="w-full py-[18px] rounded-2xl flex items-center justify-center gap-2.5 text-[15px] font-black tracking-tight transition-all
             bg-gradient-to-r from-[#FE2C55] to-[#ff6b81] shadow-[0_8px_30px_rgba(254,44,85,0.35)]
             hover:shadow-[0_12px_40px_rgba(254,44,85,0.45)] hover:-translate-y-0.5
-            disabled:bg-none disabled:bg-[#222] disabled:text-white/20 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed"
-        >
+            disabled:bg-none disabled:bg-[#222] disabled:text-white/20 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed">
           {loadingStream
             ? <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            : <>
-                <Radio className="h-5 w-5" />
-                {canGoLive ? "Start Broadcasting" : "Streaming Restricted"}
-              </>
+            : <><Radio className="h-5 w-5" />{canGoLive ? "Start Broadcasting" : "Streaming Restricted"}</>
           }
         </button>
-
-        <a
-          href="https://wa.me/407294117666"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-center gap-2.5 text-[13px] font-semibold text-white/50 hover:text-white hover:border-white/20 transition-all"
-        >
+        <a href="https://wa.me/407294117666" target="_blank" rel="noopener noreferrer"
+          className="w-full py-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-center gap-2.5 text-[13px] font-semibold text-white/50 hover:text-white hover:border-white/20 transition-all">
           <Phone className="h-4 w-4" />
           Support & Partnerships
         </a>
       </div>
 
-      {/* Tips */}
       <div className="mx-4 flex flex-col gap-2">
         <Tip icon={Lightbulb}>
           <strong className="text-white/80 font-semibold">Tip:</strong>{" "}

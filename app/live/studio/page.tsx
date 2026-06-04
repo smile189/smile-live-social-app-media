@@ -828,14 +828,18 @@ export default function LiveStudioPage() {
     checkStreamerStatus();
   }, [supabase]);
 
-  async function handleStartStream() {
+async function handleStartStream() {
     if (!userProfile) return;
     setLoadingStream(true);
     setError("");
     const targetRoomId = `room_${userProfile.username}`;
+    
+    // Extrage avatarul din profil (ia avatar_url sau avatarUrl, în funcție de cum e salvat în Supabase)
+    const currentAvatar = userProfile.avatar_url || userProfile.avatarUrl || "";
+
     try {
       const res = await fetch(
-        `/api/token?room=${encodeURIComponent(targetRoomId)}&username=${encodeURIComponent(userProfile.username)}`
+        `/api/token?room=${encodeURIComponent(targetRoomId)}&username=${encodeURIComponent(userProfile.username)}&avatar_url=${encodeURIComponent(currentAvatar)}`
       );
       const data = await res.json() as { token?: string; error?: string };
       if (!res.ok || !data.token) {
@@ -859,7 +863,8 @@ export default function LiveStudioPage() {
     } finally {
       setLoadingStream(false);
     }
-  }
+}
+
 
   async function handleStopStream() {
     if (userProfile) {

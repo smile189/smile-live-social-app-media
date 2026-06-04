@@ -237,27 +237,51 @@ function LiveScreenInner({
   /* ── LiveKit viewers ── */
   const [viewers, setViewers] = useState<Viewer[]>([]);
 
+  // Sync viewer list whenever the participants array changes.
+  // Also re-maps existing viewers so name/avatar update if they
+  // arrive slightly after the initial ParticipantConnected event.
   useEffect(() => {
     const remotes = participants.filter((p) => !p.isLocal) as RemoteParticipant[];
     setViewers((prev) => {
       const ids = new Set(remotes.map((p) => p.identity));
-      const kept = prev.filter((v) => ids.has(v.identity));
-      const existing = new Set(kept.map((v) => v.identity));
-      const added = remotes.filter((p) => !existing.has(p.identity)).map(toViewer);
-      return [...kept, ...added];
+      const existing = new Set(prev.map((v) => v.identity));
+      // Keep only participants still in the room, but re-map them
+      // with fresh data (name/metadata may have arrived since last render)
+      const updated = prev
+        .filter((v) => ids.has(v.identity))
+        .map((v) => {
+          const fresh = remotes.find((p) => p.identity === v.identity);
+          return fresh ? toViewer(fresh) : v;
+        });
+      const added = remotes
+        .filter((p) => !existing.has(p.identity))
+        .map(toViewer);
+      return [...updated, ...added];
     });
   }, [participants]);
 
   useEffect(() => {
-    function onJoin(p: RemoteParticipant) { setViewers((prev) => [...prev, toViewer(p)]); }
+    function onJoin(p: RemoteParticipant) {
+      setViewers((prev) => [...prev, toViewer(p)]);
+    }
     function onLeave(p: RemoteParticipant) {
       setViewers((prev) => prev.filter((v) => v.identity !== p.identity));
     }
+    // LiveKit fires these after the initial connect once name/metadata arrive
+    function onUpdate(p: RemoteParticipant) {
+      setViewers((prev) =>
+        prev.map((v) => v.identity === p.identity ? toViewer(p) : v)
+      );
+    }
     room.on(RoomEvent.ParticipantConnected, onJoin);
     room.on(RoomEvent.ParticipantDisconnected, onLeave);
+    room.on(RoomEvent.ParticipantMetadataChanged, onUpdate);
+    room.on(RoomEvent.ParticipantNameChanged, onUpdate);
     return () => {
       room.off(RoomEvent.ParticipantConnected, onJoin);
       room.off(RoomEvent.ParticipantDisconnected, onLeave);
+      room.off(RoomEvent.ParticipantMetadataChanged, onUpdate);
+      room.off(RoomEvent.ParticipantNameChanged, onUpdate);
     };
   }, [room]);
 

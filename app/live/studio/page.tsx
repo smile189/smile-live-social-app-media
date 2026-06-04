@@ -21,7 +21,7 @@ import {
   useRoomContext,
 } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
-import type { RemoteParticipant, Room } from "livekit-client";
+import type { RemoteParticipant, LocalParticipant, Room } from "livekit-client";
 import Image from "next/image";
 import {
   Radio, AlertCircle, ShieldAlert, Users, ArrowLeft, Video,
@@ -268,14 +268,14 @@ function LiveScreenInner({
       setViewers((prev) => prev.filter((v) => v.identity !== p.identity));
     }
     // ParticipantMetadataChanged: (prevMetadata, participant)
-    function onMetadataChanged(_prevMeta: string | undefined, p: RemoteParticipant | import("livekit-client").LocalParticipant) {
+    function onMetadataChanged(_prevMeta: string | undefined, p: RemoteParticipant | LocalParticipant) {
       if (p.isLocal) return;
       setViewers((prev) =>
         prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)
       );
     }
     // ParticipantNameChanged: (prevName, participant)
-    function onNameChanged(_prevName: string, p: RemoteParticipant | import("livekit-client").LocalParticipant) {
+    function onNameChanged(_prevName: string, p: RemoteParticipant | LocalParticipant) {
       if (p.isLocal) return;
       setViewers((prev) =>
         prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)

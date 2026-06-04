@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const room = searchParams.get("room");
   const username = searchParams.get("username");
+  const avatarUrl = searchParams.get("avatar_url") ?? ""; // ← nou
 
   if (!room || !username) {
     return NextResponse.json({ error: "Lipsesc parametrii 'room' sau 'username'" }, { status: 400 });
@@ -19,7 +20,11 @@ export async function GET(request: NextRequest) {
 
   const isViewer = username.startsWith("viewer-");
 
-  const at = new AccessToken(apiKey, apiSecret, { identity: username });
+  const at = new AccessToken(apiKey, apiSecret, {
+    identity: username,
+    name: username,                                        // ← nou: apare ca p.name
+    metadata: JSON.stringify({ avatar_url: avatarUrl }),   // ← nou: apare ca p.metadata
+  });
   at.addGrant({
     roomJoin: true,
     room,

@@ -801,68 +801,41 @@ export default function LiveStudioPage() {
 
 
 /** handler followers */
-  useEffect(() => {
-    let isMounted = true;
+useEffect(() => {
+  let isMounted = true;
 
-    // Verificăm imediat cache-ul local la încărcarea paginii
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (isMounted && session?.user) {
-        // Înlocuiește {} cu logica ta reală de profile dacă descarci date din tabelul 'profiles'
-        setUserProfile({ id: session.user.id } as any); 
+  // 1. Funcția de numărare bazată pe ID
+  async function countFollowers(userId: string) {
+    try {
+      const { count, error } = await supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("following_id", userId);
+
+      if (error) throw error;
+
+      if (isMounted && count !== null) {
+        setFollowerCount(count); 
       }
-      if (isMounted) setLoadingCheck(false);
-    });
-
-    // Ascultăm modificările de sesiune (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isMounted) {
-        if (session?.user) {
-          setUserProfile({ id: session.user.id } as any);
-        } else {
-          setUserProfile(null);
-        }
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // 2. EFECTUL PENTRU FOLLOWERS (Rulează curat doar când ID-ul utilizatorului se schimbă)
-  useEffect(() => {
-    let isMounted = true;
-    const userId = userProfile?.id;
-
-    async function countFollowers() {
-      if (!userId) {
-        if (isMounted) setFollowerCount(0);
-        return;
-      }
-
-      try {
-        const { count, error } = await supabase
-          .from("follows")
-          .select("*", { count: "exact", head: true })
-          .eq("following_id", userId);
-
-        if (error) throw error;
-
-        if (isMounted && count !== null) {
-          setFollowerCount(count); 
-        }
-      } catch (err) {
-        console.error("Eroare la numărarea urmăritorilor:", err);
-      }
+    } catch (error) {
+      console.error("Eroare la numărarea urmăritorilor:", error);
     }
+  }
 
-    countFollowers();
+  // 2. Ascultătorul tău – acum rulează CURAT, doar când găsește utilizator logat
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) {
+      countFollowers(session.user.id);
+    }
+  });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [userProfile?.id]);
+  // Curățare la demontare
+  return () => {
+    isMounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
 
 /** handler streamer status */
   useEffect(() => {

@@ -801,58 +801,44 @@ export default function LiveStudioPage() {
 
 
 /** handler followers */
+
+
 useEffect(() => {
   let isMounted = true;
-  let retryInterval: NodeJS.Timeout;
 
-  async function checkSessionAndCount() {
+  // 1. Funcția de numărare rămâne neschimbată
+  async function countFollowers(userId: string) {
     try {
-      // Încercăm să luăm sesiunea curentă
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Buba la refresh: session este null pentru câteva milisecunde.
-      if (!session?.user?.id) {
-        return false; // Nu am găsit userul încă
-      }
-
-      // Dacă am găsit userul, facem numărătoarea în baza de date
       const { count, error } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("following_id", session.user.id);
+        .eq("following_id", userId);
 
       if (error) throw error;
 
       if (isMounted && count !== null) {
-        setFollowerCount(count);
+        setFollowerCount(count); 
       }
-      
-      return true; // Totul a fost citit cu succes
     } catch (error) {
-      console.error("Eroare citire date:", error);
-      return true; // Oprim încercările în caz de eroare hard în query
+      console.error("Eroare la numărarea urmăritorilor:", error);
     }
   }
 
-  // 1. Rulăm direct la încărcare (refresh)
-  checkSessionAndCount().then((success) => {
-    // 2. Dacă a dat fail (user null), pornim un interval scurt care verifică din nou
-    if (!success) {
-      retryInterval = setInterval(async () => {
-        const isDone = await checkSessionAndCount();
-        if (isDone && retryInterval) {
-          clearInterval(retryInterval); // Oprim verificările imediat ce am luat datele
-        }
-      }, 150); // Verifică la fiecare 150ms până e gata sesiunea
+  // 2. Singurul ascultător necesar. Prinde și sesiunea din cache, și schimburile de utilizator.
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) {
+      countFollowers(session.user.id);
+    } else {
+      if (isMounted) setFollowerCount(0); // Siguranță: resetăm dacă userul a dat logout
     }
   });
 
+  // Curățare la demontare
   return () => {
     isMounted = false;
-    if (retryInterval) clearInterval(retryInterval);
+    subscription.unsubscribe();
   };
 }, []);
-
 
 
 /** handler streamer status */

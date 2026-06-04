@@ -791,7 +791,7 @@ export default function LiveStudioPage() {
     ), []);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [followerCount, setFollowerCount] = useState(0);
+ // const [followerCount, setFollowerCount] = useState(0);
   const [loadingCheck, setLoadingCheck] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [lkToken, setLkToken] = useState("");
@@ -801,28 +801,71 @@ export default function LiveStudioPage() {
 
 
 /** handler followers */
-// 2. SINGURUL useEffect de care ai nevoie
-useEffect(() => {
-  // Funcția care merge la baza de date și numără fanii
-  async function incarcaFollowers(userId: string) {
-    const { count } = await supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("following_id", userId);
-    
-    if (count !== null) setFollowerCount(count);
-  }
+function FollowersCount() {
+  const [followerCount, setFollowerCount] = useState<number>(0);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // REPARAT PENTRU REFRESH:
-  // Îi spunem lui Supabase: "Anunță-mă exact în milisecunda în care te-ai trezit și ai găsit utilizatorul!"
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user?.id) {
-      incarcaFollowers(session.user.id); // Trage datele reale imediat ce e gata!
+  // EFECTUL 1: Se ocupă strict de detectarea utilizatorului (Fără apeluri DB în interior)
+  useEffect(() => {
+    let isMounted = true;
+
+    // Aflăm instant dacă există deja o sesiune în cache la încărcarea paginii
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted && session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    });
+
+    // Ascultăm schimbările de login / logout
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) {
+        setUserId(session?.user?.id ?? null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // EFECTUL 2: Se execută DOAR când userId este disponibil și stabil
+  useEffect(() => {
+    let isMounted = true;
+
+    async function countFollowers() {
+      if (!userId) {
+        setFollowerCount(0); // Resetăm la 0 dacă utilizatorul s-a deconectat
+        return;
+      }
+
+      try {
+        const { count, error } = await supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", userId);
+
+        if (error) throw error;
+
+        if (isMounted && count !== null) {
+          setFollowerCount(count);
+        }
+      } catch (error) {
+        console.error("Eroare la citirea urmăritorilor:", error);
+      }
     }
-  });
 
-  return () => subscription.unsubscribe();
-}, []);
+    countFollowers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]); // Această dependență previne blocajele de execuție din Supabase
+
+  return (
+    <div>Urmăritori: {followerCount}</div>
+  );
+}
 
 /** handler streamer status */
   useEffect(() => {

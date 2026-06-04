@@ -129,45 +129,43 @@ function toViewer(p: RemoteParticipant): Viewer {
    VIEWER AVATAR
 ═══════════════════════════════════════════ */
 function ViewerAvatar({ viewer, size = 40, className = "" }: {
-  viewer: any; size?: number; className?: string; // Schimbat temporar în any ca să accepte LiveKit brute
+  viewer: any; size?: number; className?: string;
 }) {
   const [imgError, setImgError] = useState(false);
 
-  // ================= BUBĂ REPARATĂ AICI =================
-  // 1. Extrage avatarul din stringul JSON trimis de backend-ul tău
-  let finalAvatarUrl = viewer.avatarUrl;
-  if (!finalAvatarUrl && viewer.metadata) {
+  // REPARAT BUBĂ: Extrage link-ul din stringul JSON trimis de backend-ul tău
+  let realAvatarUrl = viewer.avatarUrl;
+  if (!realAvatarUrl && viewer.metadata) {
     try {
       const parsed = JSON.parse(viewer.metadata);
-      if (parsed.avatar_url) finalAvatarUrl = parsed.avatar_url;
+      if (parsed.avatar_url) realAvatarUrl = parsed.avatar_url;
     } catch (e) {}
   }
 
-  // 2. Extrage numele și generează inițiale și o culoare dacă ele lipsesc din LiveKit
-  const finalDisplayName = viewer.displayName || viewer.name || viewer.identity || "Guest";
-  const finalInitials = viewer.initials || finalDisplayName.substring(0, 2).toUpperCase();
-  const finalColor = viewer.color || "#888888"; // O culoare gri neutră de rezervă
-  // ======================================================
+  // REPARAT NUME: Dacă displayName lipsește, folosește numele nativ LiveKit
+  const realDisplayName = viewer.displayName || viewer.name || viewer.identity || "Guest";
+  const realInitials = viewer.initials || realDisplayName.substring(0, 2).toUpperCase();
+  const realColor = viewer.color || "#555555";
 
-  const showPhoto = finalAvatarUrl && !imgError;
+  const showPhoto = realAvatarUrl && !imgError;
 
   return (
     <div
       className={`rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}
-      style={{ width: size, height: size, background: showPhoto ? undefined : finalColor }}
+      style={{ width: size, height: size, background: showPhoto ? undefined : realColor }}
     >
       {showPhoto ? (
         <Image
-          src={finalAvatarUrl!}
-          alt={finalDisplayName}
+          src={realAvatarUrl!}
+          alt={realDisplayName}
           width={size} height={size}
           className="object-cover w-full h-full"
           unoptimized
           onError={() => setImgError(true)}
         />
       ) : (
-        <span style={{ fontSize: size * 0.33, fontWeight: 900, color: "#000", lineHeight: 1 }}>
-          {finalInitials}
+        <span style={{ fontSize: size * 0.33, fontWeight: 900, color: "#fff", lineHeight: 1 }}>
+          {realInitials}
         </span>
       )}
     </div>

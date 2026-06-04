@@ -828,18 +828,14 @@ export default function LiveStudioPage() {
     checkStreamerStatus();
   }, [supabase]);
 
-async function handleStartStream() {
+  async function handleStartStream() {
     if (!userProfile) return;
     setLoadingStream(true);
     setError("");
     const targetRoomId = `room_${userProfile.username}`;
-    
-    // REPARAT: Folosim doar .avatarUrl pentru că așa este definit în tipul tău UserProfile
-    const currentAvatar = userProfile.avatarUrl || "";
-
     try {
       const res = await fetch(
-        `/api/token?room=${encodeURIComponent(targetRoomId)}&username=${encodeURIComponent(userProfile.username)}&avatar_url=${encodeURIComponent(currentAvatar)}`
+        `/api/token?room=${encodeURIComponent(targetRoomId)}&username=${encodeURIComponent(userProfile.username)}`
       );
       const data = await res.json() as { token?: string; error?: string };
       if (!res.ok || !data.token) {
@@ -863,8 +859,7 @@ async function handleStartStream() {
     } finally {
       setLoadingStream(false);
     }
-}
-
+  }
 
   async function handleStopStream() {
     if (userProfile) {

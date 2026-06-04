@@ -834,8 +834,8 @@ async function handleStartStream() {
     setError("");
     const targetRoomId = `room_${userProfile.username}`;
     
-    // Extrage avatarul din profil (ia avatar_url sau avatarUrl, în funcție de cum e salvat în Supabase)
-    const currentAvatar = userProfile.avatar_url || userProfile.avatarUrl || "";
+    // REPARAT: Folosim doar .avatarUrl pentru că așa este definit în tipul tău UserProfile
+    const currentAvatar = userProfile.avatarUrl || "";
 
     try {
       const res = await fetch(

@@ -803,45 +803,55 @@ export default function LiveStudioPage() {
 /** handler followers */
 useEffect(() => {
   let isMounted = true;
+  let retryInterval: NodeJS.Timeout;
 
-  // 1. Definim funcția de numărare bazată pe ID-ul primit
-  async function countFollowers(userId: string) {
+  async function checkSessionAndCount() {
     try {
+      // Încercăm să luăm sesiunea curentă
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Buba la refresh: session este null pentru câteva milisecunde.
+      if (!session?.user?.id) {
+        return false; // Nu am găsit userul încă
+      }
+
+      // Dacă am găsit userul, facem numărătoarea în baza de date
       const { count, error } = await supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
-        .eq("following_id", userId);
+        .eq("following_id", session.user.id);
 
       if (error) throw error;
 
       if (isMounted && count !== null) {
-        setFollowerCount(count); // Sincronizare sigură
+        setFollowerCount(count);
       }
+      
+      return true; // Totul a fost citit cu succes
     } catch (error) {
-      console.error("Eroare la numărarea urmăritorilor:", error);
+      console.error("Eroare citire date:", error);
+      return true; // Oprim încercările în caz de eroare hard în query
     }
   }
 
-  // 2. Ascultăm starea autentificării în timp real
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user?.id) {
-      countFollowers(session.user.id);
+  // 1. Rulăm direct la încărcare (refresh)
+  checkSessionAndCount().then((success) => {
+    // 2. Dacă a dat fail (user null), pornim un interval scurt care verifică din nou
+    if (!success) {
+      retryInterval = setInterval(async () => {
+        const isDone = await checkSessionAndCount();
+        if (isDone && retryInterval) {
+          clearInterval(retryInterval); // Oprim verificările imediat ce am luat datele
+        }
+      }, 150); // Verifică la fiecare 150ms până e gata sesiunea
     }
   });
 
-  // 3. Verificare secundară imediată (în caz că sesiunea e deja gata în cache)
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session?.user?.id) {
-      countFollowers(session.user.id);
-    }
-  });
-
-  // Curățare la demontarea componentei pentru a evita scurgerile de memorie
   return () => {
     isMounted = false;
-    subscription.unsubscribe();
+    if (retryInterval) clearInterval(retryInterval);
   };
-}, []); 
+}, []);
 
 
 

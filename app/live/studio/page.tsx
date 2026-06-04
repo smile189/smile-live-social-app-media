@@ -791,7 +791,7 @@ export default function LiveStudioPage() {
     ), []);
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
- // const [followerCount, setFollowerCount] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
   const [loadingCheck, setLoadingCheck] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [lkToken, setLkToken] = useState("");
@@ -801,25 +801,26 @@ export default function LiveStudioPage() {
 
 
 /** handler followers */
-function FollowersCount() {
-  const [followerCount, setFollowerCount] = useState<number>(0);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // EFECTUL 1: Se ocupă strict de detectarea utilizatorului (Fără apeluri DB în interior)
   useEffect(() => {
     let isMounted = true;
 
-    // Aflăm instant dacă există deja o sesiune în cache la încărcarea paginii
+    // Verificăm imediat cache-ul local la încărcarea paginii
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (isMounted && session?.user?.id) {
-        setUserId(session.user.id);
+      if (isMounted && session?.user) {
+        // Înlocuiește {} cu logica ta reală de profile dacă descarci date din tabelul 'profiles'
+        setUserProfile({ id: session.user.id } as any); 
       }
+      if (isMounted) setLoadingCheck(false);
     });
 
-    // Ascultăm schimbările de login / logout
+    // Ascultăm modificările de sesiune (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (isMounted) {
-        setUserId(session?.user?.id ?? null);
+        if (session?.user) {
+          setUserProfile({ id: session.user.id } as any);
+        } else {
+          setUserProfile(null);
+        }
       }
     });
 
@@ -829,13 +830,14 @@ function FollowersCount() {
     };
   }, []);
 
-  // EFECTUL 2: Se execută DOAR când userId este disponibil și stabil
+  // 2. EFECTUL PENTRU FOLLOWERS (Rulează curat doar când ID-ul utilizatorului se schimbă)
   useEffect(() => {
     let isMounted = true;
+    const userId = userProfile?.id;
 
     async function countFollowers() {
       if (!userId) {
-        setFollowerCount(0); // Resetăm la 0 dacă utilizatorul s-a deconectat
+        if (isMounted) setFollowerCount(0);
         return;
       }
 
@@ -848,10 +850,10 @@ function FollowersCount() {
         if (error) throw error;
 
         if (isMounted && count !== null) {
-          setFollowerCount(count);
+          setFollowerCount(count); 
         }
-      } catch (error) {
-        console.error("Eroare la citirea urmăritorilor:", error);
+      } catch (err) {
+        console.error("Eroare la numărarea urmăritorilor:", err);
       }
     }
 
@@ -860,12 +862,7 @@ function FollowersCount() {
     return () => {
       isMounted = false;
     };
-  }, [userId]); // Această dependență previne blocajele de execuție din Supabase
-
-  return (
-    <div>Urmăritori: {followerCount}</div>
-  );
-}
+  }, [userProfile?.id]);
 
 /** handler streamer status */
   useEffect(() => {

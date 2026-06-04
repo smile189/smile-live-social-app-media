@@ -464,7 +464,10 @@ function LiveScreenInner({ streamerId, senderId, senderCoins, onStop, supabase }
         .find((pub) => pub.track?.kind === "video" && pub.source === Track.Source.Camera);
 
       if (publication?.track) {
-        await publication.track.replaceTrack(newVideoTrack);
+        const { LocalVideoTrack } = await import("livekit-client");
+        if (publication.track instanceof LocalVideoTrack) {
+          await publication.track.replaceTrack(newVideoTrack);
+        }
       }
     } catch (e) {
       console.error("Flip camera error:", e);

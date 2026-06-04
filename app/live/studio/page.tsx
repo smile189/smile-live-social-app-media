@@ -267,21 +267,29 @@ function LiveScreenInner({
     function onLeave(p: RemoteParticipant) {
       setViewers((prev) => prev.filter((v) => v.identity !== p.identity));
     }
-    // LiveKit fires these after the initial connect once name/metadata arrive
-    function onUpdate(p: RemoteParticipant) {
+    // ParticipantMetadataChanged: (prevMetadata, participant)
+    function onMetadataChanged(_prevMeta: string | undefined, p: RemoteParticipant | import("livekit-client").LocalParticipant) {
+      if (p.isLocal) return;
       setViewers((prev) =>
-        prev.map((v) => v.identity === p.identity ? toViewer(p) : v)
+        prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)
+      );
+    }
+    // ParticipantNameChanged: (prevName, participant)
+    function onNameChanged(_prevName: string, p: RemoteParticipant | import("livekit-client").LocalParticipant) {
+      if (p.isLocal) return;
+      setViewers((prev) =>
+        prev.map((v) => v.identity === p.identity ? toViewer(p as RemoteParticipant) : v)
       );
     }
     room.on(RoomEvent.ParticipantConnected, onJoin);
     room.on(RoomEvent.ParticipantDisconnected, onLeave);
-    room.on(RoomEvent.ParticipantMetadataChanged, onUpdate);
-    room.on(RoomEvent.ParticipantNameChanged, onUpdate);
+    room.on(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
+    room.on(RoomEvent.ParticipantNameChanged, onNameChanged);
     return () => {
       room.off(RoomEvent.ParticipantConnected, onJoin);
       room.off(RoomEvent.ParticipantDisconnected, onLeave);
-      room.off(RoomEvent.ParticipantMetadataChanged, onUpdate);
-      room.off(RoomEvent.ParticipantNameChanged, onUpdate);
+      room.off(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
+      room.off(RoomEvent.ParticipantNameChanged, onNameChanged);
     };
   }, [room]);
 

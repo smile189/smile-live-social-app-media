@@ -129,19 +129,37 @@ function toViewer(p: RemoteParticipant): Viewer {
    VIEWER AVATAR
 ═══════════════════════════════════════════ */
 function ViewerAvatar({ viewer, size = 40, className = "" }: {
-  viewer: Viewer; size?: number; className?: string;
+  viewer: any; size?: number; className?: string; // Schimbat temporar în any ca să accepte LiveKit brute
 }) {
   const [imgError, setImgError] = useState(false);
-  const showPhoto = viewer.avatarUrl && !imgError;
+
+  // ================= BUBĂ REPARATĂ AICI =================
+  // 1. Extrage avatarul din stringul JSON trimis de backend-ul tău
+  let finalAvatarUrl = viewer.avatarUrl;
+  if (!finalAvatarUrl && viewer.metadata) {
+    try {
+      const parsed = JSON.parse(viewer.metadata);
+      if (parsed.avatar_url) finalAvatarUrl = parsed.avatar_url;
+    } catch (e) {}
+  }
+
+  // 2. Extrage numele și generează inițiale și o culoare dacă ele lipsesc din LiveKit
+  const finalDisplayName = viewer.displayName || viewer.name || viewer.identity || "Guest";
+  const finalInitials = viewer.initials || finalDisplayName.substring(0, 2).toUpperCase();
+  const finalColor = viewer.color || "#888888"; // O culoare gri neutră de rezervă
+  // ======================================================
+
+  const showPhoto = finalAvatarUrl && !imgError;
+
   return (
     <div
       className={`rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}
-      style={{ width: size, height: size, background: showPhoto ? undefined : viewer.color }}
+      style={{ width: size, height: size, background: showPhoto ? undefined : finalColor }}
     >
       {showPhoto ? (
         <Image
-          src={viewer.avatarUrl!}
-          alt={viewer.displayName}
+          src={finalAvatarUrl!}
+          alt={finalDisplayName}
           width={size} height={size}
           className="object-cover w-full h-full"
           unoptimized
@@ -149,7 +167,7 @@ function ViewerAvatar({ viewer, size = 40, className = "" }: {
         />
       ) : (
         <span style={{ fontSize: size * 0.33, fontWeight: 900, color: "#000", lineHeight: 1 }}>
-          {viewer.initials}
+          {finalInitials}
         </span>
       )}
     </div>
@@ -696,37 +714,37 @@ function LiveScreenInner({ streamerId, senderId, senderCoins, onStop, supabase }
       </div>
 
       {/* Viewers panel */}
-   {showViewers && (
-  <div className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
-    onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}>
-    <div className="bg-[#111] rounded-t-[20px] max-h-[70%] flex flex-col">
-      <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
-      <div className="flex items-center justify-between px-4 pb-3">
-        <span className="text-[14px] font-black text-white">Viewers now ({viewers.length})</span>
-        <button onClick={() => setShowViewers(false)}
-          className="text-white/40 text-xl leading-none hover:text-white transition-colors" aria-label="Close">×</button>
-      </div>
-      <div className="overflow-y-auto flex-1 px-4 pb-6">
-        {viewers.length === 0
-          ? <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
-          : [...viewers].reverse().map((v) => {
-              const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
-              return (
-                
-                  <ViewerAvatar viewer={v} size={40} />
-                  <div className="flex-1">
-                    {/* REPARAT: Schimbat din v.displayName în v.name (cu fallback pe identity) */}
-                    <p className="text-[14px] font-bold text-white">{v.name || v.identity}</p>
-                    <p className="text-[12px] text-white/35">{mins < 1 ? "just joined" : `${mins} min ago`}</p>
-                  </div>
-                </div>
-              );
-            })
-        }
-      </div>
-    </div>
-  </div>
-)}
+      {showViewers && (
+        <div className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}>
+          <div className="bg-[#111] rounded-t-[20px] max-h-[70%] flex flex-col">
+            <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
+            <div className="flex items-center justify-between px-4 pb-3">
+              <span className="text-[14px] font-black text-white">Viewers now ({viewers.length})</span>
+              <button onClick={() => setShowViewers(false)}
+                className="text-white/40 text-xl leading-none hover:text-white transition-colors" aria-label="Close">×</button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 pb-6">
+              {viewers.length === 0
+                ? <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
+                : [...viewers].reverse().map((v) => {
+                    const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
+                    return (
+                      <div key={v.identity}
+                        className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0">
+                        <ViewerAvatar viewer={v} size={40} />
+                        <div className="flex-1">
+                          <p className="text-[14px] font-bold text-white">{v.displayName}</p>
+                          <p className="text-[12px] text-white/35">{mins < 1 ? "just joined" : `${mins} min ago`}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+          </div>
+        </div>
+      )}
 
       <RoomAudioRenderer />
     </div>

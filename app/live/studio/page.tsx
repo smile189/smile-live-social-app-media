@@ -75,7 +75,7 @@ interface GiftToastData {
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const MIN_FOLLOWERS = 2;
+const MIN_FOLLOWERS = 10;
 const AVATAR_COLORS = [
   "#FE2C55","#25F4EE","#7F77DD","#EF9F27",
   "#1D9E75","#D4537E","#378ADD","#FF6B81",
@@ -828,7 +828,7 @@ useEffect(() => {
   fetchMyFollowers();
 }, []); // Execută o singură dată la încărcarea paginii
 
-
+/** handler streamer status */
   useEffect(() => {
     async function checkStreamerStatus() {
       try {

@@ -75,7 +75,7 @@ interface GiftToastData {
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const MIN_FOLLOWERS = 0;
+const MIN_FOLLOWERS = 10;
 const AVATAR_COLORS = [
   "#FE2C55","#25F4EE","#7F77DD","#EF9F27",
   "#1D9E75","#D4537E","#378ADD","#FF6B81",
@@ -798,6 +798,27 @@ export default function LiveStudioPage() {
   const [error, setError] = useState("");
   const [loadingStream, setLoadingStream] = useState(false);
 
+
+
+
+useEffect(() => {
+  async function fetchMyFollowers() {
+    try {
+      // Modifică URL-ul cu endpoint-ul tău real care returnează profilul
+      const res = await fetch("/api/user/profile"); 
+      const data = await res.json();
+      
+      if (data && typeof data.followers === "number") {
+        setFollowerCount(data.followers); // Sincronizează cu valoarea reală din DB
+      }
+    } catch (error) {
+      console.error("Nu am putut încărca numărul de urmăritori:", error);
+    }
+  }
+
+  fetchMyFollowers();
+}, []); 
+
   useEffect(() => {
     async function checkStreamerStatus() {
       try {
@@ -886,6 +907,8 @@ export default function LiveStudioPage() {
       </div>
     );
   }
+
+
 
   if (isLive && lkToken && userProfile) {
     return (
@@ -1004,7 +1027,7 @@ export default function LiveStudioPage() {
         )}
       </div>
       <span>
-        {canGoLive ? "Start Broadcasting" : "Streaming Restricted"}
+        {canGoLive ? "Start smile LIVE" : "Streaming Restricted"}
       </span>
     </>
   )}

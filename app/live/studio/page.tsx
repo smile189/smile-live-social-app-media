@@ -80,7 +80,7 @@ interface GiftToastData {
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const MIN_FOLLOWERS = 100;
+const MIN_FOLLOWERS = 0;
 const AVATAR_COLORS = [
   "#FE2C55","#25F4EE","#7F77DD","#EF9F27",
   "#1D9E75","#D4537E","#378ADD","#FF6B81",

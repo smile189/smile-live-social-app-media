@@ -801,45 +801,28 @@ export default function LiveStudioPage() {
 
 
 /** handler followers */
-
-
+// 2. SINGURUL useEffect de care ai nevoie
 useEffect(() => {
-  let isMounted = true;
-
-  // 1. Funcția de numărare rămâne neschimbată
-  async function countFollowers(userId: string) {
-    try {
-      const { count, error } = await supabase
-        .from("follows")
-        .select("*", { count: "exact", head: true })
-        .eq("following_id", userId);
-
-      if (error) throw error;
-
-      if (isMounted && count !== null) {
-        setFollowerCount(count); 
-      }
-    } catch (error) {
-      console.error("Eroare la numărarea urmăritorilor:", error);
-    }
+  // Funcția care merge la baza de date și numără fanii
+  async function incarcaFollowers(userId: string) {
+    const { count } = await supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_id", userId);
+    
+    if (count !== null) setFollowerCount(count);
   }
 
-  // 2. Singurul ascultător necesar. Prinde și sesiunea din cache, și schimburile de utilizator.
+  // REPARAT PENTRU REFRESH:
+  // Îi spunem lui Supabase: "Anunță-mă exact în milisecunda în care te-ai trezit și ai găsit utilizatorul!"
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user?.id) {
-      countFollowers(session.user.id);
-    } else {
-      if (isMounted) setFollowerCount(0); // Siguranță: resetăm dacă userul a dat logout
+      incarcaFollowers(session.user.id); // Trage datele reale imediat ce e gata!
     }
   });
 
-  // Curățare la demontare
-  return () => {
-    isMounted = false;
-    subscription.unsubscribe();
-  };
+  return () => subscription.unsubscribe();
 }, []);
-
 
 /** handler streamer status */
   useEffect(() => {

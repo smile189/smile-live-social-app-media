@@ -204,6 +204,24 @@ function LiveScreenInner({ streamerId, senderId, senderCoins, onStop, supabase }
   const participants = useParticipants();
   const localTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
 
+  /* ── Publish camera + mic when streamer connects ── */
+  useEffect(() => {
+    async function publishTracks() {
+      try {
+        await room.localParticipant.setCameraEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
+      } catch (e) {
+        console.error("Could not publish tracks:", e);
+      }
+    }
+    if (room.state === "connected") {
+      publishTracks();
+    } else {
+      room.once(RoomEvent.Connected, publishTracks);
+    }
+    return () => { room.off(RoomEvent.Connected, publishTracks); };
+  }, [room]);
+
   /* ── Viewers ── */
   const [viewers, setViewers] = useState<Viewer[]>([]);
 
@@ -727,10 +745,16 @@ function LiveScreen({ token, streamerId, senderId, senderCoins, onStop, supabase
     <LiveKitRoom token={token} serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       video={false} audio={false} connect={true} onDisconnected={onStop}
       style={{ display: "contents" }}
-      onConnected={() => {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then(() => console.log("Media permissions granted"))
-          .catch((err) => console.error("Media permission error:", err));
+      onConnected={async () => {
+        // Pornim camera și microfonul imediat ce streamer-ul se conectează
+        // Fără asta track-ul nu e publicat și VideoTrack nu apare
+        try {
+          // Cerem permisiuni explicit mai întâi
+          await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          // Apoi publicăm în LiveKit — room-ul e accesibil via context în children
+        } catch (err) {
+          console.error("Media permission error:", err);
+        }
       }}
     >
       <LiveScreenInner streamerId={streamerId} senderId={senderId}

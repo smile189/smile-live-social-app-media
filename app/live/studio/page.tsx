@@ -929,7 +929,7 @@ export default function LiveStudioPage() {
         <div className="mx-4 mb-5 flex items-start gap-2.5 bg-amber-400/[0.07] border border-amber-400/20 rounded-[14px] px-3.5 py-3">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <p className="text-[13px] text-amber-300/80 leading-relaxed">
-            You need <span className="font-bold text-amber-300">1,000 followers</span> to unlock live streaming.
+            You need <span className="font-bold text-amber-300">100 followers</span> to unlock live streaming.
           </p>
         </div>
       )}
@@ -963,37 +963,57 @@ export default function LiveStudioPage() {
       )}
 
       <div className="mx-4 flex flex-col gap-2.5 mb-6">
-        <button onClick={handleStartStream} disabled={loadingStream || !canGoLive}
-          className="w-full py-[18px] rounded-2xl flex items-center justify-center gap-2.5 text-[15px] font-black tracking-tight transition-all
-            bg-gradient-to-r from-[#FE2C55] to-[#ff6b81] shadow-[0_8px_30px_rgba(254,44,85,0.35)]
-            hover:shadow-[0_12px_40px_rgba(254,44,85,0.45)] hover:-translate-y-0.5
-            disabled:bg-none disabled:bg-[#222] disabled:text-white/20 disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed">
-          {loadingStream
-            ? <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            : <><Radio className="h-5 w-5" />{canGoLive ? "Start Broadcasting" : "Streaming Restricted"}</>
-          }
-        </button>
-        <a href="https://wa.me/407294117666" target="_blank" rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-center gap-2.5 text-[13px] font-semibold text-white/50 hover:text-white hover:border-white/20 transition-all">
-          <Phone className="h-4 w-4" />
-          Support & Partnerships
-        </a>
+<button 
+  onClick={handleStartStream} 
+  disabled={loadingStream || !canGoLive}
+  className="
+    /* Layout & Dimensiuni */
+    w-full py-4 md:py-4.5 px-6 rounded-2xl flex items-center justify-center gap-3 
+    text-[15px] md:text-[16px] font-black tracking-wide uppercase select-none transition-all duration-300
+    
+    /* Culori și Gradient implicit */
+    text-white bg-gradient-to-r from-[#FE2C55] via-[#FF4D75] to-[#FF6B81] bg-[length:200%_auto]
+    
+    /* Umbre și Efecte Premium (Desktop Only Hover) */
+    shadow-[0_8px_25px_rgba(254,44,85,0.35)]
+    hover:bg-[right_center] hover:-translate-y-0.5
+    hover:shadow-[0_15px_35px_rgba(254,44,85,0.5),_0_0_15px_rgba(254,44,85,0.3)]
+    active:translate-y-0 active:scale-[0.98]
+    
+    /* Inel exterior (Border Glow pe focus/hover desktop) */
+    focus:outline-none focus:ring-4 focus:ring-[#FE2C55]/30
+    
+    /* Starea DISABLED (Curățată și profesională) */
+    disabled:pointer-events-none disabled:bg-none disabled:bg-[#1E1E24] 
+    disabled:text-[#4A4A57] disabled:border disabled:border-[#2D2D37] disabled:shadow-none
+  "
+>
+  {loadingStream ? (
+    <div className="flex items-center gap-2">
+      {/* Loader modern cu efect de fade secundar */}
+      <div className="h-5 w-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+      <span className="text-white/80 normal-case font-medium tracking-normal">Connecting to server...</span>
+    </div>
+  ) : (
+    <>
+      {/* Iconiță cu efect de pulse dacă utilizatorul poate da Live */}
+      <div className={`relative flex items-center justify-center ${canGoLive ? "animate-pulse" : ""}`}>
+        <Radio className={`h-5 w-5 ${canGoLive ? "text-white" : "text-[#4A4A57]"}`} />
+        {canGoLive && (
+          <span className="absolute inline-flex h-full w-full rounded-full bg-white/30 animate-ping opacity-75" />
+        )}
+      </div>
+      <span>
+        {canGoLive ? "Start Broadcasting" : "Streaming Restricted"}
+      </span>
+    </>
+  )}
+</button>
+
+
       </div>
 
-      <div className="mx-4 flex flex-col gap-2">
-        <Tip icon={Lightbulb}>
-          <strong className="text-white/80 font-semibold">Tip:</strong>{" "}
-          Streams lasting 30+ minutes generate 4× more Smiles.
-        </Tip>
-        <Tip icon={TrendingUp}>
-          <strong className="text-white/80 font-semibold">Peak hours:</strong>{" "}
-          The best time to go live is between 7:00 PM – 11:00 PM.
-        </Tip>
-        <Tip icon={Coins}>
-          <strong className="text-white/80 font-semibold">Monetize:</strong>{" "}
-          Activate brand campaigns directly from your stream settings.
-        </Tip>
-      </div>
+
     </div>
   );
 }

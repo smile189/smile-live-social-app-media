@@ -800,24 +800,34 @@ export default function LiveStudioPage() {
 
 
 
-
+/** handler followers */
 useEffect(() => {
   async function fetchMyFollowers() {
     try {
-      // Modifică URL-ul cu endpoint-ul tău real care returnează profilul
-      const res = await fetch("/api/user/profile"); 
-      const data = await res.json();
-      
-      if (data && typeof data.followers === "number") {
-        setFollowerCount(data.followers); // Sincronizează cu valoarea reală din DB
+      // 1. Preluăm sesiunea utilizatorului curent
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
+      // 2. Interogăm direct tabelul tău 'follows'
+      const { count, error } = await supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true }) // head: true face doar COUNT, este super rapid
+        .eq("following_id", session.user.id); // Numărăm câți îl urmăresc pe el
+
+      if (error) throw error;
+
+      // 3. Sincronizăm starea React cu numărul real
+      if (count !== null) {
+        setFollowerCount(count);
       }
     } catch (error) {
-      console.error("Nu am putut încărca numărul de urmăritori:", error);
+      console.error("Nu am putut încărca numărul de urmăritori din Supabase:", error);
     }
   }
 
   fetchMyFollowers();
-}, []); 
+}, []); // Execută o singură dată la încărcarea paginii
+
 
   useEffect(() => {
     async function checkStreamerStatus() {

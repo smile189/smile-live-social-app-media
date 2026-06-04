@@ -75,7 +75,7 @@ interface GiftToastData {
 /* ═══════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════ */
-const MIN_FOLLOWERS = 5;
+const MIN_FOLLOWERS = 10;
 const AVATAR_COLORS = [
   "#FE2C55","#25F4EE","#7F77DD","#EF9F27",
   "#1D9E75","#D4537E","#378ADD","#FF6B81",
@@ -802,31 +802,48 @@ export default function LiveStudioPage() {
 
 /** handler followers */
 useEffect(() => {
-  async function fetchMyFollowers() {
-    try {
-      // 1. Preluăm sesiunea utilizatorului curent
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+  let isMounted = true;
 
-      // 2. Interogăm direct tabelul tău 'follows'
+  // 1. Definim funcția de numărare bazată pe ID-ul primit
+  async function countFollowers(userId: string) {
+    try {
       const { count, error } = await supabase
         .from("follows")
-        .select("*", { count: "exact", head: true }) // head: true face doar COUNT, este super rapid
-        .eq("following_id", session.user.id); // Numărăm câți îl urmăresc pe el
+        .select("*", { count: "exact", head: true })
+        .eq("following_id", userId);
 
       if (error) throw error;
 
-      // 3. Sincronizăm starea React cu numărul real
-      if (count !== null) {
-        setFollowerCount(count);
+      if (isMounted && count !== null) {
+        setFollowerCount(count); // Sincronizare sigură
       }
     } catch (error) {
-      console.error("Nu am putut încărca numărul de urmăritori din Supabase:", error);
+      console.error("Eroare la numărarea urmăritorilor:", error);
     }
   }
 
-  fetchMyFollowers();
-}, []); // Execută o singură dată la încărcarea paginii
+  // 2. Ascultăm starea autentificării în timp real
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) {
+      countFollowers(session.user.id);
+    }
+  });
+
+  // 3. Verificare secundară imediată (în caz că sesiunea e deja gata în cache)
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user?.id) {
+      countFollowers(session.user.id);
+    }
+  });
+
+  // Curățare la demontarea componentei pentru a evita scurgerile de memorie
+  return () => {
+    isMounted = false;
+    subscription.unsubscribe();
+  };
+}, []); 
+
+
 
 /** handler streamer status */
   useEffect(() => {

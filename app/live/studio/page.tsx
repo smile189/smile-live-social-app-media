@@ -696,37 +696,37 @@ function LiveScreenInner({ streamerId, senderId, senderCoins, onStop, supabase }
       </div>
 
       {/* Viewers panel */}
-      {showViewers && (
-        <div className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}>
-          <div className="bg-[#111] rounded-t-[20px] max-h-[70%] flex flex-col">
-            <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
-            <div className="flex items-center justify-between px-4 pb-3">
-              <span className="text-[14px] font-black text-white">Viewers now ({viewers.length})</span>
-              <button onClick={() => setShowViewers(false)}
-                className="text-white/40 text-xl leading-none hover:text-white transition-colors" aria-label="Close">×</button>
-            </div>
-            <div className="overflow-y-auto flex-1 px-4 pb-6">
-              {viewers.length === 0
-                ? <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
-                : [...viewers].reverse().map((v) => {
-                    const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
-                    return (
-                      <div key={v.identity}
-                        className="flex items-center gap-3 py-2.5 border-b border-white/[0.05] last:border-0">
-                        <ViewerAvatar viewer={v} size={40} />
-                        <div className="flex-1">
-                          <p className="text-[14px] font-bold text-white">{v.displayName}</p>
-                          <p className="text-[12px] text-white/35">{mins < 1 ? "just joined" : `${mins} min ago`}</p>
-                        </div>
-                      </div>
-                    );
-                  })
-              }
-            </div>
-          </div>
-        </div>
-      )}
+   {showViewers && (
+  <div className="absolute inset-0 z-40 bg-black/75 flex flex-col justify-end"
+    onClick={(e) => { if (e.target === e.currentTarget) setShowViewers(false); }}>
+    <div className="bg-[#111] rounded-t-[20px] max-h-[70%] flex flex-col">
+      <div className="w-9 h-1 bg-white/15 rounded-full mx-auto mt-3 mb-4" />
+      <div className="flex items-center justify-between px-4 pb-3">
+        <span className="text-[14px] font-black text-white">Viewers now ({viewers.length})</span>
+        <button onClick={() => setShowViewers(false)}
+          className="text-white/40 text-xl leading-none hover:text-white transition-colors" aria-label="Close">×</button>
+      </div>
+      <div className="overflow-y-auto flex-1 px-4 pb-6">
+        {viewers.length === 0
+          ? <p className="text-[13px] text-white/30 text-center py-8">No viewers right now</p>
+          : [...viewers].reverse().map((v) => {
+              const mins = Math.floor((Date.now() - v.joinedAt) / 60000);
+              return (
+                
+                  <ViewerAvatar viewer={v} size={40} />
+                  <div className="flex-1">
+                    {/* REPARAT: Schimbat din v.displayName în v.name (cu fallback pe identity) */}
+                    <p className="text-[14px] font-bold text-white">{v.name || v.identity}</p>
+                    <p className="text-[12px] text-white/35">{mins < 1 ? "just joined" : `${mins} min ago`}</p>
+                  </div>
+                </div>
+              );
+            })
+        }
+      </div>
+    </div>
+  </div>
+)}
 
       <RoomAudioRenderer />
     </div>

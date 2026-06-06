@@ -7,7 +7,7 @@ import Footer from "@/app/landing/footer/footer";
 
 const founders = [
   {
-    name: 'Alexandra Stefan',
+    name: 'AS',
     role: 'Chief Executive Officer',
     focus: 'Co-Founder & CEO, Product Strategy & Growth',
     initials: 'A S',
@@ -21,7 +21,7 @@ const founders = [
     rate: '€10,000/hr'
   },
   {
-    name: 'B Marius',
+    name: 'BM26',
     role: 'Chief Technology Officer',
     focus: 'Co-Founder & CTO, Infrastructure & Architecture',
     initials: 'B M',
